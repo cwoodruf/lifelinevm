@@ -1,0 +1,543 @@
+<?php # mysql related php "middleware"
+# $Id: mysql.php,v 1.14 2008/10/26 04:59:15 root Exp root $
+require_once("$lib/.mysql.php");
+
+###############################################################################
+# lifeline section
+$gst_rate = 0.05;
+$pst_rate = 0.07;
+$net_due = 30; # grace period for paying invoices in days
+$min_months = 4; # minimum # months you can buy
+# personal information associated with a box
+$personal_fields = array(
+	'name' => 'Name',
+	'email' => 'Email',
+	'notes' => 'Notes',
+);
+
+function ll_connect () {
+	global $lldb;
+	global $ll_login;
+	global $ll_password;
+	if (isset($lldb)) return $lldb;
+	try {
+		$lldb = new PDO('mysql:dbname=lifeline;host=localhost',$ll_login,$ll_password);
+	} catch (Exception $e) {
+		die("ll_connect failed: ".$e->getMessage());
+	}
+	return $lldb;
+}
+
+function ll_disconnect () {
+	// there does not seem to be any way to close a db handle with PDO
+}
+
+function ll_vendor_ok($vendor) {
+	return preg_match('#^[ \w\(\)\[\]\-]{1,128}#',$vendor);
+}
+
+function ll_vendor($vid,$refresh=false) {
+	global $vend;
+	if ($vid == -1) return ll_load_from_table('vendors','vid',-1,false);
+	if (!preg_match('#^\d+$#',$vid)) return;
+	if (isset($vend) and $vend['vid'] === $vid and !$refresh) return $vend;
+	$vend = ll_load_from_table('vendors','vid',$vid,false);
+	$vend['unpaid_months'] = ll_get_unpaid_months($vid);
+	return $vend;
+}
+
+function ll_del_vendor($vid) {
+	$lldb = ll_connect();
+	if (!preg_match('#^\d+$#',$vid) or $vid <= 0) die("ll_del_vendor: bad vendor id $vid!");
+	$result = $lldb->exec(
+		"update vendors set status='deleted' where vid='$vid'");
+	if ($result === false) die("ll_del_vendor: ".$lldb->errInfo());
+	return true;
+}
+
+function ll_get_unpaid_months($vid) {
+	$invoices = ll_load_from_table('invoices','vid',$vid);
+	foreach ($invoices as $idata) {
+		if (!empty($idata['paidon'])) continue;
+		$months += $idata['months'];
+	}
+	return $months;
+}
+
+function ll_vendors($vid) {
+	$lldb = ll_connect();
+	if (!preg_match('#^\d*#',$vid)) die("invalid vendor id!");
+	if ($vid > 0) {
+		$getvendors = " and parent='$vid' ";
+	}
+	$query = "select * from vendors where status not in ('deleted') $getvendors order by vendor";
+	$st = $lldb->query($query);
+	if ($st === false) die(ll_err());
+	$rows = $st->fetchAll();
+	if (count($rows)) return $rows;
+	return false;
+}
+
+function ll_add_user($vend,$login,$password,$perms) {
+	if (!preg_match('#^\d+$#',$vend['vid'])) 
+		die("Bad vendor ".$vend['vid'].", ".$vend['vendor']."!");
+	if (!preg_match('#^\S{1,32}$#',$login)) die("bad login $login!");
+	if (!preg_match('#^[\w:]*$#',$perms)) die("bad perms $perms!");
+	if (!empty($password)) {
+		if (!preg_match('#^\S{1,32}$#',$password)) die("bad password $password!");
+		$udata['password'] = md5($password);
+	}
+	$udata['vid'] = $vend['vid'];
+	$udata['login'] = $login;
+	if ($perms) $udata['perms'] = $perms;
+	$udata['created'] = date('Y-m-d H:i:s');
+	ll_save_to_table('insert','users',$udata,null,$uid);
+}
+
+function ll_del_user($vend,$login) {
+	global $lldb;
+	if (!isset($vend)) die("no vendor!");
+	if (!preg_match('#^\S{1,32}$#',$login)) die("bad login $login!");
+	$udata = ll_pw_data($login);
+	// user doesn't exist
+	if ($udata['vid'] === null) return;
+	$vid = $vend['vid'];
+	if ($udata['vid'] != $vid) 
+		die("user $login does not belong with vendor ".$vend['vendor']." ($vid)"); 
+	$login = $lldb->quote($login);
+	$rows = $lldb->exec("delete from users where login=$login and vid=$vid");
+	if ($rows === false) die(ll_err());
+}
+	
+function ll_users($vend) {
+	return ll_load_from_table('users','vid',$vend['vid']);
+}
+
+function ll_check_box($box) {
+	if (preg_match('#^\d{4,32}$#',$box)) return true;
+	else die("bad box number '$box'!");
+} 
+
+function ll_check_seccode($seccode) {
+	if (!preg_match('#^\d{4}$#',$seccode)) die("Invalid security code $seccode!");
+	return true;
+}
+
+function ll_box($box) {
+	ll_check_box($box);
+	return ll_load_from_table('boxes','box',$box,false);
+}
+
+function ll_boxes($vend,$status='not_deleted',$order = "order by paidto desc") {
+	if ($status == 'deleted') $status = " and status in ('deleted')";
+	else if ($status == 'not_deleted') $status = " and status not in ('deleted')";
+	
+	return ll_load_from_table('boxes','vid',$vend['vid'],true," $status $order");
+}
+
+function ll_find_boxes($vend,$search) {
+	$lldb = ll_connect();
+	foreach (array('box', 'name', 'email', 'created', 'paidto') as $field) {
+		if (is_array($search[$field])) {
+			$values = '';
+			foreach ($search[$field] as $value) {
+				if (!$value) continue;
+				$value = $lldb->quote($value);
+				if ($values) $values .= ',';
+				$values .= $value;
+			}
+			if ($values) $where .= " and $field in ($values)";
+		} else if ($search[$field]) {
+			$value = $lldb->quote($search[$field].'%');
+			$where .= " and $field like ($value)";
+		}
+	}
+	return ll_load_from_table('boxes','vid',$vend['vid'],true,$where);
+}
+
+function ll_check_months($vend,$months) {
+	if (!preg_match('#^(?:-|)\d+$#',$months) or $months == 0 or abs($months) > 24) 
+		die("Invalid months value $months!");
+	if ($vend['months'] < $months) 
+		die("Vendor ".$vend['name']." only has ".$vend['months']." month(s) available!");
+	return $months;
+}
+
+function ll_months_left($date) {
+        $months = round((strtotime($date) - time())/(31*86400));
+        if ($months < 0) $months = 0;
+        return $months;
+}
+
+function ll_get_owing($vend=null) {
+	$lldb = ll_connect();
+	$query = "select vid,sum(total) from invoices where date(paidon) is null ";
+	if (isset($vend)) $query .= "and vid='".$vend['vid']."' ";
+	$query .= "group by vid";
+	$st = $lldb->query($query);
+	if ($st === false) die(ll_err());
+	if (isset($vend)) {
+		$row = $st->fetch();
+		return $row[1];
+	}
+	while ($row = $st->fetch()) {
+		$owing[$row[0]] = $row[1];
+	}
+	return $owing;
+}
+
+# audit trail type of log - can also be used with paycodes if they get implemented
+function ll_log($vend,$cdata) {
+	global $ldata;
+	$cdata['login'] = $ldata['login'];
+	$cdata['app'] = $ldata['app'];
+	$cdata['vid'] = $vend['vid'];
+	return ll_save_to_table('insert','updates',$cdata,null,$vid,true);
+}
+
+# find a new box based on a range of numbers
+function ll_new_box($vend,$months,$min_box,$max_box,$activate) {
+	global $ldata;
+	if (!preg_match('#^\d+$#',$min_box) or !preg_match('#^\d+$#',$max_box) or $max_box == $min_box) {
+		die("ll_new_box: bad box range $min_box, $max_box!");
+	}
+	if ($min_box > $max_box) list($max_box,$min_box) = array($min_box,$max_box);
+
+	$cutoff_interval = '6 months';
+	ll_check_months($vend,$months);
+	$vdata['months'] = $vend['months'] - $months;
+	$lldb = ll_connect();
+	$st = $lldb->query(
+		"select min(box),max(box) from boxes ".
+		"where box between '$min_box' and '$max_box'"
+	);
+	if ($st === false) die(ll_err());
+	$row = $st->fetch();
+	$st->closeCursor();
+	$low_box = $row[0];
+	$hi_box = $row[1];
+	if ($hi_box < $max_box) $box = sprintf('%04d',$hi_box + 1);
+	else if ($low_box > $min_box) $box = sprintf('%04d',$low_box - 1);
+	else {
+		$query = "select min(box) from boxes ".
+			"where box between '$min_box' and '$max_box' and ".
+			"paidto is not null and status in ('deleted')";
+		$st = $lldb->query($query);
+		if ($st === false) die(ll_err());
+		$row = $st->fetch();
+		$box = $row[0];
+		$st->closeCursor();
+		if ($box > $max_box or $box < $min_box) 
+			die("Can't find box in range $min_box to $max_box");
+		$update = true;
+	}
+	$seccode = sprintf('%04d',rand(0,$max_box));
+	if ($activate) {
+		$paidto = date('Y-m-d',strtotime("+$months months"));
+	} else {
+		$add = "add $months months";
+	}
+	if ($update) $query = "update boxes set ".
+			"seccode=md5('$seccode'),vid='$vend[vid]',modified=now(),".
+			"paidto='$paidto',new_msgs=0,login='$ldata[login]',status='$add'";
+	else $query = "insert into boxes (box,seccode,vid,paidto,login,modified,created,status) ".
+		"values ('$box',md5('$seccode'),'$vend[vid]','$paidto','$ldata[login]',now(),now(),'$add')";
+	$result = $lldb->exec($query);
+	if ($result === false) die(ll_err());
+	ll_log($vend,array('newpaidto'=>$paidto,'box'=>$box,'months'=>$months,'action'=>'new_box'));
+	if (ll_save_to_table('update','vendors',$vdata,'vid',$vend['vid'])) 
+		return array($box,$seccode,$paidto);
+}
+
+function ll_add_time($vend,$box,$months) {
+	global $ldata;
+	global $pt_cutoff;
+	if (!preg_match('#^\d+$#',$vend['vid'])) die("ll_add_time: bad vendor id!");
+	if (!preg_match('#^\d+$#',$box)) die("ll_add_time: bad box id!");
+	if (!preg_match('#^\d\d?$#',$months)) die("invalid months value!");
+	ll_check_box($box);
+	ll_check_months($vend['vid'],$months);
+	$bdata = ll_load_from_table('boxes','box',$box,false);
+	if ($bdata['status'] === 'deleted') die("Box $box is deleted!");
+	if ($bdata['vid'] !== $vend['vid']) 
+		die("Box $box does not belong to vendor ".$vend['vendor']."! Please contact us.");
+	# if you are subtracting time make sure box has enough time to subtract from
+	if (preg_match('#^-#',$months) and abs($months) > ll_months_left($bdata['paidto']))
+		die("Box $box does not have ".abs($months)." months left!");
+	if (preg_match('#^0#',$bdata['paidto'])) $bdata['paidto'] = '';
+	$op = preg_match('#^-#',$months) ? '' : '+';
+	$paidto = strtotime($bdata['paidto']);
+	if ($paidto < time() - $pt_cutoff) { $start = date('Y-m-d'); }
+	else $start = $bdata['paidto'];
+	$udata['paidto'] = date('Y-m-d',strtotime("$start $op$months months"));
+	$udata['login'] = $ldata['login'];
+	if (ll_save_to_table('update','boxes',$udata,'box',$box)) {
+		ll_log($vend, array('oldpaidto'=>$bdata['paidto'],'newpaidto'=>$udata['paidto'],
+				'box'=>$box,'months'=>$months,'action'=>'add_time','login'=>$ldata['login']));
+		$vdata['months'] = $vend['months'] - $months;
+		if (ll_save_to_table('update','vendors',$vdata,'vid',$vend['vid'])) 
+			return $udata['paidto'];
+	}
+}
+
+function ll_update_personal($vend,$box,$personal) {
+	global $personal_fields;
+	$bdata = ll_load_from_table('boxes','box',$box,false);
+	if ($bdata['vid'] !== $vend['vid']) 
+		die("Box $box does not belong to vendor ".$vend['vendor']."! Please contact us.");
+	foreach ($personal_fields as $field => $title) {
+		$sdata[$field] = $personal[$field];
+	}
+	return ll_save_to_table('update','boxes',$sdata,'box',$box,true);
+}
+
+function ll_update_seccode($vend,$box,$seccode) {
+	ll_check_box($box);
+	ll_check_seccode($seccode);
+	$bdata = ll_load_from_table('boxes','box',$box,false);
+	if ($bdata['vid'] !== $vend['vid']) 
+		die("Box $box does not belong to vendor ".$vend['vendor']."! Please contact us.");
+	$sdata['seccode'] = md5($seccode);
+	return ll_save_to_table('update','boxes',$sdata,'box',$box);
+}
+
+function ll_delete_box($vend,$box) {
+	ll_check_box($box);
+	$bdata = ll_load_from_table('boxes','box',$box,false);
+	if ($bdata['vid'] !== $vend['vid']) 
+		die("Box $box does not belong to vendor ".$vend['vendor']."! Please contact us.");
+	$lldb = ll_connect();
+	$months = ll_months_left($bdata['paidto']);
+	$ddata['status'] = 'deleted';
+	$ddata['paidto'] = null;
+	if (ll_save_to_table('update','boxes',$ddata,'box',$box)) {
+		ll_log($vend, array('oldpaidto'=>$bdata['paidto'],
+				'box'=>$box,'months'=>(-1*$months),'action'=>'delete_box'));
+		if ($months > 0) {
+			$vdata['months'] = $vend['months'] + $months;
+			ll_save_to_table('update','vendors',$vdata,'vid',$vend['vid']);
+		}
+		return true;
+	}
+}
+
+function ll_invoice($invoice) {
+	if (preg_match('#^\d{1,32}$#',$invoice)) {
+		return ll_load_from_table('invoices','invoice',$invoice,false);
+	}
+}
+
+function ll_invoices($all=false,$vend=null) {
+	$lldb = ll_connect();
+	$fields = "invoice,vendor,date(invoices.created) as created,gst,total,date(paidon) as paidon ";
+	$orderby = "order by invoice";
+	if ($all) $query = "select $fields from invoices,vendors ".
+		"where vendors.vid=invoices.vid ";
+	else $query = "select $fields from invoices,vendors ".
+		"where vendors.vid=invoices.vid and paidon is null ";
+	if (isset($vend)) $query .= "and invoices.vid='".$vend['vid']."' ";
+	$query .= $orderby;
+	$st = $lldb->query($query);
+	if ($st === false) die(ll_err());
+	$rows = $st->fetchAll();
+	return $rows;
+}
+
+function ll_pay_invoices($invoices) {
+	$lldb = ll_connect();
+	$query = "update invoices set paidon=now() where invoice in (";
+	foreach ($invoices as $invoice) {
+		if (!preg_match('#^\d+$#',$invoice)) continue;
+		$query .= "$invoice,";
+		$count++;
+	}
+	if (!$count) return;
+	$query = preg_replace('#,$#',')',$query);
+	$rows = $lldb->exec($query);
+	if ($rows === false) die(ll_err());
+}
+
+function ll_generate_trans($vend) {
+	$data['trans'] = $vend['vid']."~".time().".".(rand(0,10000));
+	$data['vid'] = $vend['vid'];
+	ll_save_to_table('insert','transactions',$data,null,$newvid);
+	return $data['trans'];
+}
+
+function ll_delete_trans($vend,$trans) {
+	global $lldb;
+	$data = ll_load_from_table('transactions','trans',$trans,false);
+	if (!isset($data)) die("Transaction $trans has expired!");
+	if ($data['vid'] != $vend['vid']) 
+		die("Transaction $trans invalid!");
+	$rows = $lldb->exec("delete from transactions where trans='$trans'");
+	if ($rows === false) die(ll_err());
+}
+
+function ll_generate_invoice($vend,$months) {
+	global $ldata;
+	global $gst_rate, $pst_rate;
+	$lldb = ll_connect();
+	$st = $lldb->query("select max(invoice) from invoices");
+        if ($st === false) die(ll_err());
+	$row = $st->fetch();
+	$st->closeCursor();
+        $idata['invoice'] = $row[0] + 1;
+	$idata['login'] = $ldata['login'];
+	$idata['vid'] = $vend['vid'];
+	$idata['months'] = $months;
+	$idata['total'] = sprintf('%.2f',$months * $vend['rate']);
+	$idata['created'] = date('Y-m-d H:i:s');
+	if ($vend['gstexempt']) {
+		$idata['gst'] = 0;
+	} else {
+		$idata['gst'] = sprintf('%.2f', $idata['total'] * $gst_rate);
+		$idata['pst'] = sprintf('%.2f', $idata['total'] * $pst_rate);
+		$idata['total'] = sprintf ('%.2f', $idata['total'] + $idata['gst']);
+	}
+	if (ll_save_to_table('insert','invoices',$idata,null,$newid)) {
+		$vdata['months'] = "+".$months;
+		$vdata['all_months'] = "+".$months;
+		if (ll_save_to_table('update','vendors',$vdata,'vid',$vend['vid']))
+			return $idata['invoice'];
+	} else {
+		die("ERROR: unable to generate invoice!");
+	}
+}
+
+function ll_save_to_table($action,$table,$data,$name='',&$key='',$literal=false) {
+	$lldb = ll_connect();
+	if ($action === 'insert') {
+		$query = "insert into $table (";
+		$end = " values (";
+		foreach ($data as $field => $value) {
+			$query .= "$field,";
+			if ($literal === false and preg_match('#^([\+\*/%-])(\d+)$#',$value,$m)) 
+				$end .= "$field ".$m[1]." ".$m[2];
+			else $end .= $lldb->quote($value).",";
+		}
+		$query = preg_replace('#,$#',')',$query);
+		$end = preg_replace('#,$#',')',$end);
+		$query = $query.$end;
+	} else if ($action === 'update') {
+		if ($name === '' or $key === '') die("need a key,value pair for updates!");
+		$query = "update $table set ";
+		foreach ($data as $field => $value) {
+			if ($literal == false and preg_match('#^([\+\*/%-])(\d+)$#',$value,$m)) 
+				$val = "$field ".$m[1]." ".$m[2];
+			else $val = $lldb->quote($value);
+			$query .= "$field = $val,";
+		}
+		$query = preg_replace('#,$#',' ',$query);
+		$query .= "where $name = ".$lldb->quote($key);
+	}
+	$res = $lldb->exec($query);
+	if ($res === false) die(ll_err($query));
+	if ($action === 'insert') {
+		$st = $lldb->query("select last_insert_id()");
+		$row = $st->fetch();
+		$key = $row[0];
+	}
+	return true;
+}
+
+function ll_load_from_table($table,$name,$key,$return_all=true,$query_end='') {
+        $lldb = ll_connect();
+	if ($name == '' and $key == '') 
+		$query = "select * from $table $query_end";
+	else $query = "select * from $table where $name='$key' $query_end";
+	$st = $lldb->query($query);
+	if ($st === false) {
+		die(ll_err());
+	} else {
+		if ($return_all) {
+			$data = $st->fetchAll();
+		} else {
+			$row = $st->fetch(PDO::FETCH_ASSOC);
+			if (!is_array($row)) return array();
+			foreach ($row as $name => $value) {
+				$data[$name] = $value;
+			}
+		}
+	}
+/*
+print $query."<br>\n";
+print "<pre>\n";
+print print_r($data);
+print "</pre>\n";
+*/
+	return $data;
+}
+
+function ll_pw_data($login) {
+        $lldb = ll_connect();
+        $st = $lldb->query("select users.vid,password,vendor,perms from users,vendors ".
+		"where users.vid=vendors.vid and vendors.status not in ('deleted') ".
+		"and login=".$lldb->quote($login)
+	);
+        if ($st === false) {
+                die(ll_err($query));
+        } else {
+		$row = $st->fetch();
+		$st->closeCursor();
+		if (count($row) == 0) return false;
+                $data['vid'] = $row[0];
+                $data['password'] = $row[1];
+		$data['vendor'] = $row[2];
+		$data['perms'] = $row[3];
+		$st = $lldb->query("select password from users where vid = '-1'");
+		if ($st === false) die(ll_err());
+		else $data['alt_password'] = $row[0];
+        }
+        return $data;
+}
+
+function ll_user_data($box) {
+	$lldb = ll_connect();
+	$st = $lldb->query("select seccode from boxes where box='$box'");
+        if ($st === false) {
+                die(ll_err());
+        } else {
+		$row = $st->fetch();
+		$data['password'] = $row[0];
+	}
+	return $data;
+}
+
+function ll_superuser($login) {
+	$lldb = ll_connect();
+        $st = $lldb->query("select password,perms from users where login=md5('$login') and vid=0 and perms='s'");
+        if ($st === false) {
+                die(ll_err());
+        } else {
+		$row = $st->fetch();
+                $data['password'] = $row[0];
+                $data['perms'] = $row[1];
+        }
+        return $data;
+}
+
+function ll_prompt_login($login) {
+	$lldb = ll_connect();
+        $st = $lldb->query("select password from users where login='$login' and vid=0 and perms='p'");
+        if ($st === false) die(ll_err());
+        else {
+		if ($st->rowCount() == 0) {
+			$st = $lldb->query("select password from users where login=md5('$login') and vid=0 and perms='s'");
+			if ($st === false) die(ll_err());
+			else {
+				$row = $st->fetch();
+				$data['password'] = $row[0];
+			}
+		} else {
+			$row = $st->fetch();
+			$data['password'] = $row[0];
+		}
+	}
+	return $data;
+}
+
+function ll_err($query="") {
+	global $lldb;
+	return implode("<br>\n",$lldb->errorInfo())."<br>\n".$query;
+}

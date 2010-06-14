@@ -1,0 +1,625 @@
+<?php
+require_once("php/lifeline-schema.php");
+$back = "<a href=/lifeline/admin.php>Back to start</a>";
+$table = table_header();
+
+function table_header($cp=5,$cs=0,$b=0,$w=300) {
+	return "<table cellpadding=$cp cellspacing=$cs border=$b width=$w>";
+}
+
+function form_top($data,$show_goback=true) {
+	global $back;
+	global $vend;
+	global $form;
+	$login = $data['login'];
+	$vendor = $data['vendor'];
+	$app = $data['app'];
+	$time = date('r',$data['time']);
+	$vend = ll_vendor($data['vid']);
+	$status = vend_status_str($vend);
+	$goback = $show_goback ? " - $back" : '';
+	return <<<HTML
+<html>
+<head>
+<title>Voicemail Admin: $form</title>
+<link rel=stylesheet type=text/css href=/lifeline/css/admin.css>
+</head>
+<body bgcolor=lightyellow>
+<center>
+<a href=index.php>Basic Instructions</a>$goback - <a href="/lifeline/admin.php?action=logout">Log out</a><p>
+<h4>Vendor: $vendor (user: $login)</h4>
+<h3>$form</h3>
+$status<p>
+<form action=/lifeline/admin.php method=get>
+HTML;
+}
+
+function form_end($data) {
+	global $adminfo;
+	return <<<HTML
+</form>
+<p>
+$adminfo
+</center>
+</body>
+</html>
+HTML;
+}
+
+function credit_left($vid) {
+	$vend = ll_vendor($vid);
+	$cl = $vend['credit_limit'];
+	$m = $vend['unpaid_months'];
+	if ($cl < 0) return true; 
+	return $cl - $m;
+}
+
+function main_form($data) {
+	global $ldata;
+	global $min_purchase;
+	$top = form_top($data,false); 
+	$end = form_end($data);
+	if (preg_match('#invoices#',$data['perms'])) {
+		$vend = ll_vendor($ldata['vid']);
+		$credit = credit_left($ldata['vid']);
+		if ($vend['credit_limit'] >= 0) {
+			$limit = "Your credit limit is {$vend['credit_limit']} months.<br>";
+			if ($credit != 1) $s = 's';
+			if ($credit < 0) {
+				$remaining = "You are over your credit limit by ".
+						(abs($credit))." month$s.<br>";
+			} else {
+				$remaining = "You can purchase $credit month$s more voicemail.";
+			}
+		}
+		if ($credit >= $min_purchase) {
+			$purchase = <<<HTML
+<input type=submit name=form value="Purchase time">
+<br>
+$limit
+$remaining
+HTML;
+		} else {
+			$purchase = <<<HTML
+<em>Please pay any outstanding invoices before buying more voicemail.</em>
+<br>
+$limit
+$remaining
+HTML;
+		}
+		$purchase .= <<<HTML
+<br>
+<nobr>
+<input type=submit name=form value="Show all invoices"> &nbsp;&nbsp;
+<input type=submit name=form value="Show unpaid invoices">
+</nobr>
+<p>
+HTML;
+	}
+	if (preg_match('#logins#',$data['perms'])) 
+		$users = '<input type=submit name=action value="Manage account and users"> <p>';
+	return <<<HTML
+$top
+<input type=submit name=form value="Create a new voicemail box"> <p>
+<input type=submit name=form value="Add time to an existing box"> <p>
+<input type=submit name=form value="View your voicemail boxes"> <p>
+$users
+$purchase
+$end
+HTML;
+}
+
+function vend_status_str($vend) {
+	global $min_purchase;
+	if ($vend['months'] == 1) {
+		$months = "1 month of";
+	} else if ($vend['months'] == 0) {
+		$months = "no";
+	} else {
+		$months = $vend['months']." months of";
+	}
+	$status = "You currently have $months voicemail available.<br>";
+	return $status;
+}
+ 
+function create_new_box_form($data) {
+	global $vend;
+	$top = form_top($data); 
+	$end = form_end($data);
+	$trans = ll_generate_trans($vend);
+	$personal = mk_personal_input();
+	if (!isset($_COOKIE['activate']) or $_COOKIE['activate']) {
+		$activatechecked = 'checked';
+	}
+	return <<<HTML
+$top
+<input type=hidden name=trans value="$trans">
+New box valid for &nbsp; <input size=3 name=months value=1> &nbsp; month(s). &nbsp;&nbsp; 
+<input type=checkbox name=activate value=1 $activatechecked> Activate now &nbsp;&nbsp;
+$personal
+<input type=submit name=action value="Create box" class=action>
+$end
+HTML;
+}
+
+function create_new_box($data) {
+	global $_REQUEST;
+	global $table;
+	$vend = ll_vendor($data['vid']);
+	ll_delete_trans($vend,$_REQUEST['trans']);
+
+	$months = $_REQUEST['months'];
+	if (!preg_match('#^\d\d?$#',$months)) die("create_new_box: invalid number of months");
+
+	$_COOKIE['activate'] = ($_GET['activate'] or $_POST['activate'])? true : false;
+	setcookie('activate',$_COOKIE['activate'],time()+86400*30);
+	list($min_box,$max_box) = get_box_range(); # pick a random box range 
+	list ($box,$seccode,$paidto) = ll_new_box($vend,$months,$min_box,$max_box,$_COOKIE['activate']);
+	ll_update_personal($vend,$box,$_REQUEST['personal']);
+
+	$vend = ll_vendor($data['vid'],true);
+
+	$top = form_top($data); 
+	$end = form_end($data);
+
+	$instr = file_get_contents("index.php");
+	$bdata = ll_box($box);
+	return <<<HTML
+$top
+$table
+<tr><td><b>Box:</b></td><td>$box</td></tr>
+<tr><td><b>Security code:</b></td><td>$seccode</td></tr>
+<tr><td><b>Paid to:</b></td><td>$paidto</td></tr>
+<tr><td><b>Status</b></td><td>{$bdata['status']}</td></tr>
+<tr><td><b>Name:</b></td><td>{$bdata['name']}</td></tr>
+<tr><td><b>Email:</b></td><td>{$bdata['email']}</td></tr>
+<tr><td><b>Notes:</b></td><td>{$bdata['notes']}</td></tr>
+</table>
+$instr
+$end
+HTML;
+}
+
+function update_box_form($data,$action="Add time to box") {
+	global $_REQUEST;
+	global $vend;
+	global $form;
+	global $table;
+	$form = $action;
+	$box = $_REQUEST['box'];
+	if (preg_match('#^\d+$#',$box)) $bdata = ll_box($box);
+	if (preg_match('#^\d#',$bdata['paidto'])) {
+		$paidto = preg_replace('# .*#','',$bdata['paidto']);
+		$status = "(Paid to $paidto, status {$bdata['status']})";
+	} 
+	if ($box != '') {
+		$is_hidden = 'type=hidden';
+	}
+	$top = form_top($data); 
+	$end = form_end($data);
+	if ($action === 'Change security code') {
+		$seccode_input = " New security code: <input size=4 name=seccode> &nbsp;&nbsp; ";
+	} else if ($action === 'Update name, email etc.') {
+		$edit_input = mk_personal_input($bdata);
+	} else if (preg_match('#\btime\b#',$action)) {
+		if ($action === 'Remove time from box') {
+			$months = ll_months_left($bdata['paidto']);
+		} else $months = 1;
+		$month_input = " Months: <input size=3 name=months value=$months> &nbsp;&nbsp;"; 
+		$trans = ll_generate_trans($vend);
+	}
+	return <<<HTML
+$top
+<input type=hidden name=trans value="$trans">
+Box: <input $is_hidden name=box size=7 value="$box"><b>$box</b> $status &nbsp;&nbsp;
+$seccode_input
+$month_input
+$edit_input
+<input type=submit name=action value="$action" class=action>
+$end
+HTML;
+}
+
+function mk_personal_input($bdata=array()) {
+	global $table;
+	return <<<HTML
+<p>
+$table
+<tr><td>Name:</td><td><input size=32 name="personal[name]" value="{$bdata['name']}"></td></tr>
+<tr><td>Email:</td><td><input size=40 name="personal[email]" value="{$bdata['email']}"></td></tr>
+<tr><td>Notes:</td><td><input size=64 name="personal[notes]" value="{$bdata['notes']}"></td></tr>
+</table>
+<br>
+
+HTML;
+}
+
+function delete_months($data) {
+	global $_REQUEST;
+	return update_box_time($data,(-1 * $_REQUEST['months']));
+}
+
+function confirm_delete_form($data) {
+	global $_REQUEST;
+	$box = $_REQUEST['box'];
+	ll_check_box($box);
+	$top = form_top($data);
+	$end = form_end($data);
+	return <<<HTML
+$top
+<input type=hidden name=box value="$box">
+Delete box $box? &nbsp;&nbsp; <input type=submit name=action value="Really delete box">
+$end
+HTML;
+}
+
+function delete_box($data) {
+	global $_REQUEST;
+	$vend = ll_vendor($data['vid']);
+	$box = $_REQUEST['box'];
+	ll_delete_box($vend,$box);
+	cleanup_files($box);
+	$vend = ll_vendor($data['vid'],true);
+	$top = form_top($data); 
+	$end = form_end($data);
+	return <<<HTML
+$top
+Box $box now deleted.
+$end
+HTML;
+}
+
+function cleanup_files($box) {
+	global $asterisk_lifeline;
+	global $asterisk_rectype;
+	global $asterisk_deleted;
+	$dir = "$asterisk_lifeline/$box/messages";
+	if (($dh = @opendir($dir)) === false) return;
+	$greeting = "$dir/greeting.$asterisk_rectype";
+	$deleted = "$dir/greeting.$asterisk_deleted.$asterisk_rectype";
+	if (is_file($greeting)) {
+		@unlink($deleted);
+		rename($greeting,$deleted);
+	}
+	while (($item = readdir($dh)) !== false) {
+		$name = "$dir/$item";
+		if (!is_file($name)) continue;
+		if (!preg_match("#(.*)\.($asterisk_rectype)$#",$name,$m)) continue;
+		$deleted = $m[1].".$asterisk_deleted.".$m[2];
+		@unlink($deleted);
+		rename($name,$deleted);
+	}
+}
+
+function confirm_update_seccode($data) {
+	global $_REQUEST;
+	$box = $_REQUEST['box'];
+	ll_check_box($box);
+	$seccode = $_REQUEST['seccode'];
+	ll_check_seccode($seccode);
+	$top = form_top($data);
+	$end = form_end($data);
+	return <<<HTML
+$top
+<input type=hidden name=box value="$box">
+<input type=hidden name=seccode value="$seccode">
+Change security code for box $box to $seccode? &nbsp;&nbsp; 
+<input type=submit name=action value="Really change security code">
+$end
+HTML;
+}
+
+function update_seccode($data) {
+	global $_REQUEST;
+	global $vend;
+	$top = form_top($data);
+	$end = form_end($data);
+	$box = $_REQUEST['box'];
+	$seccode = $_REQUEST['seccode'];
+	ll_update_seccode($vend,$box,$seccode);
+	return <<<HTML
+$top
+Security code for box $box updated to $seccode.
+$end
+HTML;
+}
+
+function update_box_time($data,$months='') {
+	global $_REQUEST;
+	global $table;
+	$vend = ll_vendor($data['vid']);
+	ll_delete_trans($vend,$_REQUEST['trans']);
+	if ($months === '') $months = $_REQUEST['months'];
+	$box = $_REQUEST['box'];
+	$paidto = ll_add_time($vend,$box,$months);
+	$vend = ll_vendor($data['vid'],true);
+	$top = form_top($data); 
+	$end = form_end($data);
+	$instr = file_get_contents("index.php");
+	return <<<HTML
+$top
+$table
+<tr><td><b>Box:</b></td><td>$box</td></tr>
+<tr><td><b>Paid to:</b></td><td>$paidto</td></tr>
+</table>
+$instr
+$end
+HTML;
+}
+
+function update_personal($data) {
+	global $table, $vend;
+	$top = form_top($data);
+	$end = form_end($data);
+	$box = $_REQUEST['box'];
+	if (!preg_match('#^\d+$#',$box)) 
+		die("update_personal: box should be a number not $box!");
+	ll_update_personal($vend,$box,$_REQUEST['personal']);
+	$bdata = ll_box($box);
+	return <<<HTML
+$top
+$table
+<tr><td><b>Box:</b></td><td>$box</td></tr>
+<tr><td><b>Name:</b></td><td>{$bdata['name']}</td></tr>
+<tr><td><b>Email:</b></td><td>{$bdata['email']}</td></tr>
+<tr><td><b>Notes:</b></td><td>{$bdata['notes']}</td></tr>
+</table>
+$end
+
+HTML;
+}
+
+function find_boxes_form($data) {
+	global $table;
+	$top = form_top($data); 
+	$end = form_end($data);
+	$boxes = ll_boxes($data,'not_deleted','order by box');
+	$truncdate = '#-\d+(?:| .*)$#';
+	$html = <<<HTML
+$top
+<h4>Voice mailboxes</h4>
+HTML;
+	$html .= view_boxes_form($data,$boxes);
+	return $html;
+}
+
+function mk_sel($name,$items,$multiple=null) {
+	if (!is_array($items)) return;
+	if ($multiple == 'multiple') $size = count($items) > 10 ? 10 : count($items);
+	$select = "<select name=\"$name\" $multiple $size>\n<option>\n";
+	foreach ($items as $item) {
+		if ($item) $select .= "<option>$item\n";
+	}
+	$select .= "</select>\n";
+	return $select;
+}
+
+function view_boxes_form($data,$boxes=null) {
+	global $table;
+	global $vend;
+	$top = form_top($data); 
+	$end = form_end($data);
+	if (!is_array($boxes)) {
+		$boxes = ll_boxes($vend);
+	}
+	$div = "&nbsp;-&nbsp;";
+	$url = "<a href=\"".$data['app']."?box=";
+	$html = <<<HTML
+$table
+<tr><th><nobr>Box / Paid to</nobr></th><th>Tools</th></tr>
+HTML;
+	foreach ($boxes as $row) {
+		$box = $row['box'];
+		$paidto = $row['paidto'] == '0000-00-00' ? '&nbsp;' : $row['paidto'];
+		$add = "$url$box&form=add\">add time</a>";
+		$sub = "$url$box&form=sub\">subtract time</a>";
+		$del = "$url$box&form=del\">delete</a>";
+		# commented out to avoid privacy complaints and to allow us to put vm and web on different servers
+		$msg = "$url$box&listen=1\">messages</a>";
+		$chsc = "$url$box&form=chsc\">change security code</a>";
+		$edit = "$url$box&form=edit\">edit</a>";
+		$v = "<input type=hidden name=vendor value=\"".$row['vendor']."\">";
+		$html .= <<<HTML
+<tr><td><nobr>$box &nbsp;&nbsp; $paidto $v</nobr></td>
+<td>
+<nobr>
+<b>name:</b> {$row['name']} &nbsp; <b>email:</b> {$row['email']} &nbsp; <b>notes:</b> {$row['notes']} 
+</nobr>
+</td>
+</tr>
+<tr bgcolor=lightgray>
+<td>$edit</td>
+<td>
+<nobr>
+$add $div $sub $div $del $div $chsc
+</nobr>
+</td>
+</tr>
+
+HTML;
+	}
+	$html .= <<<HTML
+</table>
+$end
+HTML;
+	return $html;
+}
+
+function purchase_time_form($data) {
+	global $table, $ldata, $min_purchase;
+
+	$top = form_top($data); 
+	$end = form_end($data);
+	if (credit_left($ldata['vid']) > 0) {
+		return <<<HTML
+$top
+<blockquote>
+<i>You can use any time you purchase to either create new voice mailboxes or to extend existing boxes.</i>
+</blockquote>
+Months: &nbsp;&nbsp; <input size=10 name=months value=$min_purchase> &nbsp;&nbsp;
+<input type=submit name=action value="Purchase time" class=action>
+$end
+HTML;
+	} else {
+		return <<<HTML
+$top
+<blockquote>
+<em>You do not have sufficient credit to purchase more voicemail.</em>
+$end
+HTML;
+	}
+}
+
+function confirm_purchase_form($data) {
+	global $_REQUEST;
+	global $min_months;
+	global $gst_rate,$pst_rate;
+	global $vend;
+	global $table;
+	global $ldata;
+	$top = form_top($data); 
+	$end = form_end($data);
+	$months = $_REQUEST['months'];
+	if ($months < $min_months) die("Sorry, but the minimum order is $min_months months!");
+	$vend = ll_vendor($ldata['vid']);
+	if (credit_left($vend['vid']) < $min_months)
+		die("You have exceeded your credit limit of {$vend['credit_limit']} months");
+	if (!isset($vend['rate']) or $vend['rate'] === '') 
+		die("There is a problem with your account. Please contact us.");
+	$total = sprintf('%.2f',$months * $vend['rate']);
+	if (!$vend['gstexempt'])
+		$total = sprintf('%.2f',$total + $total * $gst_rate + $total * $pst_rate);
+	$trans = ll_generate_trans($vend);
+	return <<<HTML
+$top
+$table
+<input type=hidden name=trans value="$trans">
+<tr><td>Months:</td><td align=right>$months <input type=hidden name=months value="$months"></td></tr>
+<tr><td><nobr>Total including GST:</nobr></td><td align=right>\$$total</td></tr>
+<tr><td>&nbsp;</td><td align=right><input type=submit name=action value="Buy voicemail now"></td></tr>
+</table>
+$end
+HTML;
+}
+
+function purchase_time($data) {
+	global $_REQUEST;
+	$vend = ll_vendor($data['vid']);
+	ll_delete_trans($vend,$_REQUEST['trans']);
+	$invoice = ll_generate_invoice($vend,$_REQUEST['months']);
+	$vend = ll_vendor($data['vid'],true);
+	$top = form_top($data); 
+	$end = form_end($data);
+	return <<<HTML
+$top
+Thank you for your purchase. <p>
+Click on the link below and print the invoice. <br>
+<b>Net payment due in 30 days</b><p>
+Invoice: <a href=/lifeline/admin.php?action=invoice&invoice=$invoice target=_blank>$invoice</a>
+$end
+HTML;
+}
+
+function list_invoices($data,$showall=false) {
+	global $ldata;
+	if ($data['vid'] != $ldata['vid']) die("Error: you are trying to view someone else's invoices.");
+	$table = table_header(3,0,0,600);
+	$top = form_top($data); 
+	$end = form_end($data);
+	$vend = ll_vendor($data['vid']);
+	$invoices = ll_invoices($showall,$vend);
+	$owing = sprintf('$%.2f',ll_get_owing($vend['vid']));
+	$vendor = $vend['vendor'];
+	$html = <<<HTML
+$top
+<h3>Invoices for $vendor ($owing owing)</h3>
+$table
+<tr><th>invoice</th><th>vendor</th><th>created</th><th>gst</th><th>total</th><th>paid</th></tr>
+HTML;
+        foreach ($invoices as $invoice) {
+                if (preg_match('#^0000#',$invoice['paidon'])) $invoice['paidon'] = 'unpaid';
+                $html .= "<tr valign=top>\n";
+		$in = $invoice['invoice'];
+                foreach ($invoice as $field => $value) {
+                        if (is_numeric($field)) continue;
+			if ($field === 'invoice') 
+				$html .= <<<HTML
+<td align=center><a href="/lifeline/admin.php?action=invoice&invoice=$in" target=_blank>$in</a></td>
+HTML;
+                        else if ($field === 'total' or $field === 'gst') 
+				$html .= "<td align=right>".(sprintf('$%.2f',$value))." &nbsp;</td>";
+			else $html .= "<td align=right>$value &nbsp;</td>";
+                }
+                $html .= "</tr>\n";
+        }
+	$html .= <<<HTML
+</table>
+$end
+HTML;
+	return $html;
+}
+
+function invoice($data) {
+	global $_REQUEST;
+	global $net_due;
+	global $ldata;
+	$sdata = ll_vendor(0);
+	$seller = $sdata['vendor'];
+	$invoice = $_REQUEST['invoice'];
+	$vend = ll_vendor($data['vid']);
+	$idata = ll_invoice($invoice);
+
+	# only the super user can view other vendor's invoices
+	if ($ldata['vid'] != 0 and $data['vid'] != $ldata['vid']) die($ldata['vid']." vs ".$data['vid']);
+	# only let people with invoice viewing permissions to look at invoices
+	if (!preg_match('#invoices|^s$#',$ldata['perms'])) 
+		die("You don't have the permissions to view invoices.");
+
+	$total = sprintf('%.2f',$idata[total]);
+	$gst = sprintf('%.2f',$idata[gst]);
+	$created = preg_replace('# .*#','',$idata['created']);
+	if (!isset($idata)) die("Could not find invoice $invoice!");
+	$table = table_header(3,0,0,200);
+	# invoice is a combo of invoice, vendor and seller data
+	return <<<HTML
+<html>
+<head>
+<title>$seller invoice $invoice</title>
+</head>
+<body>
+<table width=500>
+<tr><td>
+<center>
+<h2>$seller Invoice $invoice</h2>
+$sdata[address]<br>
+Phone: $sdata[phone]<br>
+Fax: $sdata[fax]<br>
+Email: $sdata[email]<br>
+GST Number: $sdata[gst_number]<br>
+</center>
+<p>
+<p>
+$table
+<tr><td><b>Invoice Date:</b></td><td>$created&nbsp;</td></tr>
+<tr><td><b>To:</b></td><td>$vend[vendor]&nbsp;</td></tr>
+<tr><td><b>Contact:</b></td><td>$vend[contact]&nbsp;</td></tr>
+<tr><td><b>Purchased by:</b></td><td>$idata[login]&nbsp;</td></tr>
+<tr><td><b>Address:</b></td><td>$vend[address]&nbsp;</td></tr>
+<tr><td><b>Phone:</b></td><td>$vend[phone]&nbsp;</td></tr>
+<tr><td><b>Email:</b></td><td>$vend[email]&nbsp;</td></tr>
+</table>
+<p>
+Please remit <b>\$$total</b> (including \$$gst) for $idata[months] months voicemail.<br>
+Invoice payable $net_due days from invoice date.<br>
+<p>
+Thank you.
+<p>
+$seller
+<p>
+</td></tr>
+</table>
+</body>
+</html>
+HTML;
+}
+

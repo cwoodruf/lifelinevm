@@ -1,0 +1,510 @@
+<?php
+# purpose of this script is to make other lifeline vendors
+require_once("php/globals.php");
+require_once("$lib/pw/auth.php");
+require_once("php/forms.php");
+
+$action = $_REQUEST['action'];
+if ($action === 'logout') delete_login();
+$login = $_REQUEST['login'];
+if (!preg_match('#^[\w\.\@-]*$#',$login)) die("bad login value $login for adding or updating user!");
+
+# log in
+$from = $_REQUEST['from'] == 'admin' ? 'admin' : null;
+if ($from == 'admin') {
+	$ldata = login_response("/lifeline/admin.php",'ll_pw_auth');
+	if ($ldata['perms'] != 's') {
+		if (!preg_match('#vendors|logins#',$ldata['perms'])) 
+			die("This area is restricted access!");
+	}
+	$vend = $sdata = ll_vendor($ldata['vid']);
+	$vid = $ldata['vid'];
+	$defparent = $vid;
+
+	if (isset($_REQUEST['vid'])) {
+		$vid = $_REQUEST['vid'];
+		if (!preg_match('#^\d*$#',$vid)) die("bad vendor id $vid!");
+		if (isset($vid)) $vend = ll_vendor($vid);
+		else unset($vend);
+	}
+
+	$goback = "<a href=\"admin.php\">Back to voicemail admin page</a>";
+	$seller = "{$sdata['vendor']} user";
+} else {
+	$ldata = login_response($_SERVER['PHP_SELF'],'ll_superuser');
+	$sdata = ll_vendor(0);
+	$sdata['vid'] = 0;
+	$defparent = 0;
+
+	$vid = $_REQUEST['vid'];
+	if (!preg_match('#^\d*$#',$vid)) die("bad vendor id $vid!");
+	if (isset($vid)) $vend = ll_vendor($vid);
+	else unset($vend);
+	$goback = "<a href=/lifeline/make.php?action=logout>Log out</a>";
+
+	$seller = $sdata['vendor'];
+}
+
+# create pages
+if ($action === 'invoice') {
+	print invoice($vend);
+	exit;
+}
+
+print <<<HTML
+<html>
+<head>
+<title>$seller admin</title>
+<link rel=stylesheet type=text/css href=/lifeline/css/admin.css>
+</head>
+<body bgcolor=lightyellow>
+<center>
+$goback
+<h3>$seller admin</h3>
+<a href=/lifeline/make.php?from=$from>Back to start</a>
+<p>
+
+HTML;
+
+if ($sdata['perms'] == 's') $myperms = $baseperms;
+else $myperms = split(':',$ldata['perms']);
+foreach ($myperms as $p) {
+	$permcheck[$p] = true;
+}
+
+if ($sdata['vid'] == 0) {
+	print <<<HTML
+<form action=/lifeline/make.php method=get>
+<input type=submit name=action value="Create new vendor"> &nbsp;&nbsp;
+<input type=hidden name=parent value="$defparent">
+<input type=submit name=action value="View paid invoices"> &nbsp;&nbsp;
+<input type=submit name=action value="View invoices">
+</form>
+
+HTML;
+} else if ($permcheck['logins'] or $permcheck['vendors']) {
+	print <<<HTML
+<form action=/lifeline/make.php method=get>
+<input type=hidden name=from value="$from">
+<input type=submit name=action value="Update info"> &nbsp;&nbsp;
+<input type=hidden name=vid value="$vid">
+<input type=hidden name=parent value="$defparent">
+
+HTML;
+	if ($permcheck['logins']) {
+		print <<<HTML
+<input type=submit name=action value="New login user"> &nbsp;&nbsp;
+<input type=submit name=action value="Show logins"> &nbsp;&nbsp;
+
+HTML;
+	}
+	if ($permcheck['vendors']) {
+		print <<<HTML
+<input type=submit name=action value="Create new vendor"> &nbsp;&nbsp;
+
+HTML;
+	}
+	print "</form>\n";
+}
+
+print <<<HTML
+<br>
+<form action=/lifeline/make.php method=post>
+<input type=hidden name=from value="$from">
+
+HTML;
+
+if ($action === 'Create new vendor') vendor_form(null);
+else if ($action === 'new_user' or $action === 'New login user') 
+	user_form(is_array($_REQUEST['vend']) ? $_REQUEST['vend']: $vend);
+else if ($action === 'Add user') add_user($vend); 
+else if ($action === 'modify_user') user_form($vend,$login);
+else if ($action === 'Update user') { ll_del_user($vend,$login); add_user($vend); }
+else if ($action === 'delete_user') del_user_form($vend);
+else if ($action === 'Really delete user') del_user($vend);
+else if ($action === 'del_vendor') del_vendor_form($vend);
+else if ($action === 'Really delete vendor') del_vendor($vend);
+else if ($action === 'Show logins' or $action === 'show_logins') show_logins($vend);
+else if ($sdata['vid'] === 0 and $action === 'View invoices') invoices_form();
+else if ($sdata['vid'] === 0 and $action === 'View paid invoices') invoices_form('paid');
+else if ($sdata['vid'] === 0 and $action === 'Indicate invoice paid') pay_invoices();
+else if ($action === 'Update vendor') update_vendor('update',$vend);
+else if ($action === 'Create vendor') update_vendor('insert');
+else if (
+	(isset($vid) and $sdata['vid'] === 0) or 
+	$action === 'edit' or 
+	$action === 'Update info') vendor_form($vend);
+else list_vendors();
+
+print <<<HTML
+</form>
+</center>
+</body>
+</html>
+HTML;
+
+# end output
+
+#================================== functions ================================#
+function list_vendors() {
+	global $ldata,$from;
+	$vendors = ll_vendors($ldata['vid']);
+	if ($vendors === false) return;
+	$make = "/lifeline/make.php";
+	$div = "&nbsp;-&nbsp;";
+	print <<<HTML
+<table cellpadding=5 cellspacing=0 border=0>
+<tr><th>vendor</th><th>owing</th><th>created</th><th>months</th><th>tools</th></tr>
+HTML;
+	$owing = ll_get_owing();
+	foreach ($vendors as $vend) {
+		$vendor = $vend['vendor'];
+		$vid = $vend['vid'];
+		$owed = sprintf('$%.2f',$owing[$vid]);
+		$created = preg_replace('# .*#','',$vend['created']);
+		if (
+			($ldata['perms'] == 's' or strpos($ldata['perms'],'vendors') !== false)
+			and $owed == 0 and $vend['months'] == 0) 
+		{
+			$del_vendor = "<a href=\"$make?action=del_vendor&vid=$vid\">delete</a>";
+		}
+		else 
+		{
+			$del_vendor = '<span style="color: gray">delete</span>';
+		}
+		print <<<HTML
+<tr>
+<td>$vendor</td>
+<td>$owed</td>
+<td>$created</td>
+<td>$vend[months]</td>
+<td>
+<table width=100% border=0 cellspacing=0 cellpadding=2 style="border: none">
+<tr>
+<td>
+<a href="$make?action=edit&from=$from&vid=$vid">edit</a> $div
+</td><td>
+<a href="$make?action=new_user&from=$from&vid=$vid">new user</a> $div
+</td><td>
+<a href="$make?action=show_logins&from=$from&vid=$vid">show logins</a> $div
+</td><td>
+$del_vendor
+</td>
+</tr>
+</table>
+</td>
+</tr>
+HTML;
+	}
+}
+
+function vendor_form($vend) {
+	global $seller,$from,$ldata,$sdata,$def_credit_limit,$defparent;
+
+	$vendor = $vend['vendor'];
+	$vid = $vend['vid'];
+	print "<h3>Edit Vendor $vendor</h3>\n";
+
+	if (isset($vend)) {
+		print <<<HTML
+<input type=reset value=Reset> &nbsp;&nbsp;
+<input type=submit name=action value="Show logins"> &nbsp;&nbsp;
+<input type=submit name=action value="New login user"> &nbsp;&nbsp;
+<input type=hidden name="vend[parent]" value="$defparent">
+
+HTML;
+		$submitname = 'Update';
+	} else $submitname = 'Create';
+
+	if (!isset($vend['vid'])) $cl = $def_credit_limit;
+	else $cl = $vend['credit_limit'];
+
+	if ($ldata['vid'] == 0) {
+		$parent = <<<HTML
+<tr><td> parent </td><td><input name="vend[parent]" size=60 value="{$vend['parent']}"></td></tr>
+HTML;
+		$creditlimit = <<<HTML
+<tr><td> credit limit </td><td><input name="vend[credit_limit]" value="$cl"> <i>-1 = unlimited</i></td></tr>
+HTML;
+		$rateform = <<<HTML
+<tr><td> rate </td><td> <input name="vend[rate]" value="{$vend['rate']}"></td></tr> 
+HTML;
+	} else {
+		if ($vend['parent'] != '') {
+			$parent = <<<HTML
+<tr>
+<td> parent </td><td>{$vend['parent']} 
+    <input type=hidden name="vend[parent]" value="{$vend['parent']}">&nbsp;
+</td>
+</tr>
+HTML;
+		} else {
+			$parent = <<<HTML
+<tr>
+<td> parent </td><td>$defparent 
+    <input type=hidden name="vend[parent]" value="$defparent">&nbsp;
+</td>
+</tr>
+HTML;
+		}
+		$clvalue = $cl > 0 ? "$cl month".($cl > 1 ? 's':'') : "";
+		$creditlimit = <<<HTML
+<tr><td> credit limit </td><td>$clvalue &nbsp; </td></tr>
+HTML;
+	}
+
+	if ($vend['gstexempt']) $nogst = 'checked'; else  $hasgst = 'checked';
+	print <<<HTML
+<input type=submit name=action value="$submitname vendor"> 
+<p>
+<input type=hidden name="vend[vid]" value="$vid">
+<table cellpadding=5 cellspacing=0 border=0>
+<tr><td> vendor </td><td><input name="vend[vendor]" size=60 value="$vendor"></td></tr>
+<tr><td> notes </td><td><input name="vend[notes]" size=60 value="{$vend['notes']}"></td></tr>
+<tr><td> created </td><td> {$vend['created']} </td></tr>
+$parent
+<tr><td> address </td><td><input name="vend[address]" size=60 value="{$vend['address']}"></td></tr>
+<tr><td> phone </td><td><input name="vend[phone]" size=60 value="{$vend['phone']}"></td></tr>
+<tr><td> contact </td><td><input name="vend[contact]" size=60 value="{$vend['contact']}"></td></tr>
+<tr><td> email </td><td><input name="vend[email]" size=60 value="{$vend['email']}"></td></tr>
+<tr><td> fax </td><td><input name="vend[fax]" size=60 value="{$vend['fax']}"></td></tr>
+<tr><td> gstexempt </td><td> 
+	<input type=radio name=gstexempt value=0 $hasgst> No 
+	<input type=radio name=gstexempt value=1 $nogst> Yes</td></tr>
+$rateform
+<tr><td> months </td><td> {$vend['months']} </td></tr>
+<tr><td> all_months </td><td> {$vend['all_months']} </td></tr>
+<tr><td> pst_number </td><td><input name="vend[pst_number]" size=60 value="{$vend['pst_number']}"></td></tr>
+<tr><td> gst_number </td><td><input name="vend[gst_number]" size=60 value="{$vend['gst_number']}"></td></tr>
+$creditlimit
+<tr><td> status </td><td> {$vend['status']} </td></tr>
+</table>
+HTML;
+}
+
+function update_vendor($dbaction,$vend=null) {
+	global $from, $schema, $action;
+
+	$newvend = $_REQUEST['vend'];
+	if (isset($vend)) {
+		$vid = $vend['vid'];
+		$vendor = $vend['vendor'];
+	} else {
+		$vid = $newvend['vid'];
+		$vendor = $newvend['vendor'];
+	}
+	foreach ($newvend as $name => $value) {
+		if (!isset($schema['vendors'][$name])) continue;
+		if ($name === 'vid' and $dbaction == 'insert') continue;
+		# see if the value is different from what is in the db
+		if (is_array($vend)) {
+			if ($vend[$name] != $value) $update[$name] = $value;
+		} else {
+			$update[$name] = $value;
+		}
+	}
+	if ($update['credit_limit'] == '') $unpdate['credit_limit'] = null;
+	if (count($update)) {
+		if ($dbaction === 'update') ll_save_to_table('update','vendors',$update,'vid',$vid,true);
+		else if ($dbaction === 'insert') ll_save_to_table('insert','vendors',$update,null,$vid,true);
+	}
+	print <<<HTML
+<h3>Updated Vendor 
+    <a href="make.php?action=edit&from=$from&vid=$vid">{$update['vendor']}</a>
+</h3>
+HTML;
+}
+
+function show_logins($vend) {
+	global $from;
+	$vendor = $vend['vendor'];
+	$vid = $vend['vid'];
+	print "<h3>User list for Vendor $vendor</h3>\n";
+	if ($vend['vid'] == 0) return;
+	$logins = ll_users($vend);
+	print <<<HTML
+<input type=submit name=action value="New login user"><p>
+<input type=hidden name=vid value="$vid">
+<table cellpadding=5 cellspacing=0 border=0>
+HTML;
+	foreach($logins as $user) {
+		$count++;
+		$login = urlencode($user['login']);
+		print <<<HTML
+<tr>
+<td>$user[login]</td><td>$user[created]</td><td>$user[perms]</td>
+<td>
+<a href="$make?action=modify_user&from=$from&vid=$vid&login=$login">modify user</a> &nbsp;&nbsp;
+<a href="$make?action=delete_user&from=$from&vid=$vid&login=$login">delete user</a>
+</td>
+</tr>
+HTML;
+	}
+	print "<table>\n";
+	if (!$count) print "No logins<br>\n";
+}
+
+function user_form($vend,$login=null) {
+	global $from,$ldata,$baseperms;
+	$vendor = $vend['vendor'];
+	$vid = $vend['vid'];
+	if ($login == null) {
+		print "<h3>Add user (Vendor $vendor)</h3>\n";
+		$perms['boxes'] = 'checked';
+		$action = 'Add';
+	} else {
+		$user = ll_pw_data($login);
+		$action = 'Update';
+		$passwordentry = <<<HTML
+<tr>
+<td align=center colspan=2>
+<a href="{$_SERVER['PHP_SELF']}?action=modify_user&from=$from&edpass=1&login=$login&vid=$vid">
+Change password</a>
+</td>
+</tr>
+HTML;
+		foreach(explode(':',$user['perms']) as $p) {
+			$perms[$p] = 'checked';
+		}
+	}
+	# avoid permissions escalation by using the logged in user's permissions as a template
+	if ($ldata['perms'] == 's') $permlist = $baseperms;
+	else $permlist = explode(':',$ldata['perms']); 
+
+	foreach ($permlist as $p) {
+		if (!in_array($p,$baseperms)) continue;
+		$permsblock .= <<<HTML
+<input type=checkbox name="perms[$p]" value="1" {$perms[$p]}> $p &nbsp;
+
+HTML;
+	}
+	if ($login == null or $_REQUEST['edpass']) {
+		$passwordentry = <<<HTML
+<tr><td>Password:</td><td> <input type=password name=password1 size=40></td></tr>
+<tr><td>Password again:</td><td> <input type=password name=password2 size=40></td></tr>
+HTML;
+	}
+	print <<<HTML
+<input type=hidden name=vid value="$vid">
+<table cellpadding=5 cellspacing=0 border=0>
+<tr><td colspan=2 align=center><input type=reset value=Reset></td></tr>
+<tr><td>Login/email:</td><td><input name=login size=40 value="$login"></td></tr>
+$passwordentry
+<tr><td>Perms:</td><td>
+	<nobr style="background: lightyellow">
+	<b>Create: </b>
+	$permsblock
+	</nobr>
+	&nbsp;&nbsp;
+</i></nobr></td></tr>
+<tr><td colspan=2 align=center><input type=submit name=action value="$action user"></td></tr>
+</table>
+HTML;
+}
+
+function add_user($vend) {
+	global $ldata, $baseperms;
+	$vendor = $vend['vendor'];
+	$login = $_REQUEST['login'];
+	$vid = $vend['vid'];
+	$password = $_REQUEST['password1'];
+	if ($password !== $_REQUEST['password2']) die("passwords don't match!");
+
+	# avoid privelage escalation by using the currently logged in user as the permissions template
+	if ($ldata['perms'] == 's') $perms = $baseperms;
+	else $perms = explode(':',$ldata['perms']); 
+
+	foreach ($perms as $p) {
+		if (!in_array($p,$baseperms)) continue;
+		if ($_REQUEST['perms'][$p]) $permlist[$p] = true;
+	}
+	if (is_array($permlist)) $permstr = implode(':',array_keys($permlist));
+
+	ll_add_user($vend,$login,$password,$permstr);
+	print "<h3>Updated user $login (Vendor $vendor)</h3>\n";
+}
+
+function del_user_form($vend) {
+	global $_REQUEST;
+	$vendor = $vend['vendor'];
+	$vid = $vend['vid'];
+	$login = $_REQUEST['login'];
+	$udata = ll_pw_data($login);
+	if ($udata['vid'] != $vend['vid']) die("Vendor $vendor does not have a user $login!"); 
+	print "<h3>Delete user $login? (Vendor $vendor)</h3>\n";
+	print <<<HTML
+<input type=hidden name=login value="$login">
+<input type=hidden name=vid value="$vid">
+<input type=submit name=action value="Really delete user">
+HTML;
+}
+
+function del_user($vend) {
+	$vendor = $vend['vendor'];
+	$login = $_REQUEST['login'];
+	ll_del_user($vend,$login);
+	print "<h3>Deleted user $login (Vendor $vendor)</h3>\n";
+}
+
+function check_vendor_delete($vid) {
+	global $ldata;
+	if (!preg_match('#^\d+$#',$vid)) 
+		die("del_vendor_form: no vendor id!");
+	if ($ldata['vid'] == $vid) 
+		die("del_vendor_form: can't delete your own vendor.");
+	if ($ldata['perms'] != 's' and strpos($ldata['perms'],'vendors') === false) 
+		die("del_vendor_form: no privelages to delete vendors.");
+	return true;
+}
+
+function del_vendor_form() {
+	$vid = $_REQUEST['vid'];
+	if (!check_vendor_delete($vid)) return;
+	$vend = ll_vendor($vid);
+	print <<<HTML
+<h3>Delete vendor {$vend['vendor']}?</h3>
+<input type=hidden name=vid value="$vid">
+<input type=submit name=action value="Really delete vendor">
+HTML;
+}
+
+function del_vendor() {
+	$vid = $_REQUEST['vid'];
+	if (!check_vendor_delete($vid)) return;
+	$vend = ll_vendor($vid);
+	ll_del_vendor($vid);
+	print "<h3>Deleted vendor {$vend['vendor']}</h3>\n";
+}
+
+function invoices_form($show='') {
+	if ($show === 'paid') $invoices = ll_invoices(true);
+	else $invoices = ll_invoices();
+	print <<<HTML
+<h3>View $show invoices</h3>
+<input type=submit name=action value="Indicate invoice paid"><p>
+<table cellpadding=5 cellspacing=0 border=0>
+<tr><th>&nbsp;</th><th>invoice</th><th>vendor</th><th>created</th><th>gst</th><th>total</th><th>paid</th></tr>
+HTML;
+	foreach ($invoices as $invoice) {
+		if ($invoice['paidon'] == '') {
+			$invoice['paidon'] = 'unpaid';
+			$checkbox = "<input type=checkbox name=\"invoices[]\" value=\"".$invoice['invoice']."\">";
+		} else $checkbox = '';
+		print "<tr><td>$checkbox</td>\n";
+		$link = "<a href=\"make.php?action=invoice&invoice={$invoice['invoice']}\">";
+		foreach ($invoice as $field => $value) {
+			if (is_numeric($field)) continue;
+			print "<td>$link$value</a> &nbsp;</td>";
+		}
+		print "</tr>\n";
+	}
+	print "</table>\n";
+}
+
+function pay_invoices() {
+	global $_REQUEST;
+	$invoices = $_REQUEST['invoices'];
+	ll_pay_invoices($invoices);
+	print "<h3>Invoices updated</h3>";
+}
+
