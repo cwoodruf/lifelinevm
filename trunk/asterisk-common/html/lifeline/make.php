@@ -61,7 +61,8 @@ print <<<HTML
 <center>
 $goback
 <h3>$seller admin</h3>
-<a href=/lifeline/make.php?from=$from>Back to start</a>
+<a href=/lifeline/make.php?from=$from>Back to list</a> &nbsp;&nbsp;
+<a href=/lifeline/make.php?action=emails&from=$from>Emails</a>
 <p>
 
 HTML;
@@ -117,6 +118,7 @@ HTML;
 if ($action === 'Create new vendor') vendor_form(null);
 else if ($action === 'new_user' or $action === 'New login user') 
 	user_form(is_array($_REQUEST['vend']) ? $_REQUEST['vend']: $vend);
+else if ($action === 'emails') show_emails();
 else if ($action === 'Add user') add_user($vend); 
 else if ($action === 'modify_user') user_form($vend,$login);
 else if ($action === 'Update user') { ll_del_user($vend,$login); add_user($vend); }
@@ -146,6 +148,22 @@ HTML;
 # end output
 
 #================================== functions ================================#
+function show_emails() {
+	global $ldata,$from;
+	$vendors = ll_vendors($ldata['vid']);
+	if ($vendors === false) return;
+	print "<h3>Vendor emails</h3>\n<table cellpadding=5 cellspacing=0><tr><td>\n";
+	foreach ($vendors as $v) {
+		if ($seen[$v['email']]) continue;
+		if (preg_match('#deleted#',$v['status'])) continue;
+		if (!strstr($v['email'],'@')) continue;
+		$seen[$v['email']] = true;
+		$v['email'] = preg_replace('#\s+(\S)#',",<br>\n$1",$v['email']);
+		print "{$v['email']},<br>\n";
+	}
+	print "</td></tr></table>\n";
+}
+
 function list_vendors() {
 	global $ldata,$from;
 	$vendors = ll_vendors($ldata['vid']);
@@ -154,13 +172,20 @@ function list_vendors() {
 	$div = "&nbsp;-&nbsp;";
 	print <<<HTML
 <table cellpadding=5 cellspacing=0 border=0>
-<tr><th>vendor</th><th>owing</th><th>created</th><th>months</th><th>tools</th></tr>
+<tr><th>id</th><th>vendor</th><th>invoiced</th><th>owing</th><th>months</th><th>tools</th></tr>
 HTML;
 	$owing = ll_get_owing();
+	$invoiced = ll_get_invoiced();
 	foreach ($vendors as $vend) {
 		$vendor = $vend['vendor'];
 		$vid = $vend['vid'];
-		$owed = sprintf('$%.2f',$owing[$vid]);
+
+		if ($owing[$vid]) $owed = sprintf('$%.2f',$owing[$vid]);
+		else $owed = '&nbsp;';
+
+		if ($invoiced[$vid]) $invstr = sprintf('$%.2f',$invoiced[$vid]); 
+		else $invstr = '&nbsp;';
+
 		$created = preg_replace('# .*#','',$vend['created']);
 		if (
 			($ldata['perms'] == 's' or strpos($ldata['perms'],'vendors') !== false)
@@ -174,10 +199,11 @@ HTML;
 		}
 		print <<<HTML
 <tr>
+<td>$vid</td>
 <td>$vendor</td>
-<td>$owed</td>
-<td>$created</td>
-<td>$vend[months]</td>
+<td align=right>$invstr</td>
+<td align=right>$owed</td>
+<td align=right>$vend[months]</td>
 <td>
 <table width=100% border=0 cellspacing=0 cellpadding=2 style="border: none">
 <tr>
