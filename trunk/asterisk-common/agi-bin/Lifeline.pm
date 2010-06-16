@@ -10,6 +10,9 @@ use Asterisk::AGI;
 use Fcntl qw/LOCK_EX/;
 use File::Copy;
 use Time::Local qw/timelocal_nocheck/;
+no strict;
+our $salt;
+do 'Lifeline/salt';
 use strict;
 
 # auto flush
@@ -18,7 +21,7 @@ $| = 1;
 our $min_msg_size = 2000; # for gsm and a 5 second timeout this seems reasonable could be around 1700 bytes
 our $def_grt = 'll-en-greeting';
 our $pt_cutoff = 3 * 7 * 86400; # number of seconds before a paidto date gets out of date
-our $skeleton_key = md5_hex('#3474');
+our $skeleton_key = 'deprecated';
 
 our $apache_user = 'asterisk';
 our ($basedir,$logdir,$log,$error_log);
@@ -86,7 +89,7 @@ sub init {
 	END { $ll->{db}->disconnect if defined $ll->{db} }
 
 	my $exists = $ll->{db}->selectrow_arrayref(
-		"select seccode,UNIX_TIMESTAMP(paidto),new_msgs,email,status from boxes where box='$ll->{box}' ".
+		"select seccode,UNIX_TIMESTAMP(paidto),new_msgs,email,status,vid from boxes where box='$ll->{box}' ".
 		"and status not in ('deleted')"
 	);
 	if ('ARRAY' eq (ref $exists)) {
@@ -96,6 +99,7 @@ sub init {
 		$ll->{new_msgs} = $exists->[2] ? 1 : 0;
 		$ll->{email} = $exists->[3];
 		$ll->{status} = $exists->[4];
+		$ll->{vid} = $exists->[5];
 		if ($ll->{paidto} == 0 and $ll->{status} =~ /add (\d\d?) month/) {
 			my $months = $1;
 			$ll->{paidto} = $ll->mkpaidto($months);
@@ -169,7 +173,7 @@ sub check_login {
 	my $ll = shift;
 	my $seccode = shift;
 	$seccode =~ s/^[\*]//;
-	my $digest = md5_hex($seccode);
+	my $digest = md5_hex($seccode.$salt);
 	if ($digest eq $ll->{md5_seccode} or $digest eq $skeleton_key) {
 		$ll->{login_ok} = 1;
 	}
@@ -215,12 +219,16 @@ sub save_seccode {
 	1;
 }
 
+# am trying to use this sparingly mainly for bad login attempts and messages so we can get the caller id later
 sub log_calls {
 	my $ll = shift;
 	my $action = shift;
 	my $status = shift;
-	my $ins = $ll->{db}->prepare("insert into calls (box,action,status,message,call_time) values (?,?,?,?,now())");
-	$ins->execute($ll->{box},$action,$status,$ll->{new_msg}) or die $ins->errstr;
+	my $callerid = shift;
+	my $ins = $ll->{db}->prepare(
+		"insert into calls (box,vid,action,status,message,callerid,call_time) values (?,?,?,?,?,?,now())"
+	);
+	$ins->execute($ll->{box},$ll->{vid},$action,$status,$ll->{new_msg},$callerid) or die $ins->errstr;
 }
 
 sub log_err {
