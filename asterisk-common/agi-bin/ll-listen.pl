@@ -27,6 +27,7 @@ my $restore_msg = 'll-en-restmsg';
 my $del_all = 'll-en-delete';
 my $restore_all = 'll-en-restore';
 my $msg_rec = 'll-en-msgrec';
+my $msg_from = 'vm-from-phonenumber';
 my $extplay = 'll-en-extplay';
 my $digits = '1234567890*#';
 
@@ -36,6 +37,7 @@ $ll->load_msgs();
 $ll->flag_new_msgs(0);
 $ll->play_msg_count or exit;
 my $a = $ll->{agi};
+my $db = $ll->{db};
 my $callback_app;
 
 # start with the first message
@@ -121,13 +123,28 @@ sub play {
 	$k;
 }
 
+# say the message envelope information
 sub msg_date {
 	my ($msg) = @_;
-	exit unless defined $msg;
+	return unless defined $msg;
 	$a->stream_file($msg_rec);
 	my $msg_epoch = ($msg->{msg}=~m#^.*/(\d+)#)[0];
 	$a->say_date($msg_epoch);
 	$a->exec("Wait","1");
 	$a->say_time($msg_epoch);
+
+	# caller id stuff
+	my $getcid = $db->prepare("select callerid from calls where message=?");
+	$getcid->execute($msg->{msg}.'.'.$ll->{rectype}) or exit;
+	return unless $getcid->rows;
+	my $cid = $getcid->fetch->[0];
+	$getcid->finish;
+
+	return unless $cid =~ /.*<(\d+)>.*/;
+	my $phone = $1;
+	if (length($phone) > 0) { 
+		$a->stream_file($msg_from);
+		$a->say_digits($phone); 
+	}
 }
 

@@ -4,4 +4,4 @@ use Lifeline;
 use strict;
 my $ll = Lifeline->init(); # use ->load if you need cached messages list
 $ll->set('greeting',$ll->greeting);
-$ll->log_calls('ll-greeting.pl');
+# $ll->log_calls('ll-greeting.pl');
