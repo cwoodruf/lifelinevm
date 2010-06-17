@@ -41,8 +41,6 @@ if ($_REQUEST['listen']) {
 	print purchase_time($ldata);
 } else if ($action === 'invoice') {
 	print invoice($ldata);
-} else if ($action === 'Search') {
-	print view_boxes_form($ldata,ll_find_boxes($ldata['vid'],$_REQUEST['search']));
 } else {
 	$form = $_REQUEST['form'];
 	if ($form === 'Create a new voicemail box') {
@@ -59,6 +57,8 @@ if ($_REQUEST['listen']) {
 		print update_box_form($ldata,'Update name, email etc.');
 	} else if ($form === 'View your voicemail boxes' or $form === 'find_boxes') {
 		print find_boxes_form($ldata);
+	} else if ($form === 'Search') {
+		print find_boxes_form($ldata,ll_find_boxes($ldata['vid'],$_REQUEST['search']));
 	} else if ($form === 'Show all invoices') {
 		print list_invoices($ldata,true);
 	} else if ($form === 'Show unpaid invoices') {

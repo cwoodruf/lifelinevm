@@ -1,4 +1,5 @@
 <?php
+require_once("$lib/asterisk.php");
 require_once("php/lifeline-schema.php");
 $back = "<a href=/lifeline/admin.php>Back to start</a>";
 $table = table_header();
@@ -36,10 +37,15 @@ HTML;
 
 function form_end($data) {
 	global $adminfo;
+	$uptime = get_uptime();
 	return <<<HTML
 </form>
 <p>
+<span class="support">
+The Lifeline voice mail system is powered by <a class="support" href="http://asterisk.org/">Asterisk</a>. 
+$uptime.
 $adminfo
+</span>
 </center>
 </body>
 </html>
@@ -128,14 +134,11 @@ function create_new_box_form($data) {
 	$end = form_end($data);
 	$trans = ll_generate_trans($vend);
 	$personal = mk_personal_input();
-	if (!isset($_COOKIE['activate']) or $_COOKIE['activate']) {
-		$activatechecked = 'checked';
-	}
 	return <<<HTML
 $top
 <input type=hidden name=trans value="$trans">
 New box valid for &nbsp; <input size=3 name=months value=1> &nbsp; month(s). &nbsp;&nbsp; 
-<input type=checkbox name=activate value=1 $activatechecked> Activate now &nbsp;&nbsp;
+<input type=checkbox name=activate value=1> Activate now &nbsp;&nbsp;
 $personal
 <input type=submit name=action value="Create box" class=action>
 $end
@@ -151,8 +154,6 @@ function create_new_box($data) {
 	$months = $_REQUEST['months'];
 	if (!preg_match('#^\d\d?$#',$months)) die("create_new_box: invalid number of months");
 
-	$_COOKIE['activate'] = ($_GET['activate'] or $_POST['activate'])? true : false;
-	setcookie('activate',$_COOKIE['activate'],time()+86400*30);
 	list($min_box,$max_box) = get_box_range(); # pick a random box range 
 	list ($box,$seccode,$paidto) = ll_new_box($vend,$months,$min_box,$max_box,$_COOKIE['activate']);
 	ll_update_personal($vend,$box,$_REQUEST['personal']);
@@ -204,6 +205,8 @@ function update_box_form($data,$action="Add time to box") {
 	} else if (preg_match('#\btime\b#',$action)) {
 		if ($action === 'Remove time from box') {
 			$months = ll_months_left($bdata['paidto']);
+			if ($months <= 0) 
+				return "$top<h3>Box $box has less than one month left on its subscription.</h3>$end";
 		} else $months = 1;
 		$month_input = " Months: <input size=3 name=months value=$months> &nbsp;&nbsp;"; 
 		$trans = ll_generate_trans($vend);
@@ -335,7 +338,7 @@ function update_box_time($data,$months='') {
 	$vend = ll_vendor($data['vid'],true);
 	$top = form_top($data); 
 	$end = form_end($data);
-	$instr = file_get_contents("index.php");
+	if ($months > 0) $instr = file_get_contents("index.php");
 	return <<<HTML
 $top
 $table
@@ -369,11 +372,11 @@ $end
 HTML;
 }
 
-function find_boxes_form($data) {
+function find_boxes_form($data,$boxes=null) {
 	global $table;
 	$top = form_top($data); 
 	$end = form_end($data);
-	$boxes = ll_boxes($data,'not_deleted','order by box');
+	if (!is_array($boxes)) $boxes = ll_boxes($data,'not_deleted','order by box');
 	$truncdate = '#-\d+(?:| .*)$#';
 	$html = <<<HTML
 $top
@@ -404,17 +407,28 @@ function view_boxes_form($data,$boxes=null) {
 	}
 	$div = "&nbsp;-&nbsp;";
 	$url = "<a href=\"".$data['app']."?box=";
+	$search = htmlentities($_REQUEST['search']);
+	$numboxes = count($boxes);
+	if ($numboxes <> 1) $s = 'es';
 	$html = <<<HTML
+<form action=admin.php method=get>
+<input name="search" value="$search"> 
+<input type=submit name=form value="Search">
+<br>
+<a href="admin.php?form=View your voicemail boxes">Show all</a>
+</form>
+$numboxes box$s
 $table
 <tr><th><nobr>Box / Paid to</nobr></th><th>Tools</th></tr>
 HTML;
 	foreach ($boxes as $row) {
 		$box = $row['box'];
-		$paidto = $row['paidto'] == '0000-00-00' ? '&nbsp;' : $row['paidto'];
+		$paidto = $row['paidto'] == '0000-00-00' ? $row['status'] : $row['paidto'];
 		$add = "$url$box&form=add\">add time</a>";
 		$sub = "$url$box&form=sub\">subtract time</a>";
 		$del = "$url$box&form=del\">delete</a>";
-		# commented out to avoid privacy complaints and to allow us to put vm and web on different servers
+		# removed to avoid potential privacy complaints 
+		# and to allow us to put vm and web on different servers more easily
 		$msg = "$url$box&listen=1\">messages</a>";
 		$chsc = "$url$box&form=chsc\">change security code</a>";
 		$edit = "$url$box&form=edit\">edit</a>";
@@ -529,10 +543,11 @@ function list_invoices($data,$showall=false) {
 	$vend = ll_vendor($data['vid']);
 	$invoices = ll_invoices($showall,$vend);
 	$owing = sprintf('$%.2f',ll_get_owing($vend['vid']));
+	$invoiced = sprintf('$%.2f',ll_get_invoiced($vend['vid']));
 	$vendor = $vend['vendor'];
 	$html = <<<HTML
 $top
-<h3>Invoices for $vendor ($owing owing)</h3>
+<h3>Invoices for $vendor ($invoiced invoiced, $owing owing)</h3>
 $table
 <tr><th>invoice</th><th>vendor</th><th>created</th><th>gst</th><th>total</th><th>paid</th></tr>
 HTML;
