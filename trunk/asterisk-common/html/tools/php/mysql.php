@@ -5,8 +5,12 @@ eval(file_get_contents("/usr/local/asterisk/agi-bin/Lifeline/salt"));
 
 ###############################################################################
 # lifeline section
-$gst_rate = 0.05;
-$pst_rate = 0.07;
+function get_salestax($idate) {
+	if ($idate < '2010-07-01') {
+		return array( 'rate' => 0.05, 'name' => 'GST' );
+	}
+	return array( 'rate' => 0.12, 'name' => 'HST' );
+}
 $net_due = 30; # grace period for paying invoices in days
 $min_months = 4; # minimum # months you can buy
 # personal information associated with a box
@@ -341,13 +345,15 @@ function ll_delete_box($vend,$box) {
 function ll_invoice($invoice) {
 	if (preg_match('#^\d{1,32}$#',$invoice)) {
 		$idata = ll_load_from_table('invoices','invoice',$invoice,false);
-		return array_merge($idata,ll_vendor($idata['vid']));
+		$idata['vdata'] = ll_vendor($idata['vid']);
+		return $idata;
 	}
 }
 
 function ll_invoices($all=false,$vend=null) {
 	$lldb = ll_connect();
-	$fields = "invoice,vendor,date(invoices.created) as created,gst,total,date(paidon) as paidon ";
+	$fields = "invoice,vendor,date(invoices.created) as created,gst,".
+		"total,date(paidon) as paidon,invoices.vid as vid,parent,invoices.notes as notes ";
 	$orderby = "order by invoice desc";
 	if ($all) $query = "select $fields from invoices,vendors ".
 		"where vendors.vid=invoices.vid ";
@@ -359,6 +365,29 @@ function ll_invoices($all=false,$vend=null) {
 	if ($st === false) die(ll_err());
 	$rows = $st->fetchAll();
 	return $rows;
+}
+
+function ll_check_invoice($ldata, $idata) {
+	$savedidata = ll_invoice($idata['invoice']);
+	# is this logged in user allowed to update this invoice?
+	if ($ldata['vid'] == $savedidata['vdata']['parent']) return true;
+	return false;
+}
+
+function ll_save_invoice($idata) {
+	if (!preg_match('#^\d+$#',$idata['invoice'])) die("invoice should be a number!");
+	if (!preg_match('#^(|\d{4}-\d{2}-\d{2})$#',$idata['paidon'])) 
+		die("paidon date should YYYY-MM-DD!");
+	$lldb = ll_connect();
+	$notes = $lldb->quote($idata['notes']);
+	$query = "update invoices set paidon='{$idata['paidon']}',notes=$notes ".
+		"where invoice={$idata['invoice']}";
+	$rows = $lldb->exec($query);
+	# db error
+	if ($rows === false) die(ll_err());
+	if ($rows > 0) return true;
+	# we updated something that doesn't exist
+	return false;
 }
 
 function ll_pay_invoices($invoices) {
@@ -394,7 +423,6 @@ function ll_delete_trans($vend,$trans) {
 
 function ll_generate_invoice($vend,$months) {
 	global $ldata;
-	global $gst_rate, $pst_rate;
 	$lldb = ll_connect();
 	$st = $lldb->query("select max(invoice) from invoices");
         if ($st === false) die(ll_err());
@@ -404,14 +432,21 @@ function ll_generate_invoice($vend,$months) {
 	$idata['login'] = $ldata['login'];
 	$idata['vid'] = $vend['vid'];
 	$idata['months'] = $months;
-	$idata['total'] = sprintf('%.2f',$months * $vend['rate']);
 	$idata['created'] = date('Y-m-d H:i:s');
+
+	$st = get_salestax($idata['created']);
+	# ttl = amt + gst*amt = amt(1+gst) = rate * months
+	$ttl = $vend['rate'] * $months;
+	# net = ttl/(1+gst);
+	$net = $ttl/(1+$st['rate']);
+	$stnet = $ttl - $net;
+
 	if ($vend['gstexempt']) {
+		$idata['total'] = sprintf('%.2f',$net);
 		$idata['gst'] = 0;
 	} else {
-		$idata['gst'] = sprintf('%.2f', $idata['total'] * $gst_rate);
-		$idata['pst'] = sprintf('%.2f', $idata['total'] * $pst_rate);
-		$idata['total'] = sprintf ('%.2f', $idata['total'] + $idata['gst']);
+		$idata['gst'] = sprintf('%.2f', $stnet);
+		$idata['total'] = sprintf ('%.2f', $ttl);
 	}
 	if (ll_save_to_table('insert','invoices',$idata,null,$newid)) {
 		$vdata['months'] = "+".$months;

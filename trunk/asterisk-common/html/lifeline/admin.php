@@ -66,6 +66,13 @@ if ($_REQUEST['listen']) {
 		print list_invoices($vdata,true);
 	} else if ($form === 'Show unpaid invoices') {
 		print list_invoices($vdata,false);
+	} else if ($form === 'Edit invoice') {
+		print edit_invoice($_REQUEST['invoice']);
+	} else if ($form === 'Save invoice') {
+		if (ll_check_invoice($ldata,$_REQUEST) and ll_save_invoice($_REQUEST)) 
+			$form = 'Invoice saved';
+		else $form = 'Error saving invoice!';
+		print list_invoices($vdata,true);
 	} else if ($form === 'Purchase time') {
 		print purchase_time_form($ldata);
 	} else {
