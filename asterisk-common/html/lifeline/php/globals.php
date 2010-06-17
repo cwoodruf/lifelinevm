@@ -7,7 +7,8 @@ function get_box_range() {
 	return $ranges[mt_rand(0,1) > 0.5 ? 1 : 0]; 
 }
 
-$adminfo = '<a class="support" href="mailto:vmailtechnicalsupport@gmail.com@gmail.com">Support</a>';
+$adminfo = '<a class="support" href="mailto:vmailtechnicalsupport@gmail.com">Support</a>';
+$asterisk = '/usr/local/asterisk/sbin/asterisk';
 
 # default permissions list: there should be no other user permssions
 # these determine what you can create
