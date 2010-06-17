@@ -1,6 +1,4 @@
 #!/usr/bin/perl
-# purpose of this script is to scan the users.csv backup created by lifeline's (DOS) backup and 
-# import it into the lifeline (asterisk) database
 use Lifeline::DB;
 use Data::Dumper;
 use Getopt::Std;
@@ -90,7 +88,6 @@ while (my $raw = <IN>) {
 			'vendor' => $in{NAME},
 			'address' => (join " ", @in{@addressfields}),
 			'phone' => $in{PHONE},
-			'notes' => $in{MISC},
 		);
 		print Dumper(\%admin) if $opt{v};
 
