@@ -374,13 +374,14 @@ function ll_check_invoice($ldata, $idata) {
 	return false;
 }
 
-function ll_save_invoice($idata) {
+function ll_save_invoice($idata,$ldata=null) {
 	if (!preg_match('#^\d+$#',$idata['invoice'])) die("invoice should be a number!");
 	if (!preg_match('#^(|\d{4}-\d{2}-\d{2})$#',$idata['paidon'])) 
 		die("paidon date should YYYY-MM-DD!");
 	$lldb = ll_connect();
 	$notes = $lldb->quote($idata['notes']);
-	$query = "update invoices set paidon='{$idata['paidon']}',notes=$notes ".
+	if (isset($ldata['login'])) $login = ",login=".$lldb->quote($ldata['login']);
+	$query = "update invoices set paidon='{$idata['paidon']}',modified=now(),notes=$notes$login ".
 		"where invoice={$idata['invoice']}";
 	$rows = $lldb->exec($query);
 	# db error
@@ -390,9 +391,10 @@ function ll_save_invoice($idata) {
 	return false;
 }
 
-function ll_pay_invoices($invoices) {
+function ll_pay_invoices($invoices,$ldata=null) {
 	$lldb = ll_connect();
-	$query = "update invoices set paidon=now() where invoice in (";
+	if (isset($ldata['login'])) $login = ",login=".$lldb->quote($ldata['login']);
+	$query = "update invoices set paidon=now(),modified=now()$login where invoice in (";
 	foreach ($invoices as $invoice) {
 		if (!preg_match('#^\d+$#',$invoice)) continue;
 		$query .= "$invoice,";
