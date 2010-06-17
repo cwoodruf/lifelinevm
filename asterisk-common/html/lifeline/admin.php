@@ -8,6 +8,9 @@ if ($action === 'logout') delete_login();
 $ldata = login_response($_SERVER['PHP_SELF'],'ll_pw_data');
 $vdata = ll_vendor($ldata['vid']);
 $ldata = array_merge($ldata,$vdata);
+if (isset($_REQUEST['vid'])) {
+	$vdata = ll_vendor($_REQUEST['vid'],$ldata['vid']);
+}
 
 if ($ldata['status'] == 'deleted') die("vendor {$ldata['vendor']} was deleted!");
 
@@ -60,9 +63,9 @@ if ($_REQUEST['listen']) {
 	} else if ($form === 'Search') {
 		print find_boxes_form($ldata,ll_find_boxes($ldata['vid'],$_REQUEST['search']));
 	} else if ($form === 'Show all invoices') {
-		print list_invoices($ldata,true);
+		print list_invoices($vdata,true);
 	} else if ($form === 'Show unpaid invoices') {
-		print list_invoices($ldata,false);
+		print list_invoices($vdata,false);
 	} else if ($form === 'Purchase time') {
 		print purchase_time_form($ldata);
 	} else {

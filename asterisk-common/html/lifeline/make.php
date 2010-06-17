@@ -32,9 +32,10 @@ if ($from == 'admin') {
 	$seller = "{$sdata['vendor']} user";
 } else {
 	$ldata = login_response($_SERVER['PHP_SELF'],'ll_superuser');
-	$sdata = ll_vendor(0);
-	$sdata['vid'] = 0;
-	$defparent = 0;
+	if ($ldata['vid'] != 0) die("No direct access! <a href=\"admin.php\">Back to admin</a>");
+
+	$sdata = ll_vendor($ldata['vid']);
+	$defparent = isset($ldata['parent']) ? $ldata['parent'] : 0;
 
 	$vid = $_REQUEST['vid'];
 	if (!preg_match('#^\d*$#',$vid)) die("bad vendor id $vid!");
@@ -201,8 +202,8 @@ HTML;
 <tr>
 <td>$vid</td>
 <td>$vendor</td>
-<td align=right>$invstr</td>
-<td align=right>$owed</td>
+<td align=right><a href="admin.php?vid=$vid&form=Show all invoices">$invstr</a></td>
+<td align=right><a href="admin.php?vid=$vid&form=Show unpaid invoices">$owed</a></td>
 <td align=right>$vend[months]</td>
 <td>
 <table width=100% border=0 cellspacing=0 cellpadding=2 style="border: none">
