@@ -69,7 +69,7 @@ if ($_REQUEST['listen']) {
 	} else if ($form === 'Edit invoice') {
 		print edit_invoice($_REQUEST['invoice']);
 	} else if ($form === 'Save invoice') {
-		if (ll_check_invoice($ldata,$_REQUEST) and ll_save_invoice($_REQUEST)) 
+		if (ll_check_invoice($ldata,$_REQUEST) and ll_save_invoice($_REQUEST,$ldata)) 
 			$form = 'Invoice saved';
 		else $form = 'Error saving invoice!';
 		print list_invoices($vdata,true);
