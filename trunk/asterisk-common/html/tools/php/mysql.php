@@ -1,6 +1,7 @@
 <?php # mysql related php "middleware"
 # $Id: mysql.php,v 1.14 2008/10/26 04:59:15 root Exp root $
 require_once("$lib/.mysql.php");
+eval(file_get_contents("/usr/local/asterisk/agi-bin/Lifeline/salt"));
 
 ###############################################################################
 # lifeline section
@@ -58,7 +59,7 @@ function ll_del_vendor($vid) {
 function ll_get_unpaid_months($vid) {
 	$invoices = ll_load_from_table('invoices','vid',$vid);
 	foreach ($invoices as $idata) {
-		if (!empty($idata['paidon'])) continue;
+		if (preg_match('#^(0000-00-00 00:00:00|)$#',$idata['paidon'])) continue;
 		$months += $idata['months'];
 	}
 	return $months;
@@ -137,22 +138,18 @@ function ll_boxes($vend,$status='not_deleted',$order = "order by paidto desc") {
 
 function ll_find_boxes($vend,$search) {
 	$lldb = ll_connect();
-	foreach (array('box', 'name', 'email', 'created', 'paidto') as $field) {
-		if (is_array($search[$field])) {
-			$values = '';
-			foreach ($search[$field] as $value) {
-				if (!$value) continue;
-				$value = $lldb->quote($value);
-				if ($values) $values .= ',';
-				$values .= $value;
-			}
-			if ($values) $where .= " and $field in ($values)";
-		} else if ($search[$field]) {
-			$value = $lldb->quote($search[$field].'%');
-			$where .= " and $field like ($value)";
+	$where = " and status <> 'deleted' and (";
+	if (empty($search)) {
+		$where .= "1=1";
+	} else {
+		foreach (array('box', 'name', 'email', 'paidto', 'notes') as $field) {
+			$value = $lldb->quote('%'.$search.'%');
+			$wheres[] = "$field like ($value)";
 		}
+		$where .= implode(' or ',$wheres);
 	}
-	return ll_load_from_table('boxes','vid',$vend['vid'],true,$where);
+	$where .= ") order by box";
+	return ll_load_from_table('boxes','vid',$vend,true,$where);
 }
 
 function ll_check_months($vend,$months) {
@@ -171,8 +168,9 @@ function ll_months_left($date) {
 
 function ll_get_owing($vend=null) {
 	$lldb = ll_connect();
-	$query = "select vid,sum(total) from invoices where date(paidon) is null ";
-	if (isset($vend)) $query .= "and vid='".$vend['vid']."' ";
+	$query = "select vid,sum(total) as owed from invoices where (paidon is null or paidon = 0) ";
+	if (isset($vend) and preg_match('#^\d+$#',$vend['vid'])) 
+		$query .= "and vid='".$vend['vid']."' ";
 	$query .= "group by vid";
 	$st = $lldb->query($query);
 	if ($st === false) die(ll_err());
@@ -181,9 +179,27 @@ function ll_get_owing($vend=null) {
 		return $row[1];
 	}
 	while ($row = $st->fetch()) {
-		$owing[$row[0]] = $row[1];
+		$owing[$row[0]] += $row[1];
 	}
 	return $owing;
+}
+
+function ll_get_invoiced($vend=null) {
+	$lldb = ll_connect();
+	$query = "select vid,sum(total) from invoices ";
+	if (isset($vend) and preg_match('#^\d+$#',$vend['vid'])) 
+		$query .= "where vid='".$vend['vid']."' ";
+	$query .= "group by vid";
+	$st = $lldb->query($query);
+	if ($st === false) die(ll_err());
+	if (isset($vend)) {
+		$row = $st->fetch();
+		return $row[1];
+	}
+	while ($row = $st->fetch()) {
+		$invoiced[$row[0]] = $row[1];
+	}
+	return $invoiced;
 }
 
 # audit trail type of log - can also be used with paycodes if they get implemented
@@ -197,7 +213,7 @@ function ll_log($vend,$cdata) {
 
 # find a new box based on a range of numbers
 function ll_new_box($vend,$months,$min_box,$max_box,$activate) {
-	global $ldata;
+	global $ldata, $salt;
 	if (!preg_match('#^\d+$#',$min_box) or !preg_match('#^\d+$#',$max_box) or $max_box == $min_box) {
 		die("ll_new_box: bad box range $min_box, $max_box!");
 	}
@@ -238,10 +254,10 @@ function ll_new_box($vend,$months,$min_box,$max_box,$activate) {
 		$add = "add $months months";
 	}
 	if ($update) $query = "update boxes set ".
-			"seccode=md5('$seccode'),vid='$vend[vid]',modified=now(),".
+			"seccode=md5('$seccode$salt'),vid='$vend[vid]',modified=now(),".
 			"paidto='$paidto',new_msgs=0,login='$ldata[login]',status='$add'";
 	else $query = "insert into boxes (box,seccode,vid,paidto,login,modified,created,status) ".
-		"values ('$box',md5('$seccode'),'$vend[vid]','$paidto','$ldata[login]',now(),now(),'$add')";
+		"values ('$box',md5('$seccode$salt'),'$vend[vid]','$paidto','$ldata[login]',now(),now(),'$add')";
 	$result = $lldb->exec($query);
 	if ($result === false) die(ll_err());
 	ll_log($vend,array('newpaidto'=>$paidto,'box'=>$box,'months'=>$months,'action'=>'new_box'));
@@ -254,7 +270,7 @@ function ll_add_time($vend,$box,$months) {
 	global $pt_cutoff;
 	if (!preg_match('#^\d+$#',$vend['vid'])) die("ll_add_time: bad vendor id!");
 	if (!preg_match('#^\d+$#',$box)) die("ll_add_time: bad box id!");
-	if (!preg_match('#^\d\d?$#',$months)) die("invalid months value!");
+	if (!preg_match('#^-?\d\d?$#',$months)) die("invalid months value!");
 	ll_check_box($box);
 	ll_check_months($vend['vid'],$months);
 	$bdata = ll_load_from_table('boxes','box',$box,false);
@@ -292,12 +308,13 @@ function ll_update_personal($vend,$box,$personal) {
 }
 
 function ll_update_seccode($vend,$box,$seccode) {
+	global $salt;
 	ll_check_box($box);
 	ll_check_seccode($seccode);
 	$bdata = ll_load_from_table('boxes','box',$box,false);
 	if ($bdata['vid'] !== $vend['vid']) 
 		die("Box $box does not belong to vendor ".$vend['vendor']."! Please contact us.");
-	$sdata['seccode'] = md5($seccode);
+	$sdata['seccode'] = md5($seccode.$salt);
 	return ll_save_to_table('update','boxes',$sdata,'box',$box);
 }
 
@@ -323,14 +340,15 @@ function ll_delete_box($vend,$box) {
 
 function ll_invoice($invoice) {
 	if (preg_match('#^\d{1,32}$#',$invoice)) {
-		return ll_load_from_table('invoices','invoice',$invoice,false);
+		$idata = ll_load_from_table('invoices','invoice',$invoice,false);
+		return array_merge($idata,ll_vendor($idata['vid']));
 	}
 }
 
 function ll_invoices($all=false,$vend=null) {
 	$lldb = ll_connect();
 	$fields = "invoice,vendor,date(invoices.created) as created,gst,total,date(paidon) as paidon ";
-	$orderby = "order by invoice";
+	$orderby = "order by invoice desc";
 	if ($all) $query = "select $fields from invoices,vendors ".
 		"where vendors.vid=invoices.vid ";
 	else $query = "select $fields from invoices,vendors ".

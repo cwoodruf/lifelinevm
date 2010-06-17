@@ -1,7 +1,8 @@
 <?php
 require_once("$lib/asterisk.php");
 require_once("php/lifeline-schema.php");
-$back = "<a href=/lifeline/admin.php>Back to start</a>";
+$back = "<a href=/lifeline/admin.php>Back to admin</a>";
+$manage = "<a href=\"admin.php?action=Manage account and users\">Manage account and users</a>";
 $table = table_header();
 
 function table_header($cp=5,$cs=0,$b=0,$w=300) {
@@ -9,7 +10,7 @@ function table_header($cp=5,$cs=0,$b=0,$w=300) {
 }
 
 function form_top($data,$show_goback=true) {
-	global $back;
+	global $back, $manage;
 	global $vend;
 	global $form;
 	$login = $data['login'];
@@ -18,7 +19,7 @@ function form_top($data,$show_goback=true) {
 	$time = date('r',$data['time']);
 	$vend = ll_vendor($data['vid']);
 	$status = vend_status_str($vend);
-	$goback = $show_goback ? " - $back" : '';
+	$goback = $show_goback ? "$manage - $back" : '';
 	return <<<HTML
 <html>
 <head>
@@ -27,8 +28,7 @@ function form_top($data,$show_goback=true) {
 </head>
 <body bgcolor=lightyellow>
 <center>
-<a href=index.php>Basic Instructions</a>$goback - <a href="/lifeline/admin.php?action=logout">Log out</a><p>
-<h4>Vendor: $vendor (user: $login)</h4>
+<h4>Vendor: $vendor <span style="font-weight: normal;">$goback</span></h4>
 <h3>$form</h3>
 $status<p>
 <form action=/lifeline/admin.php method=get>
@@ -536,14 +536,15 @@ HTML;
 
 function list_invoices($data,$showall=false) {
 	global $ldata;
-	if ($data['vid'] != $ldata['vid']) die("Error: you are trying to view someone else's invoices.");
+	if ($data['vid'] != $ldata['vid'] and $data['parent'] != $ldata['vid']) 
+		die("Error: you are trying to view someone else's invoices.");
 	$table = table_header(3,0,0,600);
 	$top = form_top($data); 
 	$end = form_end($data);
 	$vend = ll_vendor($data['vid']);
 	$invoices = ll_invoices($showall,$vend);
-	$owing = sprintf('$%.2f',ll_get_owing($vend['vid']));
-	$invoiced = sprintf('$%.2f',ll_get_invoiced($vend['vid']));
+	$owing = sprintf('$%.2f',ll_get_owing($data));
+	$invoiced = sprintf('$%.2f',ll_get_invoiced($data));
 	$vendor = $vend['vendor'];
 	$html = <<<HTML
 $top
@@ -575,20 +576,18 @@ HTML;
 }
 
 function invoice($data) {
-	global $_REQUEST;
 	global $net_due;
 	global $ldata;
-	$sdata = ll_vendor(0);
-	$seller = $sdata['vendor'];
-	$invoice = $_REQUEST['invoice'];
-	$vend = ll_vendor($data['vid']);
-	$idata = ll_invoice($invoice);
-
-	# only the super user can view other vendor's invoices
-	if ($ldata['vid'] != 0 and $data['vid'] != $ldata['vid']) die($ldata['vid']." vs ".$data['vid']);
 	# only let people with invoice viewing permissions to look at invoices
 	if (!preg_match('#invoices|^s$#',$ldata['perms'])) 
 		die("You don't have the permissions to view invoices.");
+	$invoice = $_REQUEST['invoice'];
+	if (!preg_match('#^\d+$#',$invoice)) 
+		die("Invoice is not a number!");
+	$idata = ll_invoice($invoice);
+	$sdata = ll_vendor($idata['parent']);
+	$seller = $sdata['vendor'];
+	$vend = ll_vendor($idata['vid']);
 
 	$total = sprintf('%.2f',$idata[total]);
 	$gst = sprintf('%.2f',$idata[gst]);
