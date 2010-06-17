@@ -5,11 +5,11 @@ $back = "<a href=/lifeline/admin.php>Back to admin</a>";
 $manage = "<a href=\"admin.php?action=Manage account and users\">Manage account and users</a>";
 $table = table_header();
 
-function table_header($cp=5,$cs=0,$b=0,$w=300) {
-	return "<table cellpadding=$cp cellspacing=$cs border=$b width=$w>";
+function table_header($cp=5,$cs=0,$b=0,$w=300,$style='') {
+	return "<table cellpadding=$cp cellspacing=$cs border=$b width=$w $style>";
 }
 
-function form_top($data,$show_goback=true) {
+function form_top($data,$show_goback=true,$show_status=true) {
 	global $back, $manage;
 	global $vend;
 	global $form;
@@ -18,8 +18,9 @@ function form_top($data,$show_goback=true) {
 	$app = $data['app'];
 	$time = date('r',$data['time']);
 	$vend = ll_vendor($data['vid']);
-	$status = vend_status_str($vend);
+	if ($show_status) $status = vend_status_str($vend);
 	$goback = $show_goback ? "$manage - $back" : '';
+	$logout = "<a href=\"admin.php?action=logout\">Log out</a>";
 	return <<<HTML
 <html>
 <head>
@@ -28,10 +29,10 @@ function form_top($data,$show_goback=true) {
 </head>
 <body bgcolor=lightyellow>
 <center>
-<h4>Vendor: $vendor <span style="font-weight: normal;">$goback</span></h4>
+<h4>Vendor: $vendor <span style="font-weight: normal;">$goback &nbsp;&nbsp; $logout</span></h4>
 <h3>$form</h3>
 $status<p>
-<form action=/lifeline/admin.php method=get>
+<form action=/lifeline/admin.php name="topform" id="topform" method=get>
 HTML;
 }
 
@@ -487,7 +488,6 @@ HTML;
 function confirm_purchase_form($data) {
 	global $_REQUEST;
 	global $min_months;
-	global $gst_rate,$pst_rate;
 	global $vend;
 	global $table;
 	global $ldata;
@@ -500,16 +500,19 @@ function confirm_purchase_form($data) {
 		die("You have exceeded your credit limit of {$vend['credit_limit']} months");
 	if (!isset($vend['rate']) or $vend['rate'] === '') 
 		die("There is a problem with your account. Please contact us.");
+
+	$st = get_salestax(date('Y-m-d'));
 	$total = sprintf('%.2f',$months * $vend['rate']);
-	if (!$vend['gstexempt'])
-		$total = sprintf('%.2f',$total + $total * $gst_rate + $total * $pst_rate);
+	if ($vend['gstexempt'])
+		$total = sprintf('%.2f',$total/(1+$st['rate']));
+
 	$trans = ll_generate_trans($vend);
 	return <<<HTML
 $top
 $table
 <input type=hidden name=trans value="$trans">
 <tr><td>Months:</td><td align=right>$months <input type=hidden name=months value="$months"></td></tr>
-<tr><td><nobr>Total including GST:</nobr></td><td align=right>\$$total</td></tr>
+<tr><td><nobr>Total including {$st['name']}:</nobr></td><td align=right>\$$total</td></tr>
 <tr><td>&nbsp;</td><td align=right><input type=submit name=action value="Buy voicemail now"></td></tr>
 </table>
 $end
@@ -538,7 +541,7 @@ function list_invoices($data,$showall=false) {
 	global $ldata;
 	if ($data['vid'] != $ldata['vid'] and $data['parent'] != $ldata['vid']) 
 		die("Error: you are trying to view someone else's invoices.");
-	$table = table_header(3,0,0,600);
+	$table = table_header(3,0,0,800);
 	$top = form_top($data); 
 	$end = form_end($data);
 	$vend = ll_vendor($data['vid']);
@@ -548,27 +551,89 @@ function list_invoices($data,$showall=false) {
 	$vendor = $vend['vendor'];
 	$html = <<<HTML
 $top
-<h3>Invoices for $vendor ($invoiced invoiced, $owing owing)</h3>
+<h3>Invoices for $vendor ($owing owing)</h3>
 $table
-<tr><th>invoice</th><th>vendor</th><th>created</th><th>gst</th><th>total</th><th>paid</th></tr>
+<tr><th>invoice</th><th>vendor</th><th>created</th><th>tax</th><th>total</th><th>paid</th></tr>
 HTML;
         foreach ($invoices as $invoice) {
-                if (preg_match('#^0000#',$invoice['paidon'])) $invoice['paidon'] = 'unpaid';
+                if (preg_match('#^0000#',$invoice['paidon'])) $invoice['paidon'] = '';
                 $html .= "<tr valign=top>\n";
 		$in = $invoice['invoice'];
-                foreach ($invoice as $field => $value) {
+		# if you are logged in as the parent then you can edit the invoice
+		if ($invoice['parent'] == $ldata['vid']) 
+			$editinv = "<td align=right><a href=\"admin.php?form=Edit invoice&invoice=$in\">edit</a>";
+		else $editinv = '';
+                foreach (array('invoice','vendor','created','gst','total','paidon') as $field) {
+			$value = htmlentities($invoice[$field]);
                         if (is_numeric($field)) continue;
 			if ($field === 'invoice') 
 				$html .= <<<HTML
 <td align=center><a href="/lifeline/admin.php?action=invoice&invoice=$in" target=_blank>$in</a></td>
 HTML;
-                        else if ($field === 'total' or $field === 'gst') 
+                        else if ($field === 'total' or $field === 'gst') {
 				$html .= "<td align=right>".(sprintf('$%.2f',$value))." &nbsp;</td>";
-			else $html .= "<td align=right>$value &nbsp;</td>";
+			} else if ($field === 'paidon') {
+				$html .= "<td align=right>$value $editinv</td>";
+			} else $html .= "<td align=right>$value &nbsp;</td>";
                 }
                 $html .= "</tr>\n";
+		if ($invoice['notes']) {
+			$notes = htmlentities($invoice['notes']);
+			$html .= "<tr bgcolor=lightgray><td colspan=7 align=center><b>Notes:</b> $notes</td></tr>\n";
+		}
         }
 	$html .= <<<HTML
+</table>
+$end
+HTML;
+	return $html;
+}
+
+function edit_invoice($invoice) {
+	global $ldata;
+	if (!preg_match('#^\d+$#', $invoice)) die("invoice should be a number!");
+
+	if (!preg_match('#invoices|^s$#',$ldata['perms'])) 
+		die("you do not have permission to view invoices!");
+
+	$idata = ll_invoice($invoice);
+	if ($ldata['vid'] != $idata['vdata']['parent']) 
+		die("you do not have permission to edit this invoice!");
+	
+	$table = table_header(3,0,0,600);
+	$top = form_top($ldata,true,false); 
+	$end = form_end($ldata);
+	$idata['gst'] = sprintf('$%.2f', $idata['gst']);
+	$idata['total'] = sprintf('$%.2f', $idata['total']);
+	$idata['created'] = preg_replace('# .*#','',$idata['created']);
+	$idata['paidon'] = preg_replace('# .*#','',$idata['paidon']);
+	if ($idata['paidon'] == '0000-00-00') $idata['paidon'] = '';
+	$today = date('Y-m-d');
+	$html = <<<HTML
+$top
+<h3>Invoice 
+<a href="admin.php?action=invoice&invoice=$invoice" target=_blank>$invoice</a>
+for 
+<a href="admin.php?vid={$idata['vid']}&form=Show all invoices">{$idata['vdata']['vendor']}</a></h3>
+<input type=hidden name=invoice value="$invoice">
+<input type=hidden name=vid value="{$idata['vid']}">
+$table
+<tr><td>invoice</td><td>{$idata['invoice']}</td></tr>
+<tr><td>vendor</td><td>{$idata['vdata']['vendor']}</td></tr>
+<tr><td>created</td><td>{$idata['created']}</td></tr>
+<tr><td>tax</td><td>{$idata['gst']}</td></tr>
+<tr><td>total</td><td>{$idata['total']}</td></tr>
+<tr><td>paid on</td>
+    <td><input id="paidon" name="paidon" value="{$idata['paidon']}" max=10 size=10> 
+	YYYY-MM-DD &nbsp;
+	<a class=support href="javascript:void(0);" 
+	   onclick="topform.paidon.value='$today'; return false;">set to today</a> &nbsp;
+	<a class=support href="javascript:void(0);" 
+	   onclick="topform.paidon.value=''; return false;">clear</a>
+</td></tr>
+<tr><td>notes</td><td><input name="notes" value="{$idata['notes']}" size=40></td></tr>
+<tr><td><input type=reset value="reset"></td>
+    <td align=right><input type=submit name=form value="Save invoice"></td></tr>
 </table>
 $end
 HTML;
@@ -584,24 +649,28 @@ function invoice($data) {
 	$invoice = $_REQUEST['invoice'];
 	if (!preg_match('#^\d+$#',$invoice)) 
 		die("Invoice is not a number!");
+
+	# invoice is a combo of invoice, vendor and seller data
 	$idata = ll_invoice($invoice);
-	$sdata = ll_vendor($idata['parent']);
+	$sdata = ll_vendor($idata['vdata']['parent']);
 	$seller = $sdata['vendor'];
-	$vend = ll_vendor($idata['vid']);
+	$vend = $idata['vdata'];
 
 	$total = sprintf('%.2f',$idata[total]);
-	$gst = sprintf('%.2f',$idata[gst]);
+	$tax = sprintf('%.2f',$idata['gst']);
+	$st = get_salestax($idata['created']);
 	$created = preg_replace('# .*#','',$idata['created']);
 	if (!isset($idata)) die("Could not find invoice $invoice!");
-	$table = table_header(3,0,0,200);
-	# invoice is a combo of invoice, vendor and seller data
+	$table = table_header(3,0,0,500,'align=center');
 	return <<<HTML
 <html>
 <head>
 <title>$seller invoice $invoice</title>
+<link rel=stylesheet href=css/base.css type=text/css>
+<link rel=stylesheet href=css/admin.css type=text/css>
 </head>
 <body>
-<table width=500>
+<table width=600 align=center cellpadding=10 cellspacing=0>
 <tr><td>
 <center>
 <h2>$seller Invoice $invoice</h2>
@@ -611,7 +680,6 @@ Fax: $sdata[fax]<br>
 Email: $sdata[email]<br>
 GST Number: $sdata[gst_number]<br>
 </center>
-<p>
 <p>
 $table
 <tr><td><b>Invoice Date:</b></td><td>$created&nbsp;</td></tr>
@@ -623,13 +691,17 @@ $table
 <tr><td><b>Email:</b></td><td>$vend[email]&nbsp;</td></tr>
 </table>
 <p>
-Please remit <b>\$$total</b> (including \$$gst) for $idata[months] months voicemail.<br>
-Invoice payable $net_due days from invoice date.<br>
+Please remit <b>\$$total</b> (including \$$tax {$st['name']}) for $idata[months] months voicemail.
 <p>
-Thank you.
+Invoice payable $net_due days from invoice date.
+<p>
+<p>
+Thank you!
 <p>
 $seller
 <p>
+<p>
+<center><i>Save and print this invoice for your records.</i></center>
 </td></tr>
 </table>
 </body>
