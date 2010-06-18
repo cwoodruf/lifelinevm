@@ -27,3 +27,19 @@ messages and stop the application on hang up.
 Both key capture and tolerant hang up are needed to make the user interface less confusing for
 people who are not comfortable working with IVR systems.
 
+I am running asterisk as the user asterisk in its own tree.
+
+The configure commands used to make the versions of asterisk were:
+
+cd asterisk-1.4 && \
+./configure --with-gsm=internal --prefix=/usr/local/asterisk-1.4 --enable-console
+
+cd asterisk-1.6 && \
+./configure --with-gsm=internal --prefix=/usr/local/asterisk-1.6 --enable-dev-mode
+
+Then 
+
+make && sudo su -c 'make install' asterisk
+
+I used a symlink /usr/local/asterisk to default to a specific version of asterisk (1.4 currently).
+

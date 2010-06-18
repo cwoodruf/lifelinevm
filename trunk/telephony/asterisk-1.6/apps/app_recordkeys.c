@@ -392,6 +392,7 @@ static int record_exec(struct ast_channel *chan, const char *data)
 			pbx_builtin_setvar_helper(chan, "RECORD_STATUS", "DTMF");
 			if (!keys) {
 				ast_frfree(f);
+				res = 0;
 				break;
 			}
                         tmp[0] = f->subclass.integer;
@@ -410,6 +411,7 @@ static int record_exec(struct ast_channel *chan, const char *data)
                         tmp[i] = '\0';
                         snprintf(chan->exten, sizeof(chan->exten), "%s", tmp);
                         chan->priority = 0;
+			res = 0;
 			ast_frfree(f);
 			break;
 		}
