@@ -43,10 +43,10 @@ function ll_vendor_ok($vendor) {
 
 function ll_vendor($vid,$refresh=false) {
 	global $vend;
-	if ($vid == -1) return ll_load_from_table('vendors','vid',-1,false);
 	if (!preg_match('#^\d+$#',$vid)) return;
 	if (isset($vend) and $vend['vid'] === $vid and !$refresh) return $vend;
 	$vend = ll_load_from_table('vendors','vid',$vid,false);
+	if ($vend === false) return false;
 	$vend['unpaid_months'] = ll_get_unpaid_months($vid);
 	return $vend;
 }
@@ -136,8 +136,11 @@ function ll_box($box) {
 function ll_boxes($vend,$status='not_deleted',$order = "order by paidto desc") {
 	if ($status == 'deleted') $status = " and status in ('deleted')";
 	else if ($status == 'not_deleted') $status = " and status not in ('deleted')";
+
+	if (is_array($vend)) $vid = $vend['vid'];
+	else $vid = $vend;
 	
-	return ll_load_from_table('boxes','vid',$vend['vid'],true," $status $order");
+	return ll_load_from_table('boxes','vid',$vid,true," $status $order");
 }
 
 function ll_find_boxes($vend,$search) {
@@ -186,6 +189,16 @@ function ll_get_owing($vend=null) {
 		$owing[$row[0]] += $row[1];
 	}
 	return $owing;
+}
+
+# switch vendors for a box we assume you've checked the sanity of this prior
+function ll_transferbox($box,$currvendor,$newvendor) {
+	$lldb = ll_connect();
+	$query = sprintf("update boxes set vid=%u where box=%u and vid=%u",
+				$newvendor['vid'], $box, $currvendor['vid']);
+	$affected = $lldb->exec($query);
+	if ($affected) return true;
+	return false;
 }
 
 function ll_get_invoiced($vend=null) {
@@ -501,6 +514,7 @@ function ll_load_from_table($table,$name,$key,$return_all=true,$query_end='') {
 	if ($name == '' and $key == '') 
 		$query = "select * from $table $query_end";
 	else $query = "select * from $table where $name='$key' $query_end";
+
 	$st = $lldb->query($query);
 	if ($st === false) {
 		die(ll_err());
@@ -521,6 +535,7 @@ print "<pre>\n";
 print print_r($data);
 print "</pre>\n";
 */
+	if (!is_array($data)) return false;
 	return $data;
 }
 
