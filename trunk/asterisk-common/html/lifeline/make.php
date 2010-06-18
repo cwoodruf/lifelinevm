@@ -9,8 +9,14 @@ if ($action === 'logout') delete_login();
 $login = $_REQUEST['login'];
 if (!preg_match('#^[\w\.\@-]*$#',$login)) die("bad login value $login for adding or updating user!");
 
-# log in
-$from = $_REQUEST['from'] == 'admin' ? 'admin' : null;
+# remember where we came from
+$_SESSION['from'] = $from = 
+		$_REQUEST['from'] == 'admin' ? 'admin' : 
+			($_SESSION['from'] == 'admin' ? 'admin' : null);
+
+# log in and check differently depending on where we came from
+# this is more of a courtesy than a security check
+# your login credentials really determine what you can do
 if ($from == 'admin') {
 	$ldata = login_response("/lifeline/admin.php",'ll_pw_auth');
 	if ($ldata['perms'] != 's') {
@@ -29,7 +35,6 @@ if ($from == 'admin') {
 	}
 
 	$goback = "<a href=\"admin.php\">Back to voicemail admin page</a>";
-	$seller = "{$sdata['vendor']} user";
 } else {
 	$ldata = login_response($_SERVER['PHP_SELF'],'ll_superuser');
 	if ($ldata['vid'] != 0) die("No direct access! <a href=\"admin.php\">Back to admin</a>");
@@ -43,15 +48,22 @@ if ($from == 'admin') {
 	else unset($vend);
 	$goback = "<a href=/lifeline/make.php?action=logout>Log out</a>";
 
-	$seller = $sdata['vendor'];
 }
+$seller = $sdata['vendor'];
 
 # create pages
 if ($action === 'invoice') {
 	print invoice($vend);
 	exit;
 }
+if ($sdata['perms'] == 's') $myperms = $baseperms;
+else $myperms = split(':',$ldata['perms']);
+foreach ($myperms as $p) {
+	$permcheck[$p] = true;
+}
 
+if ($permcheck['vendors']) 
+	$emaillistlink = "<a href=/lifeline/make.php?from=$from>Back</a> &nbsp;&nbsp;";
 print <<<HTML
 <html>
 <head>
@@ -62,21 +74,16 @@ print <<<HTML
 <center>
 $goback
 <h3>$seller admin</h3>
-<a href=/lifeline/make.php?from=$from>Back to list</a> &nbsp;&nbsp;
-<a href=/lifeline/make.php?action=emails&from=$from>Emails</a>
+<a href=/lifeline/make.php?from=$from>Back</a> &nbsp;&nbsp;
+$emaillistlink
 <p>
 
 HTML;
 
-if ($sdata['perms'] == 's') $myperms = $baseperms;
-else $myperms = split(':',$ldata['perms']);
-foreach ($myperms as $p) {
-	$permcheck[$p] = true;
-}
-
 if ($sdata['vid'] == 0) {
 	print <<<HTML
 <form action=/lifeline/make.php method=get>
+$seller 
 <input type=submit name=action value="Create new vendor"> &nbsp;&nbsp;
 <input type=hidden name=parent value="$defparent">
 <input type=submit name=action value="View paid invoices"> &nbsp;&nbsp;
@@ -87,6 +94,7 @@ HTML;
 } else if ($permcheck['logins'] or $permcheck['vendors']) {
 	print <<<HTML
 <form action=/lifeline/make.php method=get>
+$seller 
 <input type=hidden name=from value="$from">
 <input type=submit name=action value="Update info"> &nbsp;&nbsp;
 <input type=hidden name=vid value="$vid">
@@ -133,6 +141,9 @@ else if ($sdata['vid'] === 0 and $action === 'View paid invoices') invoices_form
 else if ($sdata['vid'] === 0 and $action === 'Indicate invoice paid') pay_invoices();
 else if ($action === 'Update vendor') update_vendor('update',$vend);
 else if ($action === 'Create vendor') update_vendor('insert');
+else if ($action === 'transfer_box') transfer_box_form();
+else if ($action === 'Confirm box transfer') transfer_box_confirm();
+else if ($action === 'Really transfer box') transfer_box();
 else if (
 	(isset($vid) and $sdata['vid'] === 0) or 
 	$action === 'edit' or 
@@ -149,6 +160,117 @@ HTML;
 # end output
 
 #================================== functions ================================#
+function transfer_box_form() {
+	global $ldata;
+	if (!$ldata['vid'] == 0) die("only super user can transfer a box!");
+
+	$vid = $_REQUEST['vid'];
+	if (!preg_match('#^\d+$#',$vid)) die("vendor id should be a number!");
+	$currvendor = ll_vendor($vid);
+	if (!$currvendor) die("vendor $vid does not exist!");
+
+	$boxes = ll_boxes($vid,'','order by box asc');
+	if ($boxes) {
+		$boxsel = "<select name=boxsel><option>\n";
+		foreach ($boxes as $bdata) {
+			$boxsel .= 
+				"<option value=\"{$bdata['box']}\">{$bdata['box']} {$bdata['status']}</option>\n";
+		}
+		$boxsel .= "</select>\n";
+	}
+	$vendors = ll_vendors($ldata['vid']);
+
+	print <<<HTML
+<h3>Transfer a box from one vendor to another</h3>
+<table cellpadding=3 cellspacing=0>
+<tr>
+<td>
+Select a Box: <input name=box size=5> $boxsel
+<p>
+Current vendor: <b>{$currvendor['vendor']}</b>
+<input type=hidden name="currvid" value="{$currvendor['vid']}">
+<p>
+New vendor: <select name="newvid">
+<p>
+
+HTML;
+	foreach ($vendors as $vendor) {
+		if ($vendor['vid'] == $vid) $checked = 'selected';
+		else $checked = '';
+		print "<option value=\"{$vendor['vid']}\" $checked>{$vendor['vendor']}</option>\n";
+	}
+	print <<<HTML
+</select>
+<p>
+<center><input type=submit name=action value="Confirm box transfer"></center>
+</td>
+</tr>
+</table>
+
+HTML;
+
+}
+
+function transfer_box_confirm() {
+	global $ldata;
+	if (!$ldata['vid'] == 0) die("only super user can transfer a box!");
+	list($box,$currvendor,$newvendor) = get_transferdata();
+
+	print <<<HTML
+<input type=hidden name=currvid value={$currvendor['vid']}>
+<input type=hidden name=newvid value={$newvendor['vid']}>
+<input type=hidden name=box value=$box>
+<h3>Transfer box $box from 
+    {$currvendor['vendor']} ({$currvendor['vid']})
+to {$newvendor['vendor']} ({$newvendor['vid']})?
+<p>
+<input type=submit name=action value="Really transfer box">
+
+HTML;
+
+}
+
+function transfer_box() {
+	global $ldata;
+	if (!$ldata['vid'] == 0) die("only super user can transfer a box!");
+	list($box,$currvendor,$newvendor) = get_transferdata();
+
+	if (ll_transferbox($box,$currvendor,$newvendor))  $result = "transferred";
+	else $result = "not tranferred (error)";
+
+	print <<<HTML
+<h3>Box $box $result from {$currvendor['vendor']} to {$newvendor['vendor']}</h3>
+
+HTML;
+}
+
+function get_transferdata() {
+	$box = $_REQUEST['box'];
+	if (empty($box)) $box = $_REQUEST['boxsel'];
+	if (!preg_match('#^\d+$#', $box)) die("box $box should be a number!");
+	$bdata = ll_box($box);
+	if (!$bdata) die("box $box does not exist!");
+
+	$currvid = $_REQUEST['currvid'];
+	if (!preg_match('#^\d+$#',$currvid)) die("old vendor id should be a number!");
+
+	$newvid = $_REQUEST['newvid'];
+	if (!preg_match('#^\d+$#',$newvid)) die("new vendor id should be a number!");
+
+	if ($currvid == $newvid) die("current vendor and selected new vendor are the same for box $box!");
+
+	$currvendor = ll_vendor($currvid);
+	if (!$currvendor) die("selected current vendor could not be found!");
+	if ($currvendor['status'] == 'deleted') die("current vendor $currvid deleted!");
+	if ($bdata['vid'] != $currvendor['vid']) die("box $box does not belong to vendor $currvid!");
+
+	$newvendor = ll_vendor($newvid);
+	if (!$newvendor) die("selected new vendor could not be found!");
+	if ($newvendor['status'] == 'deleted') die("new vendor $newvid deleted!");
+
+	return array($box, $currvendor, $newvendor);
+}
+
 function show_emails() {
 	global $ldata,$from;
 	$vendors = ll_vendors($ldata['vid']);
@@ -215,6 +337,10 @@ HTML;
 </td><td>
 <a href="$make?action=show_logins&from=$from&vid=$vid">show logins</a> $div
 </td><td>
+<a href="$make?action=transfer_box&from=$from&vid=$vid">transfer box</a> $div
+</td><td>
+<a href="$make?action=show_logins&from=$from&vid=$vid">show logins</a> $div
+</td><td>
 $del_vendor
 </td>
 </tr>
@@ -231,12 +357,19 @@ function vendor_form($vend) {
 	$vendor = $vend['vendor'];
 	$vid = $vend['vid'];
 	print "<h3>Edit Vendor $vendor</h3>\n";
+	if ($ldata['vid'] != $vid) {
+		$loginbuttons = <<<HTML
+<input type=submit name=action value="Show logins"> &nbsp;&nbsp;
+<input type=submit name=action value="New login user"> &nbsp;&nbsp;
+
+HTML;
+	}
 
 	if (isset($vend)) {
 		print <<<HTML
+$vendor 
 <input type=reset value=Reset> &nbsp;&nbsp;
-<input type=submit name=action value="Show logins"> &nbsp;&nbsp;
-<input type=submit name=action value="New login user"> &nbsp;&nbsp;
+$loginbuttons
 <input type=hidden name="vend[parent]" value="$defparent">
 
 HTML;
@@ -411,7 +544,18 @@ HTML;
 <tr><td>Password again:</td><td> <input type=password name=password2 size=40></td></tr>
 HTML;
 	}
+	if ($ldata['vid'] != $vid) {
+		$loginbuttons = <<<HTML
+$vendor 
+<input type=submit name=action value="Show logins"> &nbsp;&nbsp;
+<input type=submit name=action value="New login user">
+
+HTML;
+	}
 	print <<<HTML
+$loginbuttons
+<br>
+<br>
 <input type=hidden name=vid value="$vid">
 <table cellpadding=5 cellspacing=0 border=0>
 <tr><td colspan=2 align=center><input type=reset value=Reset></td></tr>
@@ -430,7 +574,7 @@ HTML;
 }
 
 function add_user($vend) {
-	global $ldata, $baseperms;
+	global $ldata, $baseperms,$from;
 	$vendor = $vend['vendor'];
 	$login = $_REQUEST['login'];
 	$vid = $vend['vid'];
@@ -448,7 +592,12 @@ function add_user($vend) {
 	if (is_array($permlist)) $permstr = implode(':',array_keys($permlist));
 
 	ll_add_user($vend,$login,$password,$permstr);
-	print "<h3>Updated user $login (Vendor $vendor)</h3>\n";
+	print <<<HTML
+<h3>Updated user $login 
+(Vendor <a href="make.php?action=show_logins&from=$from&vid=$vid">$vendor</a>)
+</h3>
+HTML;
+
 }
 
 function del_user_form($vend) {
@@ -529,9 +678,9 @@ HTML;
 }
 
 function pay_invoices() {
-	global $_REQUEST;
+	global $ldata;
 	$invoices = $_REQUEST['invoices'];
-	ll_pay_invoices($invoices);
+	ll_pay_invoices($invoices,$ldata);
 	print "<h3>Invoices updated</h3>";
 }
 

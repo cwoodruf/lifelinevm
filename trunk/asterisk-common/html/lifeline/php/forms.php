@@ -2,7 +2,8 @@
 require_once("$lib/asterisk.php");
 require_once("php/lifeline-schema.php");
 $back = "<a href=/lifeline/admin.php>Back to admin</a>";
-$manage = "<a href=\"admin.php?action=Manage account and users\">Manage account and users</a>";
+if ($permcheck['logins'])
+	$manage = "<a href=\"admin.php?action=Manage account and users\">Manage account and users</a>";
 $table = table_header();
 
 function table_header($cp=5,$cs=0,$b=0,$w=300,$style='') {

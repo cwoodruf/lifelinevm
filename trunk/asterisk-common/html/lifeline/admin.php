@@ -14,6 +14,12 @@ if (isset($_REQUEST['vid'])) {
 
 if ($ldata['status'] == 'deleted') die("vendor {$ldata['vendor']} was deleted!");
 
+$myperms = split(':',$ldata['perms']);
+foreach ($myperms as $p) {
+	$permcheck[$p] = true;
+}
+
+
 require_once("php/forms.php");
 
 if ($_REQUEST['listen']) {
