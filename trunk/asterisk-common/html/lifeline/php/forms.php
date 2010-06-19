@@ -126,7 +126,7 @@ function vend_status_str($vend) {
 	} else {
 		$months = $vend['months']." months of";
 	}
-	$status = "You currently have $months voicemail available.<br>";
+	$status = "{$vend['vendor']} has $months voicemail available.<br>";
 	return $status;
 }
  
@@ -415,9 +415,10 @@ function view_boxes_form($data,$boxes=null) {
 	$html = <<<HTML
 <form action=admin.php method=get>
 <input name="search" value="$search"> 
+<input type=hidden name="vid" value="{$data['vid']}"> 
 <input type=submit name=form value="Search">
 <br>
-<a href="admin.php?form=View your voicemail boxes">Show all</a>
+<a href="admin.php?form=View your voicemail boxes&vid={$data['vid']}">Show all</a>
 </form>
 $numboxes box$s
 $table
