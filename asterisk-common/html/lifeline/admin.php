@@ -19,6 +19,16 @@ foreach ($myperms as $p) {
 	$permcheck[$p] = true;
 }
 
+if (preg_match('#^\d+$#', $_REQUEST['vid'])) {
+	$findvid = $_REQUEST['vid'];
+	$finddata = ll_vendor($findvid);
+	if ($findvid != $ldata['vid'] 
+		and $finddata['parent'] != $ldata['vid'])
+		die("you are not associated with this vendor!");
+} else {
+	$findvid = $ldata['vid'];
+	$finddata = $ldata;
+}
 
 require_once("php/forms.php");
 
@@ -65,9 +75,9 @@ if ($_REQUEST['listen']) {
 	} else if ($form === 'edit') {
 		print update_box_form($ldata,'Update name, email etc.');
 	} else if ($form === 'View your voicemail boxes' or $form === 'find_boxes') {
-		print find_boxes_form($ldata);
+		print find_boxes_form($finddata);
 	} else if ($form === 'Search') {
-		print find_boxes_form($ldata,ll_find_boxes($ldata['vid'],$_REQUEST['search']));
+		print find_boxes_form($finddata,ll_find_boxes($findvid,$_REQUEST['search']));
 	} else if ($form === 'Show all invoices') {
 		print list_invoices($vdata,true);
 	} else if ($form === 'Show unpaid invoices') {

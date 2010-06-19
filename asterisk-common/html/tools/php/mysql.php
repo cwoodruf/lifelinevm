@@ -73,7 +73,7 @@ function ll_vendors($vid) {
 	$lldb = ll_connect();
 	if (!preg_match('#^\d*#',$vid)) die("invalid vendor id!");
 	if ($vid > 0) {
-		$getvendors = " and parent='$vid' ";
+		$getvendors = " and (vid='$vid' or parent='$vid') ";
 	}
 	$query = "select * from vendors where status not in ('deleted') $getvendors order by vendor";
 	$st = $lldb->query($query);
@@ -145,7 +145,8 @@ function ll_boxes($vend,$status='not_deleted',$order = "order by paidto desc") {
 
 function ll_find_boxes($vend,$search) {
 	$lldb = ll_connect();
-	$where = " and status <> 'deleted' and (";
+	# $where = " and status <> 'deleted' and (";
+	$where = " and (";
 	if (empty($search)) {
 		$where .= "1=1";
 	} else {
@@ -511,9 +512,11 @@ function ll_save_to_table($action,$table,$data,$name='',&$key='',$literal=false)
 
 function ll_load_from_table($table,$name,$key,$return_all=true,$query_end='') {
         $lldb = ll_connect();
+	static $seen;
 	if ($name == '' and $key == '') 
 		$query = "select * from $table $query_end";
 	else $query = "select * from $table where $name='$key' $query_end";
+	if ($seen[$query]) return $seen[$query];
 
 	$st = $lldb->query($query);
 	if ($st === false) {
@@ -536,6 +539,7 @@ print print_r($data);
 print "</pre>\n";
 */
 	if (!is_array($data)) return false;
+	$seen[$query] = $data;
 	return $data;
 }
 
