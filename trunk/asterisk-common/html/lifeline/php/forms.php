@@ -10,9 +10,9 @@ function table_header($cp=5,$cs=0,$b=0,$w=300,$style='') {
 	return "<table cellpadding=$cp cellspacing=$cs border=$b width=$w $style>";
 }
 
-function form_top($data,$show_goback=true,$show_status=true) {
+function form_top($data,$show_goback=true,$show_status=true,$method='get') {
 	global $back, $manage;
-	global $vend;
+	global $vend, $ldata;
 	global $form;
 	$login = $data['login'];
 	$vendor = $data['vendor'];
@@ -21,7 +21,7 @@ function form_top($data,$show_goback=true,$show_status=true) {
 	$vend = ll_vendor($data['vid']);
 	if ($show_status) $status = vend_status_str($vend);
 	$goback = $show_goback ? "$manage - $back" : '';
-	$logout = "<a href=\"admin.php?action=logout\">Log out</a>";
+	if ($ldata) $logout = "<a href=\"admin.php?action=logout\">Log out</a>";
 	return <<<HTML
 <html>
 <head>
@@ -33,7 +33,7 @@ function form_top($data,$show_goback=true,$show_status=true) {
 <h4>Vendor: $vendor <span style="font-weight: normal;">$goback &nbsp;&nbsp; $logout</span></h4>
 <h3>$form</h3>
 $status<p>
-<form action=/lifeline/admin.php name="topform" id="topform" method=get>
+<form action="{$_SERVER['PHP_SELF']}" name="topform" id="topform" method="$method">
 HTML;
 }
 

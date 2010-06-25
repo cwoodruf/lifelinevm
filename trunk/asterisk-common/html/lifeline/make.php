@@ -74,7 +74,6 @@ print <<<HTML
 <center>
 $goback
 <h3>$seller admin</h3>
-<a href=/lifeline/make.php?from=$from>Back</a> &nbsp;&nbsp;
 $emaillistlink
 <p>
 
@@ -161,8 +160,11 @@ HTML;
 
 #================================== functions ================================#
 function transfer_box_form() {
-	global $ldata;
-	if (!$ldata['vid'] == 0) die("only super user can transfer a box!");
+	global $ldata, $permcheck;
+	if ($ldata['vid'] != 0) {
+		if (!$permcheck['boxes']) 
+			die("you do not have permission to transfer a box!");
+	}
 
 	$vid = $_REQUEST['vid'];
 	if (!preg_match('#^\d+$#',$vid)) die("vendor id should be a number!");
@@ -212,9 +214,13 @@ HTML;
 }
 
 function transfer_box_confirm() {
-	global $ldata;
-	if (!$ldata['vid'] == 0) die("only super user can transfer a box!");
+	global $ldata, $permcheck;
+
 	list($box,$currvendor,$newvendor) = get_transferdata();
+	if ($ldata['vid'] != 0) {
+		if (!$permcheck['boxes'])
+			die("You do not have permission to transfer!");
+	}
 
 	print <<<HTML
 <input type=hidden name=currvid value={$currvendor['vid']}>
@@ -231,9 +237,13 @@ HTML;
 }
 
 function transfer_box() {
-	global $ldata;
-	if (!$ldata['vid'] == 0) die("only super user can transfer a box!");
+	global $ldata, $permcheck;
+
 	list($box,$currvendor,$newvendor) = get_transferdata();
+	if ($ldata['vid'] != 0) {
+		if (!$permcheck['boxes']) 
+			die("you do not have permission to transfer a box!");
+	}
 
 	if (ll_transferbox($box,$currvendor,$newvendor))  $result = "transferred";
 	else $result = "not tranferred (error)";
@@ -267,6 +277,12 @@ function get_transferdata() {
 	$newvendor = ll_vendor($newvid);
 	if (!$newvendor) die("selected new vendor could not be found!");
 	if ($newvendor['status'] == 'deleted') die("new vendor $newvid deleted!");
+
+	if ($currvendor['parent'] != $newvendor['parent'] 
+		and $currvendor['vid'] != $newvendor['parent'] 
+		and $newvendor['vid'] != $currvendor['parent']
+	) 
+		die("{$newvendor['vendor']} is not part of the same group as {$currvendor['vendor']}.");
 
 	return array($box, $currvendor, $newvendor);
 }
@@ -337,9 +353,9 @@ HTML;
 </td><td>
 <a href="$make?action=show_logins&from=$from&vid=$vid">show logins</a> $div
 </td><td>
-<a href="$make?action=transfer_box&from=$from&vid=$vid">transfer box</a> $div
+<a href="admin.php?form=View your voicemail boxes&vid=$vid">show boxes</a> $div
 </td><td>
-<a href="$make?action=show_logins&from=$from&vid=$vid">show logins</a> $div
+<a href="$make?action=transfer_box&from=$from&vid=$vid">transfer box</a> $div
 </td><td>
 $del_vendor
 </td>

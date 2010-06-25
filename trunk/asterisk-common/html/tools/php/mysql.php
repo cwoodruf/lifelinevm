@@ -51,6 +51,50 @@ function ll_vendor($vid,$refresh=false) {
 	return $vend;
 }
 
+function ll_vendor_from_email($email) {
+	$lldb = ll_connect();
+	$query = "select vendors.* from vendors where email like ".$lldb->quote("%$email%");
+	$st = $lldb->query($query);
+	if ($st === 'false') die(ll_err());
+	$row = $st->fetch(PDO::FETCH_ASSOC);
+	if (!is_array($row)) return false;
+	foreach ($row as $name => $value) {
+		$data[$name] = $value;
+	}
+	return $data;
+}
+
+function ll_vendor_from_id($id) {
+	$lldb = ll_connect();
+	$query = "select vendors.vendor,vendors.vid,emailsignup.email,emailsignup.perms ".
+		"from vendors join emailsignup on (vendors.vid=emailsignup.vid) ".
+		"where emailsignup.id=".$lldb->quote($id);
+	$st = $lldb->query($query);
+	if ($st === false) die(ll_err());
+	$row = $st->fetch(PDO::FETCH_ASSOC);
+	if (!is_array($row)) return false;
+	foreach ($row as $name => $value) {
+		$data[$name] = $value;
+	}
+	return $data;
+}
+
+function ll_emailsignup_id($email, $vendor,$perms='boxes') {
+	$lldb = ll_connect();
+
+	$id = md5(mt_rand().$email);
+	$affected = $lldb->exec(
+		"replace into emailsignup (vid,email,perms,id) values (".
+		$lldb->quote($vendor['vid']).','.
+		$lldb->quote($email).','.
+		$lldb->quote($perms).','.
+		$lldb->quote($id).
+		")"
+	);
+	if ($affected === false) die(ll_err());
+	return $id;
+}
+
 function ll_del_vendor($vid) {
 	$lldb = ll_connect();
 	if (!preg_match('#^\d+$#',$vid) or $vid <= 0) die("ll_del_vendor: bad vendor id $vid!");
@@ -96,7 +140,7 @@ function ll_add_user($vend,$login,$password,$perms) {
 	$udata['login'] = $login;
 	if ($perms) $udata['perms'] = $perms;
 	$udata['created'] = date('Y-m-d H:i:s');
-	ll_save_to_table('insert','users',$udata,null,$uid);
+	return ll_save_to_table('replace','users',$udata,null,$uid);
 }
 
 function ll_del_user($vend,$login) {
@@ -476,8 +520,8 @@ function ll_generate_invoice($vend,$months) {
 
 function ll_save_to_table($action,$table,$data,$name='',&$key='',$literal=false) {
 	$lldb = ll_connect();
-	if ($action === 'insert') {
-		$query = "insert into $table (";
+	if ($action === 'insert' or $action === 'replace' or $action === 'insert ignore') {
+		$query = "$action into $table (";
 		$end = " values (";
 		foreach ($data as $field => $value) {
 			$query .= "$field,";

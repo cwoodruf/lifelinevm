@@ -8,6 +8,7 @@ function login_form ($app) {
 		if (preg_match('#^(login|password|cache|app)$#',$key)) continue;
 		$hidden .= "<input type=hidden name=\"$key\" value=\"$val\">\n";
 	}
+	$login = htmlentities($vars['login']);
 	return <<<HTML
 <html>
 <head><title>Login</title></head>
@@ -17,7 +18,7 @@ function login_form ($app) {
 $hidden
 <table cellpadding=3 cellspacing=0 border=0>
 <tr><td><b>Login:</b></td>
-    <td><input name=login size=30 maxlength=30>
+    <td><input name=login size=30 maxlength=30 value="$login">
     <script>document.form_login.login.focus()</script></td></tr>
 <tr><td><b>Password:</b></td>
     <td><input type=password name=password size=30 maxlength=30></td></tr>
