@@ -10,7 +10,7 @@
 <h4>Using voicemail</h4>
 <h4>Leaving messages</h4>
 <ol>
-<li>Dial <b>604 682-3269</b><br> 
+<li>Dial <b>604 248-5760</b><br> 
 <li>Enter the box number to leave a message
 <li>You can skip the greeting by pressing #
 <li>Leave a message
