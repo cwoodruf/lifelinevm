@@ -142,7 +142,7 @@ HTML;
 
 function sendinvites_form() {
 	$perms = htmlentities($_REQUEST['perms']);
-	if (empty($perms)) $perms = 'boxes';
+	if (empty($perms)) $perms = 'boxes:invoices';
 
 	$emails = htmlentities($_REQUEST['emails']);
 	$vendors = ll_vendors(0);
