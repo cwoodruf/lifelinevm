@@ -15,7 +15,7 @@ function login_form ($app) {
 <html>
 <head><title>Login</title></head>
 <body>
-<h3>Lifeline Log in</h3>
+<h3>{$_SERVER['SERVER_NAME']} log in</h3>
 <form name=form_login action=$app method=post>
 $hidden
 <table cellpadding=3 cellspacing=0 border=0>
