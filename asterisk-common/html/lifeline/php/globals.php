@@ -9,6 +9,7 @@ function get_box_range() {
 
 $adminfo = '<a class="support" href="mailto:vmailtechnicalsupport@gmail.com">Support</a>';
 $asterisk = '/usr/local/asterisk/sbin/asterisk';
+define('GETASTSTATUS', false);
 
 # default permissions list: there should be no other user permssions
 # these determine what you can create

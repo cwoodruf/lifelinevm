@@ -8,7 +8,7 @@ function get_uptime() {
 	if (isset($uptime)) return $uptime;
 	$cache = "$lib/.asterisk-uptime";
 	
-	if (!is_file($cache) or time() - filemtime($cache) > 60) {
+	if (GETASTSTATUS and (!is_file($cache) or time() - filemtime($cache) > 60)) {
 		$uptime = `$asterisk -rx 'core show uptime'`;
 		file_put_contents($cache,$uptime);
 	} else {
