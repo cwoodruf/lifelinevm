@@ -5,8 +5,8 @@ use strict;
 my $astcmd = "/usr/local/asterisk/sbin/asterisk -rx 'core show uptime'"; 
 my $astcache = "/usr/local/asterisk/html/tools/php/.asterisk-uptime";
 my $astout = `$astcmd`;
-$astout =~ s/.*(System.*seconds).*/$1/;
-open CACHE, $astcache or die "can't open $astcache: $!";
+$astout =~ s/.*(System.*seconds).*/$1/s;
+open CACHE, "> $astcache" or die "can't open $astcache: $!";
 print CACHE $astout;
 close CACHE;
 
