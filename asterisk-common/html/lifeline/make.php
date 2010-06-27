@@ -26,6 +26,10 @@ if ($from == 'admin') {
 	$vend = $sdata = ll_vendor($ldata['vid']);
 	$vid = $ldata['vid'];
 	$defparent = $vid;
+	# ouch!
+	if (!isset($_REQUEST['vid']) and isset($_REQUEST['vend']['vid'])) {
+		$_REQUEST['vid'] = $_REQUEST['vend']['vid'];
+	}
 
 	if (isset($_REQUEST['vid'])) {
 		$vid = $_REQUEST['vid'];
@@ -471,7 +475,7 @@ function update_vendor($dbaction,$vend=null) {
 	}
 	foreach ($newvend as $name => $value) {
 		if (!isset($schema['vendors'][$name])) continue;
-		if ($name === 'vid') continue;
+		if ($name === 'vid' and $dbaction === 'insert') continue;
 		# see if the value is different from what is in the db
 		if (is_array($vend)) {
 			if ($vend[$name] != $value) $update[$name] = $value;
