@@ -471,7 +471,7 @@ function update_vendor($dbaction,$vend=null) {
 	}
 	foreach ($newvend as $name => $value) {
 		if (!isset($schema['vendors'][$name])) continue;
-		if ($name === 'vid' and $dbaction == 'insert') continue;
+		if ($name === 'vid') continue;
 		# see if the value is different from what is in the db
 		if (is_array($vend)) {
 			if ($vend[$name] != $value) $update[$name] = $value;
