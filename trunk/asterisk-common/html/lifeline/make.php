@@ -26,10 +26,6 @@ if ($from == 'admin') {
 	$vend = $sdata = ll_vendor($ldata['vid']);
 	$vid = $ldata['vid'];
 	$defparent = $vid;
-	# ouch!
-	if (!isset($_REQUEST['vid']) and isset($_REQUEST['vend']['vid'])) {
-		$_REQUEST['vid'] = $_REQUEST['vend']['vid'];
-	}
 
 	if (isset($_REQUEST['vid'])) {
 		$vid = $_REQUEST['vid'];
@@ -67,7 +63,7 @@ foreach ($myperms as $p) {
 }
 
 if ($permcheck['vendors']) 
-	$emaillistlink = "<a href=/lifeline/make.php?from=$from>Back</a> &nbsp;&nbsp;";
+	$emaillistlink = "<a href=/lifeline/make.php?from=$from>Main accounts and users page</a> &nbsp;&nbsp;";
 print <<<HTML
 <html>
 <head>
@@ -437,6 +433,7 @@ HTML;
 	print <<<HTML
 <input type=submit name=action value="$submitname vendor"> 
 <p>
+<input type=hidden name="vid" value="$vid">
 <input type=hidden name="vend[vid]" value="$vid">
 <table cellpadding=5 cellspacing=0 border=0>
 <tr><td> vendor </td><td><input name="vend[vendor]" size=60 value="$vendor"></td></tr>
