@@ -10,7 +10,19 @@ function table_header($cp=5,$cs=0,$b=0,$w=300,$style='') {
 	return "<table cellpadding=$cp cellspacing=$cs border=$b width=$w $style>";
 }
 
-function form_top($data,$show_goback=true,$show_status=true,$method='get') {
+function head() {
+	global $form;
+	return <<<HTML
+<html>
+<head>
+<title>Voicemail Admin: $form</title>
+<link rel=stylesheet type=text/css href=/lifeline/css/admin.css>
+</head>
+<body bgcolor=lightyellow>
+HTML;
+}
+
+function form_top($data,$show_goback=true,$show_status=true,$method='get',$formjs='') {
 	global $back, $manage;
 	global $vend, $ldata;
 	global $form;
@@ -22,18 +34,14 @@ function form_top($data,$show_goback=true,$show_status=true,$method='get') {
 	if ($show_status) $status = vend_status_str($vend);
 	$goback = $show_goback ? "$manage - $back" : '';
 	if ($ldata) $logout = "<a href=\"admin.php?action=logout\">Log out</a>";
+	$head = head();
 	return <<<HTML
-<html>
-<head>
-<title>Voicemail Admin: $form</title>
-<link rel=stylesheet type=text/css href=/lifeline/css/admin.css>
-</head>
-<body bgcolor=lightyellow>
+$head
 <center>
 <h4>Vendor: $vendor <span style="font-weight: normal;">$goback &nbsp;&nbsp; $logout</span></h4>
 <h3>$form</h3>
 $status<p>
-<form action="{$_SERVER['PHP_SELF']}" name="topform" id="topform" method="$method">
+<form action="{$_SERVER['PHP_SELF']}" name="topform" id="topform" method="$method" $formjs>
 HTML;
 }
 
@@ -132,34 +140,135 @@ function vend_status_str($vend) {
  
 function create_new_box_form($data) {
 	global $vend;
-	$top = form_top($data); 
+	$formjs = <<<JS
+onsubmit="
+if (boxes.value > 1) 
+	return confirm('Create '+boxes.value+' voice mail boxes? Action cannot be undone.');
+else return confirm('Create voice mail box? Action cannot be undone.');
+"
+JS;
+	$top = form_top($data,true,true,'post',$formjs); 
 	$end = form_end($data);
-	$trans = ll_generate_trans($vend);
+	$trans = ll_generate_trans($vend,'boxes');
 	$personal = mk_personal_input();
+	$max = MAXBOXES;
 	return <<<HTML
 $top
 <input type=hidden name=trans value="$trans">
-New box valid for &nbsp; <input size=3 name=months value=1> &nbsp; month(s). &nbsp;&nbsp; 
-<input type=checkbox name=activate value=1> Activate now &nbsp;&nbsp;
+Number of boxes to create &nbsp; <input size=3 name=boxes value=1> (maximum $max) &nbsp;&nbsp; 
+Valid for &nbsp; <input size=3 name=months value=1> &nbsp; month(s). &nbsp;&nbsp; 
 $personal
-<input type=submit name=action value="Create box" class=action>
+<input type=submit name=action value="Create boxes" class=action>
 $end
 HTML;
 }
 
 function create_new_box($data) {
-	global $_REQUEST;
 	global $table;
 	$vend = ll_vendor($data['vid']);
-	ll_delete_trans($vend,$_REQUEST['trans']);
+	$trans = ll_valid_trans($_REQUEST['trans']);
+	ll_delete_trans($vend,$trans);
+
+	$boxes = $_REQUEST['boxes'];
+	if (!preg_match('#^\d\d?$#',$boxes) or $boxes <= 0) die("create_new_box: invalid number of boxes");
+	if ($boxes > MAXBOXES) die("please select a smaller number of boxes than ".MAXBOXES);
 
 	$months = $_REQUEST['months'];
-	if (!preg_match('#^\d\d?$#',$months)) die("create_new_box: invalid number of months");
+	if (!preg_match('#^\d\d?$#',$months) or $months <= 0) die("create_new_box: invalid number of months");
 
 	list($min_box,$max_box) = get_box_range(); # pick a random box range 
-	list ($box,$seccode,$paidto) = ll_new_box($vend,$months,$min_box,$max_box,$_COOKIE['activate']);
-	ll_update_personal($vend,$box,$_REQUEST['personal']);
+	if ($boxes == 1) {
+		list ($box,$seccode,$paidto) = ll_new_box($trans,$vend,$months,$min_box,$max_box);
+		ll_update_personal($vend,$box,$_REQUEST['personal']);
+		return new_box_instructions($box,$seccode,$paidto);
+	}
+	$boxlist = array();
+	for ($i=0; $i < $boxes; $i++) {
+		list ($box,$seccode,$paidto) = ll_new_box($trans,$vend,$months,$min_box,$max_box);
+		ll_update_personal($vend,$box,$_REQUEST['personal']);
+		$bdata = $_REQUEST['personal'];
+		$bdata['box'] = $box;
+		$bdata['seccode'] = $seccode;
+		$bdata['paidto'] = $paidto;
+		$bdata['months'] = $months;
+		$boxlist[] = $bdata;
+	}
+	return show_boxes($data,$boxlist);
+}
 
+function showcode($data,$box,$seccode) {
+	if (preg_match('#^\d{4}$#',$seccode)) return $seccode;
+
+	if (($cracked = ll_showcode($seccode)) === false) $cracked = "unavailable";
+	else $cracked = sprintf('%04d',$cracked);
+
+	$head = head();
+	
+	return <<<HTML
+$head
+<center>
+<h4>box $box uses security code $cracked</h4>
+</center>
+</body>
+</html>
+HTML;
+
+}
+
+function show_boxes($data,$boxlist) {
+	global $lib;
+	$top = form_top($data); 
+	$end = form_end($data);
+	
+	$html = <<<HTML
+$top
+<h4>Your new voice mail boxes</h4>
+<i>If you use <a href="http://mozilla.com">Firefox</a> 
+you may find <a href="http://dafizilla.sourceforge.net/table2clip/">Table2Clipboard</a>
+helpful for copying this information into a spreadsheet</i>
+<p>
+<style>th { font-weight: normal; }</style>
+<table cellpadding=5 cellspacing=0 border=0>
+<tr><th>box</th><th>security code</th><th>subscription</th><th>notes</th></tr>
+
+HTML;
+	foreach ($boxlist as $bdata) {
+		$box = $bdata['box'];
+		$seccode = $bdata['seccode'];
+		if (strlen($seccode) >= 32) {
+			$seccode = showcodelink($box,$seccode);
+		}
+
+		if ($bdata['months']) {
+			$months = $bdata['months'].' months';
+		} else if ($bdata['status']) {
+			$months = $bdata['status'];
+		} else if (!preg_match('#0000-00-00#',$bdata['paidto'])) {
+			$months = $bdata['paidto'].'&nbsp;';
+		}
+
+		$notes = $bdata['name'].'&nbsp;'.$bdata['email'].' '.$bdata['notes'];
+
+		$html .= "<tr><th>$box</th><th>$seccode</th><th>$months</th><th>$notes</th></tr>\n";
+	}
+	$html .= "</table>\n$end";
+	return $html;
+}
+
+function showcodelink($box,$seccode) {
+	$box = htmlentities($box);
+	$seccode = htmlentities($seccode);
+	$showcode = "admin.php?box=$box&seccode=$seccode&form=showcode";
+	return <<<HTML
+<a href="javascript: void(0);" 
+   onclick="window.open(
+	'$showcode','showcode',
+	'top=300,left=300,locationbar=no,statusbar=no,menubar=no,scrollbars=no,height=100,width=300,statusbar=no');"
+>show</a>
+HTML;
+}
+
+function new_box_instructions($box,$seccode,$paidto) {
 	$vend = ll_vendor($data['vid'],true);
 
 	$top = form_top($data); 
@@ -211,7 +320,7 @@ function update_box_form($data,$action="Add time to box") {
 				return "$top<h3>Box $box has less than one month left on its subscription.</h3>$end";
 		} else $months = 1;
 		$month_input = " Months: <input size=3 name=months value=$months> &nbsp;&nbsp;"; 
-		$trans = ll_generate_trans($vend);
+		$trans = ll_generate_trans($vend,'boxes');
 	}
 	return <<<HTML
 $top
@@ -433,7 +542,8 @@ HTML;
 		# removed to avoid potential privacy complaints 
 		# and to allow us to put vm and web on different servers more easily
 		$msg = "$url$box&listen=1\">messages</a>";
-		$chsc = "$url$box&form=chsc\">change security code</a>";
+		$shsc = showcodelink($box,$row['seccode']);
+		$chsc = "$shsc / $url$box&form=chsc\">change security code</a>";
 		$edit = "$url$box&form=edit\">edit</a>";
 		$v = "<input type=hidden name=vendor value=\"".$row['vendor']."\">";
 		$html .= <<<HTML
@@ -508,7 +618,7 @@ function confirm_purchase_form($data) {
 	if ($vend['gstexempt'])
 		$total = sprintf('%.2f',$total/(1+$st['rate']));
 
-	$trans = ll_generate_trans($vend);
+	$trans = ll_generate_trans($vend,'invoices');
 	return <<<HTML
 $top
 $table
@@ -524,8 +634,9 @@ HTML;
 function purchase_time($data) {
 	global $_REQUEST;
 	$vend = ll_vendor($data['vid']);
-	ll_delete_trans($vend,$_REQUEST['trans']);
-	$invoice = ll_generate_invoice($vend,$_REQUEST['months']);
+	$trans = ll_valid_trans($_REQUEST['trans']);
+	ll_delete_trans($vend,$trans);
+	$invoice = ll_generate_invoice($vend,$_REQUEST['months'],$trans);
 	$vend = ll_vendor($data['vid'],true);
 	$top = form_top($data); 
 	$end = form_end($data);
@@ -642,18 +753,20 @@ HTML;
 	return $html;
 }
 
-function invoice($data) {
+function invoice($data,$idata=null) {
 	global $net_due;
 	global $ldata;
 	# only let people with invoice viewing permissions to look at invoices
 	if (!preg_match('#invoices|^s$#',$ldata['perms'])) 
 		die("You don't have the permissions to view invoices.");
-	$invoice = $_REQUEST['invoice'];
-	if (!preg_match('#^\d+$#',$invoice)) 
-		die("Invoice is not a number!");
+	if (!is_array($idata)) {
+		$invoice = $_REQUEST['invoice'];
+		if (!preg_match('#^\d+$#',$invoice)) 
+			die("Invoice is not a number!");
 
-	# invoice is a combo of invoice, vendor and seller data
-	$idata = ll_invoice($invoice);
+		# invoice is a combo of invoice, vendor and seller data
+		$idata = ll_invoice($invoice);
+	}
 	$sdata = ll_vendor($idata['vdata']['parent']);
 	$seller = $sdata['vendor'];
 	$vend = $idata['vdata'];
@@ -711,3 +824,17 @@ $seller
 HTML;
 }
 
+function view_transaction($ldata,$trans) {
+	$tdata = ll_load_from_table('transactions','trans',$trans,$false);
+	if (!ll_has_access($ldata,$tdata)) die("you do not have access to this transaction!");
+
+	if ($tdata['table_name'] == 'boxes') {
+		$boxes = ll_load_from_table('boxes','trans',$trans);
+		return show_boxes($ldata,$boxes);
+
+	} else if ($tdata['table_name'] == 'invoices') {
+		$idata = ll_load_from_table('invoices','trans',$trans,false);
+		return invoice(null,$idata);
+	}
+	die("don't know how to find $trans!");
+}

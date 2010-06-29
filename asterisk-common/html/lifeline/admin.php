@@ -18,6 +18,7 @@ $myperms = split(':',$ldata['perms']);
 foreach ($myperms as $p) {
 	$permcheck[$p] = true;
 }
+if (!$permcheck['boxes']) die("you do not have sufficient access to use this site!");
 
 if (preg_match('#^\d+$#', $_REQUEST['vid'])) {
 	$findvid = $_REQUEST['vid'];
@@ -36,7 +37,7 @@ if ($_REQUEST['listen']) {
 	header("location: listen.php?from=admin&box={$_REQUEST['box']}");
 } else if ($action === 'Manage account and users') {
 	header("location: make.php?from=admin");
-} else if ($action === 'Create box') {
+} else if ($action === 'Create boxes') {
 	print create_new_box($ldata);
 } else if ($action === 'Add time to box') {
 	print update_box_time($ldata);
@@ -64,6 +65,10 @@ if ($_REQUEST['listen']) {
 	$form = $_REQUEST['form'];
 	if ($form === 'Create a new voicemail box') {
 		print create_new_box_form($ldata);
+	} else if ($form === 'showcode') {
+		print showcode($ldata, sprintf('%04d',$_REQUEST['box']), $_REQUEST['seccode']);
+	} else if ($form === 'View transaction' or $form === 'transaction') {
+		print view_transaction($ldata,ll_valid_trans($_REQUEST['trans']));
 	} else if ($form === 'Add time to an existing box' or $form === 'add') {
 		print update_box_form($ldata);
 	} else if ($form === 'sub') {
