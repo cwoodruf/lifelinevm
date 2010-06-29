@@ -25,7 +25,11 @@ if ($from == 'admin') {
 	}
 	$vend = $sdata = ll_vendor($ldata['vid']);
 	$vid = $ldata['vid'];
-	$defparent = $vid;
+
+	# make a compressed ancestry identifier like parentvid:myvid
+	$parentparts[$sdata['parent']] = true;
+	$parentparts[$vid] = true;
+	$defparent = implode(":",array_keys($parentparts));
 
 	if (isset($_REQUEST['vid'])) {
 		$vid = $_REQUEST['vid'];
@@ -63,7 +67,7 @@ foreach ($myperms as $p) {
 }
 
 if ($permcheck['vendors']) 
-	$emaillistlink = "<a href=/lifeline/make.php?from=$from>Main accounts and users page</a> &nbsp;&nbsp;";
+	$emaillistlink = "<a href=/lifeline/make.php?from=$from>Main accounts and users page</a>";
 print <<<HTML
 <html>
 <head>

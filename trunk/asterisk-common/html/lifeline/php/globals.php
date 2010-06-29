@@ -1,4 +1,5 @@
 <?php
+define("MAXBOXES",20);
 # used in the ll_new_box function
 function get_box_range() { 
 	# these ranges avoid new boxes from the DERA vm service

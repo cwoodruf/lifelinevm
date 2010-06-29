@@ -117,7 +117,7 @@ function ll_vendors($vid) {
 	$lldb = ll_connect();
 	if (!preg_match('#^\d*#',$vid)) die("invalid vendor id!");
 	if ($vid > 0) {
-		$getvendors = " and (vid='$vid' or parent='$vid') ";
+		$getvendors = " and (vid='$vid' or parent regexp '(^|:)$vid(:|$)') ";
 	}
 	$query = "select * from vendors where status not in ('deleted') $getvendors order by vendor";
 	$st = $lldb->query($query);
@@ -274,7 +274,8 @@ function ll_log($vend,$cdata) {
 }
 
 # find a new box based on a range of numbers
-function ll_new_box($vend,$months,$min_box,$max_box,$activate) {
+# by default do not put in a subscription date - this is done when the box is called for the first time
+function ll_new_box($trans,$vend,$months,$min_box,$max_box,$activate=false) {
 	global $ldata, $salt;
 	if (!preg_match('#^\d+$#',$min_box) or !preg_match('#^\d+$#',$max_box) or $max_box == $min_box) {
 		die("ll_new_box: bad box range $min_box, $max_box!");
@@ -299,7 +300,10 @@ function ll_new_box($vend,$months,$min_box,$max_box,$activate) {
 	else {
 		$query = "select min(box) from boxes ".
 			"where box between '$min_box' and '$max_box' and ".
-			"paidto is not null and status in ('deleted')";
+			"(paidto is null or ".
+			"paidto is not null and ".
+			"(status in ('deleted') or ".
+			"((status is null or status = '') and datediff(current_date(),paidto) > 90))) ";
 		$st = $lldb->query($query);
 		if ($st === false) die(ll_err());
 		$row = $st->fetch();
@@ -309,7 +313,7 @@ function ll_new_box($vend,$months,$min_box,$max_box,$activate) {
 			die("Can't find box in range $min_box to $max_box");
 		$update = true;
 	}
-	$seccode = sprintf('%04d',rand(0,$max_box));
+	$seccode = sprintf('%04d',rand(0,9999));
 	if ($activate) {
 		$paidto = date('Y-m-d',strtotime("+$months months"));
 	} else {
@@ -317,14 +321,35 @@ function ll_new_box($vend,$months,$min_box,$max_box,$activate) {
 	}
 	if ($update) $query = "update boxes set ".
 			"seccode=md5('$seccode$salt'),vid='$vend[vid]',modified=now(),".
-			"paidto='$paidto',new_msgs=0,login='$ldata[login]',status='$add'";
-	else $query = "insert into boxes (box,seccode,vid,paidto,login,modified,created,status) ".
-		"values ('$box',md5('$seccode$salt'),'$vend[vid]','$paidto','$ldata[login]',now(),now(),'$add')";
+			"paidto='$paidto',new_msgs=0,login='$ldata[login]',status='$add',trans='$trans' ";
+	else $query = "insert into boxes (box,seccode,vid,paidto,login,modified,created,status,trans) ".
+		"values ('$box',md5('$seccode$salt'),'$vend[vid]','$paidto','$ldata[login]',now(),now(),'$add','$trans')";
 	$result = $lldb->exec($query);
 	if ($result === false) die(ll_err());
 	ll_log($vend,array('newpaidto'=>$paidto,'box'=>$box,'months'=>$months,'action'=>'new_box'));
 	if (ll_save_to_table('update','vendors',$vdata,'vid',$vend['vid'])) 
 		return array($box,$seccode,$paidto);
+}
+function ll_showcode($seccode) {
+	global $salt;
+	# as this is somewhat expensive maybe discourage overuse
+	# sleep(3);
+
+	$lldb = ll_connect();
+	$st = $lldb->query(
+		"select i,md5(concat(lpad(i,4,'0'),'$salt')) as seccode ".
+		"from numrange where i between 0 and 9999 order by i"
+	);
+	if ($st === false) die(ll_err());
+	while ($row = $st->fetch(PDO::FETCH_ASSOC)) {
+		$i = $row['i'];
+		if ($row['seccode'] == $seccode) return $row['i'];
+	}
+	# for anything we don't know about in table fill it in
+	for (; $i<=9999; $i++) {
+		$lldb->exec("insert into numrange (i) values ($i)");
+	}
+	return false;
 }
 
 function ll_add_time($vend,$box,$months) {
@@ -428,14 +453,16 @@ function ll_invoices($all=false,$vend=null) {
 function ll_check_invoice($ldata, $idata) {
 	$savedidata = ll_invoice($idata['invoice']);
 	# is this logged in user allowed to update this invoice?
-	if ($ldata['vid'] == $savedidata['vdata']['parent']) return true;
+	$parent = $savedidata['vdata']['parent'];
+	$vid = $idata['vid'];
+	if (preg_match("#(^|:)($vid|$parent)(:|$)#", $ldata['vid'])) return true;
 	return false;
 }
 
 function ll_save_invoice($idata,$ldata=null) {
 	if (!preg_match('#^\d+$#',$idata['invoice'])) die("invoice should be a number!");
 	if (!preg_match('#^(|\d{4}-\d{2}-\d{2})$#',$idata['paidon'])) 
-		die("paidon date should YYYY-MM-DD!");
+		die("paidon date should be formatted as year-month-day: YYYY-MM-DD!");
 	$lldb = ll_connect();
 	$notes = $lldb->quote($idata['notes']);
 	if (isset($ldata['login'])) $login = ",login=".$lldb->quote($ldata['login']);
@@ -464,27 +491,56 @@ function ll_pay_invoices($invoices,$ldata=null) {
 	if ($rows === false) die(ll_err());
 }
 
-function ll_generate_trans($vend) {
+function ll_generate_trans($vend,$table_name) {
 	$data['trans'] = $vend['vid']."~".time().".".(rand(0,10000));
 	$data['vid'] = $vend['vid'];
+	$data['table_name'] = $table_name;
 	ll_save_to_table('insert','transactions',$data,null,$newvid);
 	return $data['trans'];
+}
+
+function ll_valid_trans($trans) {
+	return preg_match('#^\d+~\d+\.\d+#',$trans) ? $trans : false;
+}
+
+function ll_has_access($ldata,$odata) {
+	if (is_array($ldata)) $myvid = $ldata['vid'];
+	else $myvid = $ldata;
+	if ($myvid === 0) return true;
+
+	$vid = $odata['vid'];
+	if ((int) $vid <= 0) return false;
+
+	$parent = $odata['parent'];
+	if ((int) $parent <= 0) {
+		$vend = ll_vendor($vid);
+		if ((int) $vend['parent'] <= 0) return false;
+		$parent = $vend['parent'];
+	}
+
+	if (preg_match("#(^|:)($vid|$parent)(:|$)#",$myvid)) return true;
+	return false;
 }
 
 function ll_delete_trans($vend,$trans) {
 	global $lldb;
 	$data = ll_load_from_table('transactions','trans',$trans,false);
-	if (!isset($data)) die("Transaction $trans has expired!");
-	if ($data['vid'] != $vend['vid']) 
-		die("Transaction $trans invalid!");
-	$rows = $lldb->exec("delete from transactions where trans='$trans'");
+
+	$translink = "<a href=\"admin.php?form=transaction&trans=$trans\">$trans</a>";
+
+	if (!isset($data)) die("Transaction $translink not found!");
+	if ($data['status']) die("Transaction $translink is {$data['status']}.");
+	if ($data['vid'] != $vend['vid']) die("Transaction $translink invalid!");
+
+	$rows = $lldb->exec("update transactions set status='complete' where trans='$trans'");
 	if ($rows === false) die(ll_err());
 }
 
-function ll_generate_invoice($vend,$months) {
+function ll_generate_invoice($vend,$months,$trans) {
 	global $ldata;
 	$lldb = ll_connect();
-	$st = $lldb->query("select max(invoice) from invoices");
+	# deliberately selecting a range we aren't already using
+	$st = $lldb->query("select max(invoice) from invoices where invoice between 1000 and 4999");
         if ($st === false) die(ll_err());
 	$row = $st->fetch();
 	$st->closeCursor();
@@ -493,6 +549,7 @@ function ll_generate_invoice($vend,$months) {
 	$idata['vid'] = $vend['vid'];
 	$idata['months'] = $months;
 	$idata['created'] = date('Y-m-d H:i:s');
+	$idata['trans'] = $trans;
 
 	$st = get_salestax($idata['created']);
 	# ttl = amt + gst*amt = amt(1+gst) = rate * months
