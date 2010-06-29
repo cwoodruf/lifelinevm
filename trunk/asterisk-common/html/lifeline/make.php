@@ -372,7 +372,7 @@ $del_vendor
 </td>
 </tr>
 <tr bgcolor=lightgray><td colspan=6>
-{$vend['phone']} &nbsp;&nbsp; {$vend['contact']} {$vend['email']} &nbsp;&nbsp; {$vend['notes']}
+<b>Contact:</b> {$vend['phone']} &nbsp;&nbsp; {$vend['contact']} {$vend['email']} &nbsp;&nbsp; {$vend['notes']}
 </td></tr>
 HTML;
 	}
