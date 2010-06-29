@@ -310,7 +310,7 @@ function list_vendors() {
 	$make = "/lifeline/make.php";
 	$div = "&nbsp;-&nbsp;";
 	print <<<HTML
-<table cellpadding=5 cellspacing=0 border=0>
+<table cellpadding=5 cellspacing=0 border=0 width=1200>
 <tr><th>id</th><th>vendor</th><th>invoiced</th><th>owing</th><th>months</th><th>tools</th></tr>
 HTML;
 	$owing = ll_get_owing();
@@ -344,18 +344,26 @@ HTML;
 <td align=right><a href="admin.php?vid=$vid&form=Show unpaid invoices">$owed</a></td>
 <td align=right>$vend[months]</td>
 <td>
-<table width=100% border=0 cellspacing=0 cellpadding=2 style="border: none">
+<table width=500 border=0 cellspacing=0 cellpadding=2 style="border: none">
 <tr>
 <td>
 <a href="$make?action=edit&from=$from&vid=$vid">edit</a> $div
 </td><td>
+<nobr>
 <a href="$make?action=new_user&from=$from&vid=$vid">new user</a> $div
+</nobr>
 </td><td>
+<nobr>
 <a href="$make?action=show_logins&from=$from&vid=$vid">show logins</a> $div
+</nobr>
 </td><td>
+<nobr>
 <a href="admin.php?form=View your voicemail boxes&vid=$vid">show boxes</a> $div
+</nobr>
 </td><td>
+<nobr>
 <a href="$make?action=transfer_box&from=$from&vid=$vid">transfer box</a> $div
+</nobr>
 </td><td>
 $del_vendor
 </td>
@@ -363,6 +371,9 @@ $del_vendor
 </table>
 </td>
 </tr>
+<tr bgcolor=lightgray><td colspan=6>
+{$vend['phone']} &nbsp;&nbsp; {$vend['contact']} {$vend['email']} &nbsp;&nbsp; {$vend['notes']}
+</td></tr>
 HTML;
 	}
 }
@@ -485,6 +496,7 @@ function update_vendor($dbaction,$vend=null) {
 		if ($dbaction === 'update') ll_save_to_table('update','vendors',$update,'vid',$vid,true);
 		else if ($dbaction === 'insert') ll_save_to_table('insert','vendors',$update,null,$vid,true);
 	}
+	$update = ll_vendor($vid);
 	print <<<HTML
 <h3>Updated Vendor 
     <a href="make.php?action=edit&from=$from&vid=$vid">{$update['vendor']}</a>
