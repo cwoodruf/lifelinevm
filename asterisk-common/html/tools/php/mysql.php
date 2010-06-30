@@ -2,6 +2,10 @@
 # $Id: mysql.php,v 1.14 2008/10/26 04:59:15 root Exp root $
 require_once("$lib/.mysql.php");
 eval(file_get_contents("/usr/local/asterisk/agi-bin/Lifeline/salt"));
+define("DELBOXAFTER",90);
+define("DAY",86400);
+define("MINBOX",1000);
+define("MAXBOX",9999);
 
 ###############################################################################
 # lifeline section
@@ -177,13 +181,22 @@ function ll_box($box) {
 	return ll_load_from_table('boxes','box',$box,false);
 }
 
-function ll_boxes($vend,$status='not_deleted',$order = "order by paidto desc") {
-	if ($status == 'deleted') $status = " and status in ('deleted')";
-	else if ($status == 'not_deleted') $status = " and status not in ('deleted')";
+function ll_boxes($vend,$showkids=false,$status='not_deleted',$order = "order by paidto desc") {
+	if ($status == 'deleted') $status = " and boxes.status in ('deleted')";
+	else if ($status == 'not_deleted') $status = " and boxes.status not in ('deleted')";
 
 	if (is_array($vend)) $vid = $vend['vid'];
 	else $vid = $vend;
 	
+	if ($showkids) {
+		$query = "select boxes.*,vendors.vendor from boxes join vendors on (boxes.vid=vendors.vid) ".
+			"where (boxes.vid=$vid or vendors.parent regexp '(^|:)$vid(:|$)') ".
+			"$status $order";
+		$lldb = ll_connect();
+		$st = $lldb->query($query);
+		if ($st === false) die(ll_err());
+		return $st->fetchAll();
+	}
 	return ll_load_from_table('boxes','vid',$vid,true," $status $order");
 }
 
@@ -277,6 +290,8 @@ function ll_log($vend,$cdata) {
 # by default do not put in a subscription date - this is done when the box is called for the first time
 function ll_new_box($trans,$vend,$months,$min_box,$max_box,$activate=false) {
 	global $ldata, $salt;
+	static $available;
+
 	if (!preg_match('#^\d+$#',$min_box) or !preg_match('#^\d+$#',$max_box) or $max_box == $min_box) {
 		die("ll_new_box: bad box range $min_box, $max_box!");
 	}
@@ -286,50 +301,61 @@ function ll_new_box($trans,$vend,$months,$min_box,$max_box,$activate=false) {
 	ll_check_months($vend,$months);
 	$vdata['months'] = $vend['months'] - $months;
 	$lldb = ll_connect();
-	$st = $lldb->query(
-		"select min(box),max(box) from boxes ".
-		"where box between '$min_box' and '$max_box'"
-	);
-	if ($st === false) die(ll_err());
-	$row = $st->fetch();
-	$st->closeCursor();
-	$low_box = $row[0];
-	$hi_box = $row[1];
-	if ($hi_box < $max_box) $box = sprintf('%04d',$hi_box + 1);
-	else if ($low_box > $min_box) $box = sprintf('%04d',$low_box - 1);
-	else {
-		$query = "select min(box) from boxes ".
-			"where box between '$min_box' and '$max_box' and ".
-			"(paidto is null or ".
-			"paidto is not null and ".
-			"(status in ('deleted') or ".
-			"((status is null or status = '') and datediff(current_date(),paidto) > 90))) ";
-		$st = $lldb->query($query);
+
+	# figure out what boxes are available (save this in case we need to do more than one)
+	if (!is_array($available)) {
+		$available = array();
+		$st = $lldb->query(
+				"select box,paidto,status from boxes ".
+				"order by box"
+			);
 		if ($st === false) die(ll_err());
-		$row = $st->fetch();
-		$box = $row[0];
+		while ($row = $st->fetch()) {
+			list($box,$paidto,$status) = $row;
+			$paidto = strtotime($paidto);
+			if ($status == 'deleted' 
+				or ($status == '' and time() - $paidto > DELBOXAFTER*DAY)) 
+			{
+				$available[$box] = true;
+			} 
+			else 
+			{
+				$available[$box] = false;
+			}
+		}
 		$st->closeCursor();
-		if ($box > $max_box or $box < $min_box) 
-			die("Can't find box in range $min_box to $max_box");
-		$update = true;
+		for ($i = MINBOX; $i <= MAXBOX; $i++) {
+			if (isset($available[$i])) continue;
+			$available[$i] = true;
+		}
 	}
+	# now pick an unused box
+	for ($i=$min_box; $i<=$max_box; $i++) {
+		if ($available[$i]) {
+			$box = $i;
+			$available[$i] = false;
+			break;
+		}
+	}
+
 	$seccode = sprintf('%04d',rand(0,9999));
 	if ($activate) {
 		$paidto = date('Y-m-d',strtotime("+$months months"));
 	} else {
 		$add = "add $months months";
 	}
-	if ($update) $query = "update boxes set ".
-			"seccode=md5('$seccode$salt'),vid='$vend[vid]',modified=now(),".
-			"paidto='$paidto',new_msgs=0,login='$ldata[login]',status='$add',trans='$trans' ";
-	else $query = "insert into boxes (box,seccode,vid,paidto,login,modified,created,status,trans) ".
+
+	$query = "replace into boxes (box,seccode,vid,paidto,login,modified,created,status,trans) ".
 		"values ('$box',md5('$seccode$salt'),'$vend[vid]','$paidto','$ldata[login]',now(),now(),'$add','$trans')";
+
 	$result = $lldb->exec($query);
 	if ($result === false) die(ll_err());
+
 	ll_log($vend,array('newpaidto'=>$paidto,'box'=>$box,'months'=>$months,'action'=>'new_box'));
 	if (ll_save_to_table('update','vendors',$vdata,'vid',$vend['vid'])) 
 		return array($box,$seccode,$paidto);
 }
+
 function ll_showcode($seccode) {
 	global $salt;
 	# as this is somewhat expensive maybe discourage overuse
@@ -355,25 +381,49 @@ function ll_showcode($seccode) {
 function ll_add_time($vend,$box,$months) {
 	global $ldata;
 	global $pt_cutoff;
+
 	if (!preg_match('#^\d+$#',$vend['vid'])) die("ll_add_time: bad vendor id!");
 	if (!preg_match('#^\d+$#',$box)) die("ll_add_time: bad box id!");
 	if (!preg_match('#^-?\d\d?$#',$months)) die("invalid months value!");
+
 	ll_check_box($box);
 	ll_check_months($vend['vid'],$months);
 	$bdata = ll_load_from_table('boxes','box',$box,false);
-	if ($bdata['status'] === 'deleted') die("Box $box is deleted!");
+
+	if ($bdata['status'] === 'deleted') $udata['status'] = ''; 
+	$udata['login'] = $ldata['login'];
+
 	if ($bdata['vid'] !== $vend['vid']) 
 		die("Box $box does not belong to vendor ".$vend['vendor']."! Please contact us.");
+
+	# if the box has no paidto date ...
+	if ($bdata['paidto'] == 0 and preg_match('#add (\d+) month#', $bdata['status'],$m)) {
+		# ... revert the status ...
+		$udata['status'] = 'deleted';
+		if (ll_save_to_table('update','boxes',$udata,'box',$box)) {
+			# ... and add the time back
+			$vdata['months'] = $vend['months'] + $m[1];
+			if (ll_save_to_table('update','vendors',$vdata,'vid',$vend['vid'])) 
+				return $udata['paidto'];
+		}
+		die("ll_add_time: error saving vendor and box data!");
+	}
+
 	# if you are subtracting time make sure box has enough time to subtract from
 	if (preg_match('#^-#',$months) and abs($months) > ll_months_left($bdata['paidto']))
 		die("Box $box does not have ".abs($months)." months left!");
+
 	if (preg_match('#^0#',$bdata['paidto'])) $bdata['paidto'] = '';
+
 	$op = preg_match('#^-#',$months) ? '' : '+';
 	$paidto = strtotime($bdata['paidto']);
+
 	if ($paidto < time() - $pt_cutoff) { $start = date('Y-m-d'); }
 	else $start = $bdata['paidto'];
+
 	$udata['paidto'] = date('Y-m-d',strtotime("$start $op$months months"));
 	$udata['login'] = $ldata['login'];
+
 	if (ll_save_to_table('update','boxes',$udata,'box',$box)) {
 		ll_log($vend, array('oldpaidto'=>$bdata['paidto'],'newpaidto'=>$udata['paidto'],
 				'box'=>$box,'months'=>$months,'action'=>'add_time','login'=>$ldata['login']));
@@ -517,8 +567,8 @@ function ll_has_access($ldata,$odata) {
 		if ((int) $vend['parent'] <= 0) return false;
 		$parent = $vend['parent'];
 	}
-
-	if (preg_match("#(^|:)($vid|$parent)(:|$)#",$myvid)) return true;
+	$allids = "$vid:$parent";
+	if (preg_match("#(^|:)$myvid(:|$)#",$allids)) return true;
 	return false;
 }
 
