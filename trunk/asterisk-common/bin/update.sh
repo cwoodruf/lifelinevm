@@ -7,6 +7,7 @@ cd /usr/local/asterisk
 # /usr/bin/rsync -rctvz --delete cal@aifl.ath.cx:~/Lifeline/ /usr/local/asterisk/Lifeline
 /usr/local/asterisk/bin/users.pl
 /usr/local/asterisk/bin/convertvox.pl
+/usr/local/asterisk/bin/cleanup.pl
 
 /usr/bin/mysqldump --opt -ull -p'85$82$str' lifeline > lifeline.mysql
 /usr/bin/zip -r lifeline-backup.zip agi-bin html etc/asterisk/*.conf /home/cal/svn/asterisk-*/apps/app_recordkey*.c lifeline.mysql 
