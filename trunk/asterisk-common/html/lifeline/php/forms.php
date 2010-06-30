@@ -6,7 +6,7 @@ if ($permcheck['logins'])
 	$manage = "<a href=\"admin.php?action=Manage account and users\">Manage account and users</a>";
 $table = table_header();
 
-function table_header($cp=5,$cs=0,$b=0,$w=300,$style='') {
+function table_header($cp=5,$cs=0,$b=0,$w=400,$style='') {
 	return "<table cellpadding=$cp cellspacing=$cs border=$b width=$w $style>";
 }
 
@@ -150,7 +150,7 @@ JS;
 	$top = form_top($data,true,true,'post',$formjs); 
 	$end = form_end($data);
 	$trans = ll_generate_trans($vend,'boxes');
-	$personal = mk_personal_input();
+	$personal = mk_personal_input(null,$vend);
 	$max = MAXBOXES;
 	return <<<HTML
 $top
@@ -164,7 +164,6 @@ HTML;
 }
 
 function create_new_box($data) {
-	global $table;
 	$vend = ll_vendor($data['vid']);
 	$trans = ll_valid_trans($_REQUEST['trans']);
 	ll_delete_trans($vend,$trans);
@@ -176,16 +175,29 @@ function create_new_box($data) {
 	$months = $_REQUEST['months'];
 	if (!preg_match('#^\d\d?$#',$months) or $months <= 0) die("create_new_box: invalid number of months");
 
+	$totalmonths = $months * $boxes;
+	if ($vend['months'] < $totalmonths) die("you only have $totalmonths months available!");
+	$netmonths = $vend['months'];
+	$vid = $vend['vid'];
+
 	list($min_box,$max_box) = get_box_range(); # pick a random box range 
 	if ($boxes == 1) {
 		list ($box,$seccode,$paidto) = ll_new_box($trans,$vend,$months,$min_box,$max_box);
 		ll_update_personal($vend,$box,$_REQUEST['personal']);
-		return new_box_instructions($box,$seccode,$paidto);
+
+		$netmonths -= $months;
+		ll_save_to_table('update','vendors',array('months' => $netmonths),'vid',$vid);
+
+		return new_box_instructions($data,$box,$seccode,$_REQUEST['personal']);
 	}
 	$boxlist = array();
 	for ($i=0; $i < $boxes; $i++) {
 		list ($box,$seccode,$paidto) = ll_new_box($trans,$vend,$months,$min_box,$max_box);
 		ll_update_personal($vend,$box,$_REQUEST['personal']);
+
+		$netmonths -= $months;
+		ll_save_to_table('update','vendors',array('months' => $netmonths),'vid',$vid);
+
 		$bdata = $_REQUEST['personal'];
 		$bdata['box'] = $box;
 		$bdata['seccode'] = $seccode;
@@ -268,7 +280,9 @@ function showcodelink($box,$seccode) {
 HTML;
 }
 
-function new_box_instructions($box,$seccode,$paidto) {
+function new_box_instructions($data,$box,$seccode,$personal) {
+	global $table;
+
 	$vend = ll_vendor($data['vid'],true);
 
 	$top = form_top($data); 
@@ -281,11 +295,11 @@ $top
 $table
 <tr><td><b>Box:</b></td><td>$box</td></tr>
 <tr><td><b>Security code:</b></td><td>$seccode</td></tr>
-<tr><td><b>Paid to:</b></td><td>$paidto</td></tr>
+<tr><td><b>Paid to:</b></td><td>{$bdata['paidto']}</td></tr>
 <tr><td><b>Status</b></td><td>{$bdata['status']}</td></tr>
-<tr><td><b>Name:</b></td><td>{$bdata['name']}</td></tr>
-<tr><td><b>Email:</b></td><td>{$bdata['email']}</td></tr>
-<tr><td><b>Notes:</b></td><td>{$bdata['notes']}</td></tr>
+<tr><td><b>Name:</b></td><td>{$personal['name']}</td></tr>
+<tr><td><b>Email:</b></td><td>{$personal['email']}</td></tr>
+<tr><td><b>Notes:</b></td><td>{$personal['notes']}</td></tr>
 </table>
 $instr
 $end
@@ -315,11 +329,19 @@ function update_box_form($data,$action="Add time to box") {
 		$edit_input = mk_personal_input($bdata);
 	} else if (preg_match('#\btime\b#',$action)) {
 		if ($action === 'Remove time from box') {
-			$months = ll_months_left($bdata['paidto']);
-			if ($months <= 0) 
-				return "$top<h3>Box $box has less than one month left on its subscription.</h3>$end";
+			if ($bdata['paidto'] == 0 and preg_match('#add (\d+) month#',$bdata['status'],$m)) {
+				$month_input = <<<HTML
+ Delete box and revert time back. &nbsp;&nbsp;
+<input type=hidden name=months value={$m[1]}>
+HTML;
+			} else {
+				$months = ll_months_left($bdata['paidto']);
+				if ($months <= 0) 
+					return "$top<h3>Box $box has less than one month left on its subscription.</h3>$end";
+			}
 		} else $months = 1;
-		$month_input = " Months: <input size=3 name=months value=$months> &nbsp;&nbsp;"; 
+		if (!$month_input) 
+			$month_input = " Months: <input size=3 name=months value=$months> &nbsp;&nbsp;"; 
 		$trans = ll_generate_trans($vend,'boxes');
 	}
 	return <<<HTML
@@ -334,8 +356,9 @@ $end
 HTML;
 }
 
-function mk_personal_input($bdata=array()) {
+function mk_personal_input($bdata=array(),$vend=array()) {
 	global $table;
+	if (empty($bdata['notes'])) $bdata['notes'] = $vend['vendor'];
 	return <<<HTML
 <p>
 $table
@@ -487,7 +510,7 @@ function find_boxes_form($data,$boxes=null) {
 	global $table;
 	$top = form_top($data); 
 	$end = form_end($data);
-	if (!is_array($boxes)) $boxes = ll_boxes($data,'not_deleted','order by box');
+	if (!is_array($boxes)) $boxes = ll_boxes($data,($showkids=true),'not_deleted','order by box');
 	$truncdate = '#-\d+(?:| .*)$#';
 	$html = <<<HTML
 $top
@@ -514,7 +537,7 @@ function view_boxes_form($data,$boxes=null) {
 	$top = form_top($data); 
 	$end = form_end($data);
 	if (!is_array($boxes)) {
-		$boxes = ll_boxes($vend);
+		$boxes = ll_boxes($vend,($showkids=true));
 	}
 	$div = "&nbsp;-&nbsp;";
 	$url = "<a href=\"".$data['app']."?box=";

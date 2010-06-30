@@ -23,9 +23,7 @@ if (!$permcheck['boxes']) die("you do not have sufficient access to use this sit
 if (preg_match('#^\d+$#', $_REQUEST['vid'])) {
 	$findvid = $_REQUEST['vid'];
 	$finddata = ll_vendor($findvid);
-	if ($findvid != $ldata['vid'] 
-		and $finddata['parent'] != $ldata['vid'])
-		die("you are not associated with this vendor!");
+	if (!ll_has_access($ldata,$finddata)) die("you are not associated with this vendor!");
 } else {
 	$findvid = $ldata['vid'];
 	$finddata = $ldata;
