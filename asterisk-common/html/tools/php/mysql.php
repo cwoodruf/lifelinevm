@@ -200,6 +200,26 @@ function ll_boxes($vend,$showkids=false,$status='not_deleted',$order = "order by
 	return ll_load_from_table('boxes','vid',$vid,true," $status $order");
 }
 
+function ll_activeboxcount($vid) {
+	if (!preg_match('#^\d+$#',$vid)) die("bad vid in ll_activeboxcount!");
+	$query = "select count(*) from boxes where status not like '%deleted%' and vid='$vid'";
+	$lldb = ll_connect();
+	$st = $lldb->query($query);
+	if ($st == false) die(ll_err());
+	$row = $st->fetch();
+	return $row[0];
+}
+
+function ll_logincount($vid) {
+	if (!preg_match('#^\d+$#',$vid)) die("bad vid in ll_logincount!");
+	$query = "select count(*) from users where vid='$vid'";
+	$lldb = ll_connect();
+	$st = $lldb->query($query);
+	if ($st == false) die(ll_err());
+	$row = $st->fetch();
+	return $row[0];
+}
+
 function ll_find_boxes($vend,$search) {
 	$lldb = ll_connect();
 	# $where = " and status <> 'deleted' and (";
