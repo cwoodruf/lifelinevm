@@ -18,7 +18,7 @@ $_SESSION['from'] = $from =
 # this is more of a courtesy than a security check
 # your login credentials really determine what you can do
 if ($from == 'admin') {
-	$ldata = login_response("/lifeline/admin.php",'ll_pw_auth');
+	$ldata = login_response($_SERVER['PHP_SELF'],"/lifeline/admin.php",'ll_pw_auth');
 	if ($ldata['perms'] != 's') {
 		if (!preg_match('#vendors|logins#',$ldata['perms'])) 
 			die("This area is restricted access!");
@@ -40,7 +40,7 @@ if ($from == 'admin') {
 
 	$goback = "<a href=\"admin.php\">Back to voicemail admin page</a>";
 } else {
-	$ldata = login_response($_SERVER['PHP_SELF'],'ll_superuser');
+	$ldata = login_response($_SERVER['PHP_SELF'],$_SERVER['PHP_SELF'],'ll_superuser');
 	if ($ldata['vid'] != 0) die("No direct access! <a href=\"admin.php\">Back to admin</a>");
 
 	$sdata = ll_vendor($ldata['vid']);

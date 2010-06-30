@@ -5,7 +5,7 @@ require_once("$lib/pw/auth.php");
 $action = $_REQUEST['action'];
 if ($action === 'logout') delete_login();
 
-$ldata = login_response($_SERVER['PHP_SELF'],'ll_pw_data');
+$ldata = login_response('redirect.php',$_SERVER['PHP_SELF'],'ll_pw_data');
 $vdata = ll_vendor($ldata['vid']);
 $ldata = array_merge($ldata,$vdata);
 if (isset($_REQUEST['vid'])) {
