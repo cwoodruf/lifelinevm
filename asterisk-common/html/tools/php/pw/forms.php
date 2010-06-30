@@ -1,11 +1,11 @@
 <?php
 
-function login_form ($app) {
+function login_form ($redirecturl,$app) {
 	global $lib;
 	if (@include_once("$lib/asterisk.php")) {
 		$uptime = get_uptime();
 	}
-	$vars = array_merge($_GET,$_POST);
+	$vars = $_REQUEST; # array_merge($_GET,$_POST);
 	foreach ($vars as $key => $val) {
 		if (preg_match('#^(login|password|cache|app)$#',$key)) continue;
 		$hidden .= "<input type=hidden name=\"$key\" value=\"$val\">\n";
@@ -16,7 +16,8 @@ function login_form ($app) {
 <head><title>Login</title></head>
 <body>
 <h3>{$_SERVER['SERVER_NAME']} log in</h3>
-<form name=form_login action=$app method=post>
+<form name=form_login action="$redirecturl" method=post>
+<input type=hidden name=app value="$app">
 $hidden
 <table cellpadding=3 cellspacing=0 border=0>
 <tr><td><b>Login:</b></td>
@@ -102,8 +103,8 @@ document.write(gt);
 HTML;
 }
 
-function print_login ($app) {
-	echo login_form($app);
+function print_login ($redirecturl,$app) {
+	echo login_form($redirecturl,$app);
 	exit;
 }
 
