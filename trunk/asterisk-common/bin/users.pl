@@ -2,6 +2,8 @@
 use Lifeline::DB;
 use Data::Dumper;
 use Getopt::Std;
+our $salt;
+do "/usr/local/asterisk/agi-bin/Lifeline/salt";
 use strict;
 my %opt;
 getopts('v',\%opt);
@@ -99,6 +101,7 @@ while (my $raw = <IN>) {
 
 	} elsif ($in{BOX_TYPE} =~ /MSG/) {
 		print Dumper([@in{@interesting}]) if $opt{v};
+		$in{SEC_CODE} .= $salt;
 		$ins->execute(@in{@interesting}) or die $ins->errstr;
 	}
 }

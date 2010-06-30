@@ -2,18 +2,21 @@
 # uses the pcavail data from the website to update number of months in the new vm system
 use Data::Dumper; 
 use Lifeline::DB;
+use Getopt::Std;
 use strict;
+my %opt;
+getopts('v',\%opt);
 
 my $pcdir = "/usr/local/asterisk/paycode";
 
 my $pcavail = "$pcdir/pcavail.csv";
 open PC, "< $pcavail" or die "can't open $pcavail: $!";
 
-my %counts;
+my (%counts,%vendors);
 while (my $line = <PC>) {
 	chomp $line;
 	my @F = split ',', $line;
-	next unless $F[0] =~ /\d/; 
+	next unless $F[0] =~ /\d/ or $F[1] =~ /JobsNOW|JobStores/; 
 	$counts{$F[1]}{$F[0]} += $F[3]; 
 	$counts{$F[1]}{ttl} += $F[3]; 
 }
@@ -46,7 +49,7 @@ while (my $cline = <CUST>) {
 	$customers{$cdata{cust}} = \%cdata;
 }
 close CUST;
-print Dumper(\%customers);
+print Dumper(\%customers) if $opt{v} > 1;
 
 =pod
 | vid          | int(11)      | NO   | PRI | NULL              | auto_increment | 
@@ -71,13 +74,13 @@ print Dumper(\%customers);
 
 my @vfields = qw/vendor address phone contact email fax gstexempt rate months/;
 my $updvendq = "update vendors set ".(join ",", map { "$_=?" } @vfields)." where vid=?";
-print "$updvendq\n";
+print "$updvendq\n" if $opt{v};
 my $updvend = $ldb->prepare($updvendq);
 
 foreach my $cust (@active) {
 	warn "no vendor id for $cust!" and next unless defined $customers{$cust};
-	print join ",", @{$customers{$cust}}{@vfields},"\n";
 	$customers{$cust}{months} = $counts{$cust}{ttl};
+	print join ",", @{$customers{$cust}}{@vfields},"\n" if $opt{v};
 	$updvend->execute(@{$customers{$cust}}{@vfields},$customers{$cust}{vid})
 		or die $updvend->errstr;
 }
@@ -101,10 +104,10 @@ my $invoices = "$pcdir/invoices.csv";
 open INV, "< $invoices" or die "can't open $invoices: $!";
 
 my $insinvq = "replace into invoices (".(join ",", @insinvfields).") values (".(join ",",map {'?'} @insinvfields).")";
-print "$insinvq\n";
+print "$insinvq\n" if $opt{v};
 my $insinv = $ldb->prepare($insinvq);
 while (my $iline = <INV>) {
-	print $iline;
+	print $iline if $opt{v};
 	chomp $iline;
 	my %idata; @idata{@ifields} = split ",", $iline; 
 	$idata{vid} = $customers{$idata{vendor}}{vid};
