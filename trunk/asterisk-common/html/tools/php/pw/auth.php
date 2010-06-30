@@ -5,17 +5,17 @@ require_once("$lib/mysql.php");
 $cachedir = "$lib/pw/cache";
 $cache = '';
 
-function login_response($app,$callback) {
+function login_response($redirecturl,$app,$callback) {
 	global $cache;
 	$login = authenticate($app,$callback);
 	if (isset($login)) return $login;
-	print_login($app);
+	print_login($redirecturl,$app);
 	exit;
 }
 
 function authenticate($app,$callback) {
 	if (isset($_SESSION['login'])) return $_SESSION['login'];
-	$login = $_POST['login'];
+	$login = $_REQUEST['login'];
 	if (!preg_match("#^\S{1,32}$#",$login)) return;
 	$password = $_POST[password];
 	if ($password == '' or strlen($password) > 50) return;
