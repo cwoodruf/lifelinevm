@@ -20,6 +20,7 @@ $min_purchase = 4; # least number of months you can buy
 $def_credit_limit = -1; # credit for number of months: -1 = no credit limit
 $lib = '/usr/local/asterisk/html/tools/php';
 $pt_cutoff = 3 * 7 * 84600; # see Lifeline.pm - this should be same value
+
 $asterisk_dir = "/usr/local/asterisk/var/lib/asterisk";
 $asterisk_sounds = "$asterisk_dir/sounds";
 $asterisk_lifeline = "/usr/local/asterisk/lifeline-msgs";
