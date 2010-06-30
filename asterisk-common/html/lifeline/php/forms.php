@@ -147,6 +147,20 @@ if (boxes.value > 1)
 else return confirm('Create voice mail box? Action cannot be undone.');
 "
 JS;
+	# if this is a redirect from the old gc.pl file we'll have some paycode data
+	$pc = ll_paycodeinfo($_REQUEST['paycode']);
+	if (is_array($pc)) {
+		$months = $pc['months'];
+		$vend['paycode'] = $_REQUEST['paycode'];
+		$boxeswidget = <<<HTML
+Number of boxes to create: &nbsp; 1 <input type=hidden name=boxes value=1>  &nbsp;&nbsp; 
+HTML;
+	} else {
+		$months = 1;
+		$boxeswidget = <<<HTML
+Number of boxes to create &nbsp; <input size=3 name=boxes value=1> (maximum $max) &nbsp;&nbsp; 
+HTML;
+	}
 	$top = form_top($data,true,true,'post',$formjs); 
 	$end = form_end($data);
 	$trans = ll_generate_trans($vend,'boxes');
@@ -155,8 +169,8 @@ JS;
 	return <<<HTML
 $top
 <input type=hidden name=trans value="$trans">
-Number of boxes to create &nbsp; <input size=3 name=boxes value=1> (maximum $max) &nbsp;&nbsp; 
-Valid for &nbsp; <input size=3 name=months value=1> &nbsp; month(s). &nbsp;&nbsp; 
+$boxeswidget
+Valid for &nbsp; <input size=3 name=months value="$months"> &nbsp; month(s). &nbsp;&nbsp; 
 $personal
 <input type=submit name=action value="Create boxes" class=action>
 $end
@@ -358,7 +372,7 @@ HTML;
 
 function mk_personal_input($bdata=array(),$vend=array()) {
 	global $table;
-	if (empty($bdata['notes'])) $bdata['notes'] = $vend['vendor'];
+	if (empty($bdata['notes'])) $bdata['notes'] = $vend['vendor'].' '.$vend['paycode'];
 	return <<<HTML
 <p>
 $table

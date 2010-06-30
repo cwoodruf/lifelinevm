@@ -115,3 +115,18 @@ while (my $iline = <INV>) {
 }
 close INV;
 
+# make a clone of the paycodes file in the db
+open PAYC, "< $pcavail" or die "can't open $pcavail: $!";
+# create table paycode (code varchar(32) primary key,months integer default 0, created datetime, used datetime, box varchar(16));
+# 5955,DERA,0481 4544 4632 1278,4,2006/08/29 15:54:12,,2008/01/30 14:40:43
+my $inspc = $ldb->prepare("replace into paycode(code,months,created,used,box) values (?,?,?,?,?)");
+my $numcodes = 0;
+while (my $pline = <PAYC>) {
+	chomp $pline;
+	my ($inv,$cust,$code,$months,$created,$box,$used) = split ",", $pline;
+	$inspc->execute($code,$months,$created,$used,$box) or die $inspc->errstr;
+	$numcodes++;
+}
+close PAYC;
+print "saved $numcodes paycodes.\n" if $opt{v};
+

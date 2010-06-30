@@ -176,6 +176,17 @@ function ll_check_seccode($seccode) {
 	return true;
 }
 
+function ll_paycodeinfo($paycode) {
+	if (!preg_match('#^(\d{4}) *(\d{4}) *(\d{4})#',$paycode,$m)) return;
+	$code = $m[1].' '.$m[2].' '.$m[3];
+	$query = "select * from paycode where code like '$code%'";
+	$lldb = ll_connect();
+	$st = $lldb->query($query);
+	if ($st === false) die(ll_err());
+	$row = $st->fetch();
+	return $row;
+}
+
 function ll_box($box) {
 	ll_check_box($box);
 	return ll_load_from_table('boxes','box',$box,false);
