@@ -175,7 +175,7 @@ function transfer_box_form() {
 	$currvendor = ll_vendor($vid);
 	if (!$currvendor) die("vendor $vid does not exist!");
 
-	$boxes = ll_boxes($vid,'','order by box asc');
+	$boxes = ll_boxes($vid,($showkids=false),'','order by box asc');
 	if ($boxes) {
 		$boxsel = "<select name=boxsel><option>\n";
 		foreach ($boxes as $bdata) {
@@ -312,7 +312,7 @@ function list_vendors() {
 	$vendors = ll_vendors($ldata['vid']);
 	if ($vendors === false) return;
 	$make = "/lifeline/make.php";
-	$div = "&nbsp;-&nbsp;";
+	$div = ''; # "&nbsp;-&nbsp;";
 	print <<<HTML
 <table cellpadding=5 cellspacing=0 border=0 width=1200>
 <tr><th>id</th><th>vendor</th><th>invoiced</th><th>owing</th><th>months</th><th>tools</th></tr>
@@ -330,9 +330,12 @@ HTML;
 		else $invstr = '&nbsp;';
 
 		$created = preg_replace('# .*#','',$vend['created']);
+		$boxcount = ll_activeboxcount($vid);
+		$logincount = ll_logincount($vid);
 		if (
 			($ldata['perms'] == 's' or strpos($ldata['perms'],'vendors') !== false)
-			and $owed == 0 and $vend['months'] == 0) 
+			# and $owed == 0 and $vend['months'] == 0 and $boxcount == 0) 
+			and $owed == 0 and $boxcount == 0) 
 		{
 			$del_vendor = "<a href=\"$make?action=del_vendor&vid=$vid\">delete</a>";
 		}
@@ -340,6 +343,12 @@ HTML;
 		{
 			$del_vendor = '<span style="color: gray">delete</span>';
 		}
+		if (!$boxcount) $boxcount = 'no';
+		if ($boxcount <> 1) $es = 'es';
+		else $es = '';
+		if (!$logincount) $logincount = 'no';
+		if ($logincount <> 1) $s = 's';
+		else $s = '';
 		print <<<HTML
 <tr>
 <td>$vid</td>
@@ -348,27 +357,24 @@ HTML;
 <td align=right><a href="admin.php?vid=$vid&form=Show unpaid invoices">$owed</a></td>
 <td align=right>$vend[months]</td>
 <td>
-<table width=500 border=0 cellspacing=0 cellpadding=2 style="border: none">
+<table cellspacing=0 cellpadding=2 border=0 style="border: none">
 <tr>
-<td>
+<td width=40>
 <a href="$make?action=edit&from=$from&vid=$vid">edit</a> $div
-</td><td>
+</td>
+<td width=120>
 <nobr>
-<a href="$make?action=new_user&from=$from&vid=$vid">new user</a> $div
+<a href="$make?action=show_logins&from=$from&vid=$vid">$logincount login$s</a>
+(<a href="$make?action=new_user&from=$from&vid=$vid">add</a>) $div
 </nobr>
-</td><td>
+</td>
+<td width=200>
 <nobr>
-<a href="$make?action=show_logins&from=$from&vid=$vid">show logins</a> $div
+<a href="admin.php?form=View your voicemail boxes&vid=$vid">$boxcount box$es</a>
+(<a href="$make?action=transfer_box&from=$from&vid=$vid">transfer box</a>) $div
 </nobr>
-</td><td>
-<nobr>
-<a href="admin.php?form=View your voicemail boxes&vid=$vid">show boxes</a> $div
-</nobr>
-</td><td>
-<nobr>
-<a href="$make?action=transfer_box&from=$from&vid=$vid">transfer box</a> $div
-</nobr>
-</td><td>
+</td>
+<td width=80>
 $del_vendor
 </td>
 </tr>
