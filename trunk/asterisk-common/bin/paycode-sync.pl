@@ -72,7 +72,8 @@ print Dumper(\%customers) if $opt{v} > 1;
 | notes        | text         | YES  |     | NULL              |                | 
 =cut
 
-my @vfields = qw/vendor address phone contact email fax gstexempt rate months/;
+# my @vfields = qw/vendor address phone contact email fax gstexempt rate months/;
+my @vfields = qw/vendor months/;
 my $updvendq = "update vendors set ".(join ",", map { "$_=?" } @vfields)." where vid=?";
 print "$updvendq\n" if $opt{v};
 my $updvend = $ldb->prepare($updvendq);

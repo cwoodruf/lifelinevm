@@ -7,6 +7,10 @@ if ($action === 'logout') delete_login();
 
 $ldata = login_response('redirect.php',$_SERVER['PHP_SELF'],'ll_pw_data');
 $vdata = ll_vendor($ldata['vid']);
+# something wonky happened as we can't find this vendor
+if ($vdata == null or !is_array($vdata)) {
+	delete_login();
+}
 $ldata = array_merge($ldata,$vdata);
 if (isset($_REQUEST['vid'])) {
 	$vdata = ll_vendor($_REQUEST['vid'],$ldata['vid']);
@@ -64,7 +68,7 @@ if ($_REQUEST['listen']) {
 	if ($form === 'Create a new voicemail box') {
 		print create_new_box_form($ldata);
 	} else if ($form === 'showcode') {
-		print showcode($ldata, sprintf('%04d',$_REQUEST['box']), $_REQUEST['seccode']);
+		print showcode($ldata, sprintf('%04d',$_REQUEST['box']), $_REQUEST['seccode'],'html');
 	} else if ($form === 'View transaction' or $form === 'transaction') {
 		print view_transaction($ldata,ll_valid_trans($_REQUEST['trans']));
 	} else if ($form === 'Add time to an existing box' or $form === 'add') {

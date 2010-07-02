@@ -166,9 +166,10 @@ function ll_users($vend) {
 	return ll_load_from_table('users','vid',$vend['vid']);
 }
 
-function ll_check_box($box) {
+function ll_check_box($box,$die=true) {
 	if (preg_match('#^\d{4,32}$#',$box)) return true;
-	else die("bad box number '$box'!");
+	else if ($die) die("bad box number '$box'!");
+	return false;
 } 
 
 function ll_check_seccode($seccode) {
@@ -188,8 +189,7 @@ function ll_paycodeinfo($paycode) {
 }
 
 function ll_box($box) {
-	ll_check_box($box);
-	return ll_load_from_table('boxes','box',$box,false);
+	if (ll_check_box($box,($die=false))) return ll_load_from_table('boxes','box',$box,false);
 }
 
 function ll_boxes($vend,$showkids=false,$status='not_deleted',$order = "order by paidto desc") {
@@ -389,6 +389,10 @@ function ll_new_box($trans,$vend,$months,$min_box,$max_box,$activate=false) {
 
 function ll_showcode($seccode) {
 	global $salt;
+
+	# if its not md5-like then return it
+	if (!preg_match('#^\w{32,}$#',$seccode)) return $seccode;
+
 	# as this is somewhat expensive maybe discourage overuse
 	# sleep(3);
 
@@ -400,7 +404,7 @@ function ll_showcode($seccode) {
 	if ($st === false) die(ll_err());
 	while ($row = $st->fetch(PDO::FETCH_ASSOC)) {
 		$i = $row['i'];
-		if ($row['seccode'] == $seccode) return $row['i'];
+		if ($row['seccode'] == $seccode) return str_pad($i, 4, "0", STR_PAD_LEFT);
 	}
 	# for anything we don't know about in table fill it in
 	for (; $i<=9999; $i++) {
@@ -588,6 +592,8 @@ function ll_has_access($ldata,$odata) {
 	if (is_array($ldata)) $myvid = $ldata['vid'];
 	else $myvid = $ldata;
 	if ($myvid === 0) return true;
+	if (!$myvid) return false;
+	if (!is_array($odata)) return false;
 
 	$vid = $odata['vid'];
 	if ((int) $vid <= 0) return false;
@@ -728,7 +734,7 @@ print "</pre>\n";
 function ll_pw_data($login) {
         $lldb = ll_connect();
         $st = $lldb->query("select users.vid,password,vendor,perms from users,vendors ".
-		"where users.vid=vendors.vid and vendors.status not in ('deleted') ".
+		"where users.vid=vendors.vid and vendors.status not in ('deleted') and vendors.vid <> 0 ".
 		"and login=".$lldb->quote($login)
 	);
         if ($st === false) {

@@ -1,12 +1,40 @@
+<?php 
+session_start();
+require_once('php/globals.php'); 
+require_once("$lib/mysql.php"); 
+if (!ll_has_access($_SESSION['login']['vid'],ll_box($_REQUEST['box']))) {
+	unset($_REQUEST);
+}
+?>
 <html>
 <head>
-<title>Lifeline Help</title>
+<title>Proof of Payment</title>
+<link rel=stylesheet type=text/css href=css/base.css>
+<link rel=stylesheet type=text/css href=css/admin.css>
 </head>
 <body>
 <center>
-<h3>Lifeline Help</h3>
-<table width=500 cellpadding=3 cellspacing=0 border=0>
+<h3>Proof of Payment / Instructions</h3>
+<table width=540 cellpadding=3 cellspacing=0 border=0>
 <tr><td>
+<h4>Date: <?php print date('Y-m-d'); ?></h4>
+<p>
+<nobr>
+<b>Box:</b> <?php print $_REQUEST['box']  ? htmlentities($_REQUEST['box']) : '_______'; ?> &nbsp;&nbsp;
+<b>Security code:</b> 
+<?php print $_REQUEST['seccode']  ? htmlentities(ll_showcode($_REQUEST['seccode'])) : '_______'; ?>
+&nbsp;&nbsp;
+Payment: $_______________
+</nobr>
+<p>
+<div style="padding-top: 30px;">
+Received by: __________________________________________
+</div>
+<i style="font-size: small;">
+This is your receipt and proof of purchase.<br>
+Please keep this receipt in case of problems with your account.<br>
+</i>
+
 <h4>Using voicemail</h4>
 <h4>Leaving messages</h4>
 <ol>

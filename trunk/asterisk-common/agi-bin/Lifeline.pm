@@ -185,8 +185,8 @@ sub mkpaidto {
 	return unless $ll->{box} =~ /^\d\d\d\d+$/;
 	my $months = shift;
 	return 0 unless ($months > 0 and $months < 100);
-	my @now = localtime;
-	my $paidto = timelocal_nocheck(0,0,0,$now[3],$now[4]+$months,$now[5]+1900);
+	# with this we will be at the same day of the month or over (gave up on trying to fix overages)
+	my $paidto = time + $months * 31 * 86400;
 	my @pt = localtime($paidto);
 	my $paidtostr = sprintf('%04d-%02d-%02d', $pt[5]+1900,$pt[4]+1,$pt[3]);
 	my $upd = $ll->{db}->prepare("update boxes set paidto=? where box=?");
