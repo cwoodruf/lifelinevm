@@ -63,7 +63,8 @@ print Dumper(\%customers) if $opt{v} > 1;
 | fax          | varchar(128) | YES  |     | NULL              |                | 
 | gstexempt    | int(11)      | YES  |     | 0                 |                | 
 | rate         | float        | YES  |     | NULL              |                | 
-| months       | int(11)      | YES  |     | 0                 |                | 
+| months       | int(11)     <-- currently set to 10 for testing
+| actual_months| int(11)     <-- where we should be putting the pcavail info
 | all_months   | int(11)      | YES  |     | 0                 |                | 
 | pst_number   | varchar(128) | YES  |     | NULL              |                | 
 | gst_number   | varchar(128) | YES  |     | NULL              |                | 
@@ -73,14 +74,14 @@ print Dumper(\%customers) if $opt{v} > 1;
 =cut
 
 # my @vfields = qw/vendor address phone contact email fax gstexempt rate months/;
-my @vfields = qw/vendor months/;
+my @vfields = qw/vendor actual_months/;
 my $updvendq = "update vendors set ".(join ",", map { "$_=?" } @vfields)." where vid=?";
 print "$updvendq\n" if $opt{v};
 my $updvend = $ldb->prepare($updvendq);
 
 foreach my $cust (@active) {
 	warn "no vendor id for $cust!" and next unless defined $customers{$cust};
-	$customers{$cust}{months} = $counts{$cust}{ttl};
+	$customers{$cust}{actual_months} = $counts{$cust}{ttl};
 	print join ",", @{$customers{$cust}}{@vfields},"\n" if $opt{v};
 	$updvend->execute(@{$customers{$cust}}{@vfields},$customers{$cust}{vid})
 		or die $updvend->errstr;

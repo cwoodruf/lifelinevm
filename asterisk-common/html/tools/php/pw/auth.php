@@ -9,7 +9,7 @@ function login_response($redirecturl,$app,$callback) {
 	global $cache;
 	$login = authenticate($app,$callback);
 	if (isset($login)) return $login;
-	print_login($redirecturl,$app);
+	print_login($redirecturl,$app,$callback);
 	exit;
 }
 

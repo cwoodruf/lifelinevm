@@ -1,13 +1,13 @@
 <?php
 
-function login_form ($redirecturl,$app) {
+function login_form ($redirecturl,$app,$callback) {
 	global $lib;
 	if (@include_once("$lib/asterisk.php")) {
 		$uptime = get_uptime();
 	}
 	$vars = $_REQUEST; # array_merge($_GET,$_POST);
 	foreach ($vars as $key => $val) {
-		if (preg_match('#^(login|password|cache|app)$#',$key)) continue;
+		if (preg_match('#^(login|password|cache|app|callback)$#',$key)) continue;
 		$hidden .= "<input type=hidden name=\"$key\" value=\"$val\">\n";
 	}
 	$login = htmlentities($vars['login']);
@@ -18,6 +18,7 @@ function login_form ($redirecturl,$app) {
 <h3>{$_SERVER['SERVER_NAME']} log in</h3>
 <form name=form_login action="$redirecturl" method=post>
 <input type=hidden name=app value="$app">
+<input type=hidden name=callback value="$callback">
 $hidden
 <table cellpadding=3 cellspacing=0 border=0>
 <tr><td><b>Login:</b></td>
@@ -103,8 +104,8 @@ document.write(gt);
 HTML;
 }
 
-function print_login ($redirecturl,$app) {
-	echo login_form($redirecturl,$app);
+function print_login ($redirecturl,$app,$callback) {
+	echo login_form($redirecturl,$app,$callback);
 	exit;
 }
 
