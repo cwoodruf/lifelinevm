@@ -42,7 +42,7 @@ Please keep this receipt in case of problems with your account.<br>
 <li>Enter the box number to leave a message
 <li>You can skip the greeting by pressing #
 <li>Leave a message
-<li>If you want to <b>leave another message</b> press a key and wait for the prompt
+<li><b>To leave another message</b> press a key and wait for the prompt
 </ol>
 <h4>Listening to messages</h4>
 <h4>By phone</h4>
@@ -51,8 +51,8 @@ Please keep this receipt in case of problems with your account.<br>
 <li>Enter the box number
 <li>Enter the security code 
 <li>Press 1 from the main menu to listen to messages
-<li>Use the next menu (listen to messages menu) to navigate around the messages
-<li>Press * to go back to the start
+<li>Listen to the prompts - <b>for date, time and caller id press 8</b>
+<li>Press * any time to go back to the main menu
 </ol>
 </td></tr>
 </table>

@@ -128,13 +128,19 @@ HTML;
 function vend_status_str($vend) {
 	global $min_purchase;
 	if ($vend['months'] == 1) {
-		$months = "1 month of";
+		$months = "1 month";
 	} else if ($vend['months'] == 0) {
 		$months = "no";
 	} else {
-		$months = $vend['months']." months of";
+		$months = $vend['months']." months";
 	}
-	$status = "{$vend['vendor']} has $months voicemail available.<br>";
+	if ($vend['actual_months'] == 1) $acts = '';
+	else $acts = 's';
+	$status = <<<HTML
+{$vend['vendor']} has $months <b>FREE trial</b> available 
+(Actual credit on system {$vend['actual_months']} month$acts)
+<br>
+HTML;
 	return $status;
 }
  
@@ -149,6 +155,8 @@ else return confirm('Create voice mail box? Action cannot be undone.');
 JS;
 	# if this is a redirect from the old gc.pl file we'll have some paycode data
 	$pc = ll_paycodeinfo($_REQUEST['paycode']);
+	$max = MAXBOXES;
+	$maxmonths = MAXMONTHS;
 	if (is_array($pc)) {
 		$months = $pc['months'];
 		$vend['paycode'] = $_REQUEST['paycode'];
@@ -165,12 +173,11 @@ HTML;
 	$end = form_end($data);
 	$trans = ll_generate_trans($vend,'boxes');
 	$personal = mk_personal_input(null,$vend);
-	$max = MAXBOXES;
 	return <<<HTML
 $top
 <input type=hidden name=trans value="$trans">
 $boxeswidget
-Valid for &nbsp; <input size=3 name=months value="$months"> &nbsp; month(s). &nbsp;&nbsp; 
+Valid for &nbsp; <input size=3 name=months value="$months"> &nbsp; months (up to $maxmonths months). &nbsp;&nbsp; 
 $personal
 <input type=submit name=action value="Create boxes" class=action>
 $end
@@ -188,6 +195,7 @@ function create_new_box($data) {
 
 	$months = $_REQUEST['months'];
 	if (!preg_match('#^\d\d?$#',$months) or $months <= 0) die("create_new_box: invalid number of months");
+	if ($boxes > MAXMONTHS) die("please select a smaller number of months than ".MAXMONTHS);
 
 	$totalmonths = $months * $boxes;
 	if ($vend['months'] < $totalmonths) die("you only have $totalmonths months available!");

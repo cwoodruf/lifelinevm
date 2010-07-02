@@ -8,7 +8,7 @@ require_once("$lib/pw/auth.php");
 
 $vars = array_merge($_GET,$_POST);
 
-$ldata = login_response('redirect.php',$vars['app'],'ll_pw_data');
+$ldata = login_response('redirect.php',$vars['app'],$vars['callback']);
 
 $url = $vars['app'];
 unset($vars['app']);

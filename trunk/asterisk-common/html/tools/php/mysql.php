@@ -768,7 +768,8 @@ function ll_user_data($box) {
 
 function ll_superuser($login) {
 	$lldb = ll_connect();
-        $st = $lldb->query("select password,perms from users where login=md5('$login') and vid=0 and perms='s'");
+	$query = "select password,perms from users where login=md5('$login') and vid=0 and perms='s'";
+        $st = $lldb->query($query);
         if ($st === false) {
                 die(ll_err());
         } else {

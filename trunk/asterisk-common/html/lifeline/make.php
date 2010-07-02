@@ -91,7 +91,8 @@ $seller
 <input type=submit name=action value="Create new vendor"> &nbsp;&nbsp;
 <input type=hidden name=parent value="$defparent">
 <input type=submit name=action value="View paid invoices"> &nbsp;&nbsp;
-<input type=submit name=action value="View invoices">
+<input type=submit name=action value="View invoices"> &nbsp;&nbsp;
+<input type=submit name=action value="Email list">
 </form>
 
 HTML;
@@ -131,7 +132,7 @@ HTML;
 if ($action === 'Create new vendor') vendor_form(null);
 else if ($action === 'new_user' or $action === 'New login user') 
 	user_form(is_array($_REQUEST['vend']) ? $_REQUEST['vend']: $vend);
-else if ($action === 'emails') show_emails();
+else if ($action === 'emails' or $action === 'Email list') show_emails();
 else if ($action === 'Add user') add_user($vend); 
 else if ($action === 'modify_user') user_form($vend,$login);
 else if ($action === 'Update user') { ll_del_user($vend,$login); add_user($vend); }
