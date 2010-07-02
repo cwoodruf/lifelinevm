@@ -40,7 +40,8 @@ if ($from == 'admin') {
 
 	$goback = "<a href=\"admin.php\">Back to voicemail admin page</a>";
 } else {
-	$ldata = login_response($_SERVER['PHP_SELF'],$_SERVER['PHP_SELF'],'ll_superuser');
+	# use 'redirect.php' as the login script if we are doing a direct login
+	$ldata = login_response('redirect.php',$_SERVER['PHP_SELF'],'ll_superuser');
 	if ($ldata['vid'] != 0) die("No direct access! <a href=\"admin.php\">Back to admin</a>");
 
 	$sdata = ll_vendor($ldata['vid']);

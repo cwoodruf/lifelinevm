@@ -10,6 +10,6 @@ cd /usr/local/asterisk
 /usr/local/asterisk/bin/cleanup.pl
 
 /usr/bin/mysqldump --opt -ull -p'85$82$str' lifeline > lifeline.mysql
-/usr/bin/zip -r lifeline-backup.zip agi-bin html etc/asterisk/*.conf /home/cal/svn/asterisk-*/apps/app_recordkey*.c lifeline.mysql 
+/usr/bin/zip -r lifeline-backup.zip agi-bin cgi-bin html etc/asterisk/*.conf /home/cal/svn/asterisk-*/apps/app_recordkey*.c lifeline.mysql 
 /usr/bin/scp lifeline-backup.zip cal@aifl.ath.cx:~
 /usr/bin/scp lifeline-backup.zip callbackpack10@callbackpack.com:~

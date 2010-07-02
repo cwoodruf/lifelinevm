@@ -222,15 +222,15 @@ function create_new_box($data) {
 	return show_boxes($data,$boxlist);
 }
 
-function showcode($data,$box,$seccode) {
+function showcode($data,$box,$seccode,$format) {
 	if (preg_match('#^\d{4}$#',$seccode)) return $seccode;
 
 	if (($cracked = ll_showcode($seccode)) === false) $cracked = "unavailable";
 	else $cracked = sprintf('%04d',$cracked);
 
 	$head = head();
-	
-	return <<<HTML
+	if ($format == 'html') {
+		return <<<HTML
 $head
 <center>
 <h4>box $box uses security code $cracked</h4>
@@ -238,7 +238,8 @@ $head
 </body>
 </html>
 HTML;
-
+	}
+	return $cracked;
 }
 
 function show_boxes($data,$boxlist) {
@@ -302,18 +303,19 @@ function new_box_instructions($data,$box,$seccode,$personal) {
 	$top = form_top($data); 
 	$end = form_end($data);
 
-	$instr = file_get_contents("index.php");
 	$bdata = ll_box($box);
+	if ($bdata['paidto'] != '0000-00-00' and preg_match('#^\d{4}-\d{2}-\d{2}$#',$bdata['paidto'])) 
+		$paidto = "paid to {$bdata['paidto']}";
 	return <<<HTML
 $top
 $table
-<tr><td><b>Box:</b></td><td>$box</td></tr>
-<tr><td><b>Security code:</b></td><td>$seccode</td></tr>
-<tr><td><b>Paid to:</b></td><td>{$bdata['paidto']}</td></tr>
-<tr><td><b>Status</b></td><td>{$bdata['status']}</td></tr>
+<tr><td><b>Status:</b></td><td>{$bdata['status']} $paidto</td></tr>
 <tr><td><b>Name:</b></td><td>{$personal['name']}</td></tr>
 <tr><td><b>Email:</b></td><td>{$personal['email']}</td></tr>
 <tr><td><b>Notes:</b></td><td>{$personal['notes']}</td></tr>
+<tr><td colspan=2 align=right>
+<a href="index.php?box=$box&seccode={$bdata['seccode']}" target=_blank>receipt / instructions</a>
+</td></tr>
 </table>
 $instr
 $end
@@ -476,7 +478,6 @@ HTML;
 }
 
 function update_box_time($data,$months='') {
-	global $_REQUEST;
 	global $table;
 	$vend = ll_vendor($data['vid']);
 	ll_delete_trans($vend,$_REQUEST['trans']);
@@ -486,15 +487,17 @@ function update_box_time($data,$months='') {
 	$vend = ll_vendor($data['vid'],true);
 	$top = form_top($data); 
 	$end = form_end($data);
-	if ($months > 0) $instr = file_get_contents("index.php");
+	$bdata = ll_box($box);
 	return <<<HTML
 $top
 $table
 <tr><td><b>Box:</b></td><td>$box</td></tr>
 <tr><td><b>Paid to:</b></td><td>$paidto</td></tr>
+<tr><td colspan=2 align=right>
+<a href="index.php?box=$box&seccode={$bdata['seccode']}" target=_blank>receipt / instructions</a>
+</td></tr>
 </table>
-$instr
-$end
+$end;
 HTML;
 }
 
@@ -573,6 +576,7 @@ HTML;
 	foreach ($boxes as $row) {
 		$box = $row['box'];
 		$paidto = $row['paidto'] == '0000-00-00' ? $row['status'] : $row['paidto'];
+		$instr = "<a href=\"index.php?box=$box&seccode={$row['seccode']}\">instructions</a>";
 		$add = "$url$box&form=add\">add time</a>";
 		$sub = "$url$box&form=sub\">subtract time</a>";
 		$del = "$url$box&form=del\">delete</a>";
@@ -595,7 +599,7 @@ HTML;
 <td>$edit</td>
 <td>
 <nobr>
-$add $div $sub $div $del $div $chsc
+$add $div $sub $div $del $div $chsc $div $instr
 </nobr>
 </td>
 </tr>
