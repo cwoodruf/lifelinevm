@@ -285,8 +285,8 @@ function get_transferdata() {
 	if ($newvendor['status'] == 'deleted') die("new vendor $newvid deleted!");
 
 	if ($currvendor['parent'] != $newvendor['parent'] 
-		and $currvendor['vid'] != $newvendor['parent'] 
-		and $newvendor['vid'] != $currvendor['parent']
+		and !ll_has_access($currvendor['vid'],$newvendor) 
+		and !ll_has_access($newvendor['vid'],$currvendor)
 	) 
 		die("{$newvendor['vendor']} is not part of the same group as {$currvendor['vendor']}.");
 
