@@ -83,6 +83,13 @@ function ll_vendor_from_id($id) {
 	return $data;
 }
 
+function ll_undelete_vendor(&$vdata) {
+	$vid = $vdata['vid'];
+	if (!preg_match('#^\d+$#',$vid)) die("ll_undelete_vendor: vid is not a number!");
+	$vdata['status'] = $vend['status'] = '';
+	ll_save_to_table('update','vendors',$vend,'vid',$vid);
+}
+
 function ll_emailsignup_id($email, $vendor,$perms='boxes') {
 	$lldb = ll_connect();
 
@@ -238,7 +245,7 @@ function ll_find_boxes($vend,$search) {
 	if (empty($search)) {
 		$where .= "1=1";
 	} else {
-		foreach (array('box', 'name', 'email', 'paidto', 'notes') as $field) {
+		foreach (array('box', 'name', 'email', 'paidto', 'notes', 'status') as $field) {
 			$value = $lldb->quote('%'.$search.'%');
 			$wheres[] = "$field like ($value)";
 		}
@@ -631,7 +638,11 @@ function ll_generate_invoice($vend,$months,$trans) {
         if ($st === false) die(ll_err());
 	$row = $st->fetch();
 	$st->closeCursor();
-        $idata['invoice'] = $row[0] + 1;
+	if ($row[0]) {
+		$idata['invoice'] = $row[0] + 1;
+	} else {
+		$idata['invoice'] = 1000;
+	}
 	$idata['login'] = $ldata['login'];
 	$idata['vid'] = $vend['vid'];
 	$idata['months'] = $months;

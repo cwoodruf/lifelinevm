@@ -15,7 +15,14 @@ define('GETASTSTATUS', false);
 
 # default permissions list: there should be no other user permssions
 # these determine what you can create
-$baseperms = array('boxes','invoices','logins','vendors');
+$baseperms = array('edit','boxes','invoices','logins','vendors');
+$permhelp = array(
+	'edit' => 'view  and edit box info only',
+	'boxes' => 'create, delete or add time to a box',
+	'invoices' => 'buy voicemail',
+	'logins' => 'create new logins for this vendor',
+	'vendors' => 'make new sub accounts',
+);
 
 $min_purchase = 4; # least number of months you can buy
 $def_credit_limit = -1; # credit for number of months: -1 = no credit limit
