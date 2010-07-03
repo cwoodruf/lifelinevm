@@ -7,22 +7,72 @@ if ($action === 'logout') delete_login();
 
 $ldata = login_response('redirect.php',$_SERVER['PHP_SELF'],'ll_pw_data');
 $vdata = ll_vendor($ldata['vid']);
+
+# switch to another vendor
+if (preg_match('#^\d+$#',$_REQUEST['switch_vendor'])) {
+	$ldata['orig_vid'] = $_SESSION['login']['orig_vid'] = $ldata['vid'];
+	$ldata['orig_vendor'] = $_SESSION['login']['orig_vendor'] = $vdata['vendor'];
+	$ldata['vid'] = $_SESSION['login']['vid'] = $_REQUEST['switch_vendor'];
+}
+$vdata = ll_vendor($ldata['vid']);
+if ($vdata['status'] == 'deleted') {
+	die("Error: {$vdata['vendor']} was deleted!");
+}
+
+# last minute sanity check
+if (!ll_has_access($ldata['vid'],$vdata)) {
+	die("Error: you cannot log in to {$vdata['vendor']}!");
+}
+
 # something wonky happened as we can't find this vendor
 if ($vdata == null or !is_array($vdata)) {
 	delete_login();
 }
+
 $ldata = array_merge($ldata,$vdata);
+
+# if we need to do something with a specific subvendor then
+# we should grab that information here
 if (isset($_REQUEST['vid'])) {
 	$vdata = ll_vendor($_REQUEST['vid'],$ldata['vid']);
+	if (!ll_has_access($ldata['vid'],$vdata)) {
+		die("Error: you do not have access to subvendor {$vdata['vendor']}!");
+	}
+	# if the vendor was deleted offer to undelete them
+	if ($vdata['status'] == 'deleted') {
+		if ($action === 'undelete_vendor') {
+			ll_undelete_vendor($vdata);
+		} else {
+			print <<<HTML
+<h3>Vendor {$vdata['vendor']} was deleted!</h3>
+<a href="admin.php?action=undelete_vendor&vid={$vdata['vid']}">undelete {$vdata['vendor']}</a>
+HTML;
+			exit;
+		}
+	}
 }
-
-if ($ldata['status'] == 'deleted') die("vendor {$ldata['vendor']} was deleted!");
 
 $myperms = split(':',$ldata['perms']);
 foreach ($myperms as $p) {
 	$permcheck[$p] = true;
 }
-if (!$permcheck['boxes']) die("you do not have sufficient access to use this site!");
+if (!$permcheck['edit']) die("you do not have sufficient access to use this site!");
+
+$form = $_REQUEST['form'];
+# for people who can only view / edit box info
+if ($ldata['perms'] == 'edit') {
+	unset($_REQUEST['listen']);
+	$action = '';
+	$allowed_forms = array(
+		'chsc' => true,
+		'edit' => true,
+		'View your voicemail boxes' => true,
+		'find_boxes' => true,
+		'Search' => true,
+		'showcode' => true,
+	);
+	if (!$allowed_forms[$form]) $form = 'find_boxes';
+}
 
 if (preg_match('#^\d+$#', $_REQUEST['vid'])) {
 	$findvid = $_REQUEST['vid'];
@@ -64,7 +114,6 @@ if ($_REQUEST['listen']) {
 } else if ($action === 'invoice') {
 	print invoice($ldata);
 } else {
-	$form = $_REQUEST['form'];
 	if ($form === 'Create a new voicemail box') {
 		print create_new_box_form($ldata);
 	} else if ($form === 'showcode') {

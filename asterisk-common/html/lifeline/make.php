@@ -351,6 +351,11 @@ HTML;
 		if (!$logincount) $logincount = 'no';
 		if ($logincount <> 1) $s = 's';
 		else $s = '';
+		if ($vid != $ldata['vid']) {
+			$loginlink = "<a href=\"admin.php?switch_vendor=$vid\">log in</a>";
+		} else {
+			$loginlink = "<span class=\"inactivelink\">log in</span>";
+		}
 		print <<<HTML
 <tr>
 <td>$vid</td>
@@ -361,7 +366,8 @@ HTML;
 <td>
 <table cellspacing=0 cellpadding=2 border=0 style="border: none">
 <tr>
-<td width=40>
+<td width=100>
+$loginlink / 
 <a href="$make?action=edit&from=$from&vid=$vid">edit</a> $div
 </td>
 <td width=120>
@@ -546,12 +552,12 @@ HTML;
 }
 
 function user_form($vend,$login=null) {
-	global $from,$ldata,$baseperms;
+	global $from,$ldata,$baseperms,$permhelp;
 	$vendor = $vend['vendor'];
 	$vid = $vend['vid'];
 	if ($login == null) {
 		print "<h3>Add user (Vendor $vendor)</h3>\n";
-		$perms['boxes'] = 'checked';
+		$perms['edit'] = 'checked';
 		$action = 'Add';
 	} else {
 		$user = ll_pw_data($login);
@@ -575,7 +581,9 @@ HTML;
 	foreach ($permlist as $p) {
 		if (!in_array($p,$baseperms)) continue;
 		$permsblock .= <<<HTML
-<input type=checkbox name="perms[$p]" value="1" {$perms[$p]}> $p &nbsp;
+<span title="{$permhelp[$p]}">
+<input type=checkbox name="perms[$p]" value="1" {$perms[$p]} > $p &nbsp;
+</span>
 
 HTML;
 	}
@@ -602,9 +610,9 @@ $loginbuttons
 <tr><td colspan=2 align=center><input type=reset value=Reset></td></tr>
 <tr><td>Login/email:</td><td><input name=login size=40 value="$login"></td></tr>
 $passwordentry
-<tr><td>Perms:</td><td>
+<tr valign=top>
+    <td>Permissions:<div style="font-size: small">(hover mouse for detail)</div></td><td>
 	<nobr style="background: lightyellow">
-	<b>Create: </b>
 	$permsblock
 	</nobr>
 	&nbsp;&nbsp;

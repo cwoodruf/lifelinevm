@@ -33,7 +33,20 @@ function form_top($data,$show_goback=true,$show_status=true,$method='get',$formj
 	$vend = ll_vendor($data['vid']);
 	if ($show_status) $status = vend_status_str($vend);
 	$goback = $show_goback ? "$manage - $back" : '';
-	if ($ldata) $logout = "<a href=\"admin.php?action=logout\">Log out</a>";
+	if ($ldata) {
+		$logout = <<<HTML
+<nobr>
+<a href="admin.php?action=logout">Log out</a>
+HTML;
+		if (preg_match('#^\d+$#', $ldata['orig_vid'])) {
+			$logout .= <<<HTML
+&nbsp; 
+/ &nbsp; <a href="admin.php?switch_vendor={$ldata['orig_vid']}">
+Log in as {$ldata['orig_vendor']}</a>
+HTML;
+		}
+		$logout .= "</nobr>\n";
+	}
 	$head = head();
 	return <<<HTML
 $head
@@ -558,13 +571,14 @@ function mk_sel($name,$items,$multiple=null) {
 
 function view_boxes_form($data,$boxes=null) {
 	global $table;
-	global $vend;
+	global $vend,$permcheck;
 	$top = form_top($data); 
 	$end = form_end($data);
 	if (!is_array($boxes)) {
 		$boxes = ll_boxes($vend,($showkids=true));
 	}
-	$div = "&nbsp;-&nbsp;";
+	if ($permcheck['boxes']) $div = "&nbsp;-&nbsp;";
+	else $div = ' &nbsp;&nbsp; ';
 	$url = "<a href=\"".$data['app']."?box=";
 	$search = htmlentities($_REQUEST['search']);
 	$numboxes = count($boxes);
@@ -575,6 +589,7 @@ function view_boxes_form($data,$boxes=null) {
 <input type=hidden name="vid" value="{$data['vid']}"> 
 <input type=submit name=form value="Search">
 <br>
+<a href="admin.php?form=Search&search=add%25months&vid={$data['vid']}">Show unused</a> &nbsp;&nbsp;
 <a href="admin.php?form=View your voicemail boxes&vid={$data['vid']}">Show all</a>
 </form>
 $numboxes box$s
@@ -583,11 +598,13 @@ $table
 HTML;
 	foreach ($boxes as $row) {
 		$box = $row['box'];
-		$paidto = $row['paidto'] == '0000-00-00' ? $row['status'] : $row['paidto'];
+		$paidto = preg_match('#(0000-00-00|^\s*$)#', $row['paidto']) ? $row['status'] : $row['paidto'];
 		$instr = "<a href=\"index.php?box=$box&seccode={$row['seccode']}\">instructions</a>";
-		$add = "$url$box&form=add\">add time</a>";
-		$sub = "$url$box&form=sub\">subtract time</a>";
-		$del = "$url$box&form=del\">delete</a>";
+		if ($permcheck['boxes']) {
+			$add = "$url$box&form=add\">add time</a>";
+			$sub = "$url$box&form=sub\">subtract time</a>";
+			$del = "$url$box&form=del\">delete</a>";
+		}
 		# removed to avoid potential privacy complaints 
 		# and to allow us to put vm and web on different servers more easily
 		$msg = "$url$box&listen=1\">messages</a>";
@@ -816,7 +833,9 @@ function invoice($data,$idata=null) {
 		# invoice is a combo of invoice, vendor and seller data
 		$idata = ll_invoice($invoice);
 	}
-	$sdata = ll_vendor($idata['vdata']['parent']);
+	# note that this will grab the first numeric digits so that should always be
+	# the vendor who should receive the funds - ie the ordering in parent is important
+	$sdata = ll_vendor((int) ($idata['vdata']['parent']));
 	$seller = $sdata['vendor'];
 	$vend = $idata['vdata'];
 
