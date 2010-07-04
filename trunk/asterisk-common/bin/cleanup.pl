@@ -18,6 +18,9 @@ print "$delq\n" if $opt{v};
 my $deleted = $ldb->do($delq) or die $ldb->errstr;
 print "deleted $deleted boxes\n" if $opt{v};
 
+my ($reverted,$revertedvends) = ll_revert_unused($lleol);
+print "reverted $reverted allocated boxes unused for $lleol days for $revertedvends vendors\n" if $opt{v};
+
 my $oldbox = ll_deleted_boxes();
 print scalar(keys %{$oldbox})," deleted boxes\n" if $opt{v};
 
