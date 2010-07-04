@@ -51,7 +51,7 @@ Please keep this receipt in case of problems with your account.<br>
 <li>Enter the box number
 <li>Enter the security code 
 <li>Press 1 from the main menu to listen to messages
-<li>Listen to the prompts - <b>for date, time and caller id press 8</b>
+<li>Listen to the prompts - <b>for date, time and caller id press #</b>
 <li>Press * any time to go back to the main menu
 </ol>
 </td></tr>
