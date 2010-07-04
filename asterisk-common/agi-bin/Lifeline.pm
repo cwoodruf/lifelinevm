@@ -18,7 +18,7 @@ use strict;
 # auto flush
 $| = 1;
 
-our $min_msg_size = 2000; # for gsm and a 5 second timeout this seems reasonable could be around 1700 bytes
+our $min_msg_size = 6000; # for gsm and a 2 second timeout 
 our $def_grt = 'll-en-greeting';
 our $pt_cutoff = 3 * 7 * 86400; # number of seconds before a paidto date gets out of date
 our $skeleton_key = 'deprecated';
