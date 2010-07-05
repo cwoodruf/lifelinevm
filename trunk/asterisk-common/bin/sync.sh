@@ -1,4 +1,8 @@
 #!/bin/bash
+if [ $HOSTNAME != aifl89.ath.cx ] ; then
+	echo -$HOSTNAME: running rsync on aifl.ath.cx
+	/usr/bin/ssh asterisk@aifl.ath.cx '/usr/local/asterisk/bin/sync.sh'
+fi
 echo start rsync `/bin/date`
 /usr/bin/rsync --delete -rcvt asterisk@lifelinevm.net:/usr/local/asterisk/html/ /usr/local/asterisk/html
 /usr/bin/rsync --delete -rcvt asterisk@lifelinevm.net:/usr/local/asterisk/paycode/ /usr/local/asterisk/paycode
@@ -11,8 +15,5 @@ echo start scp `/bin/date`
 /usr/bin/scp asterisk@lifelinevm.net:/usr/local/asterisk/lifeline.mysql /usr/local/asterisk/
 echo updating database `/bin/date`
 /bin/cat /usr/local/asterisk/lifeline.mysql | /usr/bin/mysql -ull -p'85$82$str' -Dlifeline
+/usr/local/asterisk/bin/cleanup.pl -v
 
-if [ $HOSTNAME != 'aifl.ath.cx' ] ; then
-	echo running sync on $HOSTNAME
-	/usr/bin/ssh asterisk@aifl.ath.cx '/usr/local/asterisk/bin/sync.sh'
-fi

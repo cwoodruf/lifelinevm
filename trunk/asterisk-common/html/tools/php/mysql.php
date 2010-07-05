@@ -478,8 +478,6 @@ function ll_add_time($vend,$box,$months) {
 function ll_update_personal($vend,$box,$personal) {
 	global $personal_fields;
 	$bdata = ll_load_from_table('boxes','box',$box,false);
-	if ($bdata['vid'] !== $vend['vid']) 
-		die("Box $box does not belong to vendor ".$vend['vendor']."! Please contact us.");
 	foreach ($personal_fields as $field => $title) {
 		$sdata[$field] = $personal[$field];
 	}
