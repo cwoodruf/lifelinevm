@@ -208,7 +208,7 @@ function create_new_box($data) {
 
 	$months = $_REQUEST['months'];
 	if (!preg_match('#^\d\d?$#',$months) or $months <= 0) die("create_new_box: invalid number of months");
-	if ($boxes > MAXMONTHS) die("please select a smaller number of months than ".MAXMONTHS);
+	if ($months > MAXMONTHS) die("please select a smaller number of months than ".MAXMONTHS);
 
 	$totalmonths = $months * $boxes;
 	if ($vend['months'] < $totalmonths) die("you only have $totalmonths months available!");
