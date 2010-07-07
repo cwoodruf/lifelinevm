@@ -386,8 +386,10 @@ sub clean_up_msgs {
 		if ($_->{deleted}) {
 			my $mname = $_->{msg}.".".$ll->{rectype};
 			my $dname = $_->{msg}.".deleted.".$ll->{rectype};
-			unlink $dname;
-			move $mname, $dname or print STDERR $!;
+			unlink $dname if -f $dname;
+			if (-f $mname) {
+				move $mname, $dname or print STDERR "$mname -> $dname: $!";
+			}
 		}
 	}
 }

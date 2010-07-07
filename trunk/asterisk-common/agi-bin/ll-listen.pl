@@ -40,6 +40,13 @@ my $a = $ll->{agi};
 my $db = $ll->{db};
 my $callback_app;
 
+# what to do on hang up / exit
+$SIG{HUP} = \&clean_up;
+END { $ll->clean_up_msgs; }
+sub clean_up {
+	$ll->clean_up_msgs;
+}
+
 # start with the first message
 PLAY:
 while ((my $ascii = &play($ll->curr_msg,$callback_app)) >= 0) {
@@ -66,13 +73,6 @@ while ((my $ascii = &play($ll->curr_msg,$callback_app)) >= 0) {
 			$a->stream_file($restore_msg);
 		}
 		goto MENU; 
-# removed this as its too confusing and probably not so many will use it
-#	} elsif ($d eq '8') { 
-#		$ascii = $a->stream_file($extplay,$digits);
-#		$d = chr($ascii);
-#		$ascii = 0;
-#		if ($d eq '8') { $callback_app = ['ControlPlayback','2000|3|1|8|2']; }
-#		else { goto MENU; }
 	} elsif ($d eq '9') { 
 		$ll->del_all($ll->curr_msg->{deleted}); 
 		if ($ll->curr_msg->{deleted}) {
@@ -83,7 +83,6 @@ while ((my $ascii = &play($ll->curr_msg,$callback_app)) >= 0) {
 		goto MENU; 
 	} else { goto MENU; }
 }
-END { $ll->clean_up_msgs; }
 
 sub play {
 	my ($msg,$cb) = @_;
