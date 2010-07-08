@@ -383,7 +383,7 @@ sub del_all {
 sub clean_up_msgs {
 	my $ll = shift;
 	foreach (@{$ll->{msgs}->{list}}) {
-		if ($_->{deleted}) {
+		if ($_->{deleted} and $_->{msg} ne '') {
 			my $mname = $_->{msg}.".".$ll->{rectype};
 			my $dname = $_->{msg}.".deleted.".$ll->{rectype};
 			unlink $dname if -f $dname;
