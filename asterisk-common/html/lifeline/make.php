@@ -356,6 +356,8 @@ HTML;
 		} else {
 			$loginlink = "<span class=\"inactivelink\">log in</span>";
 		}
+		$squashedphone = preg_replace('#.*?((?:\d\D*){10}).*#',"$1",$vend['phone']);
+		$squashedphone = preg_replace('#\D#','',$squashedphone);
 		print <<<HTML
 <tr>
 <td>$vid</td>
@@ -390,7 +392,7 @@ $del_vendor
 </td>
 </tr>
 <tr bgcolor=lightgray><td colspan=6>
-<b>Contact:</b> {$vend['phone']} &nbsp;&nbsp; {$vend['contact']} {$vend['email']} &nbsp;&nbsp; {$vend['notes']}
+<b>Contact:</b> <a href="sip:1$squashedphone@192.168.1.44">{$vend['phone']}</a> &nbsp;&nbsp; {$vend['contact']} {$vend['email']} &nbsp;&nbsp; {$vend['notes']}
 </td></tr>
 HTML;
 	}
