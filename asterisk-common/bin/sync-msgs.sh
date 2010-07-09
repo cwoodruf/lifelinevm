@@ -16,6 +16,8 @@ echo sync-msgs: FROM remote backup TO main using ssh
 
 echo sync-msgs: CLEANUP
 /usr/local/asterisk/bin/cleanup.pl -v
+echo sync-msgs: syncronize the calls table with any new callerid data etc
+/usr/local/asterisk/bin/sync_calls.pl -v
 
 echo sync-msgs: FROM main TO local backup with delete
 /usr/bin/rsync -rcvt --delete --times $msgdir asterisk@192.168.1.44:$msgdir

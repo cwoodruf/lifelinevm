@@ -7,13 +7,31 @@ our @ISA = qw/Exporter/;
 
 our @EXPORT = qw/$lldatafile $llmsgdir $ldb $lleol ll_deleted_boxes ll_revert_unused/;
  
-our $dsn = "DBI:mysql:database=lifeline;host=localhost";
+our $dsn = &mkdsn("localhost");
 
 our $username;
 our $password;
 do "Lifeline/database";
-our $ldb = DBI->connect($dsn,$username,$password) or die DBI::errstr;
+our $ldb = &mkldb($dsn,$username,$password);
 END { $ldb->disconnect if defined $ldb; }
+
+our @foreign = (
+	{ host => '192.168.1.44', port => 3307, user => 'llmaster', password => 'ck*!gitCdia82?' },
+	{ host => 'aifl.ath.cx', port => 3308, user => 'llmaster', password => 'ck*!gitCdia82?' },
+);
+
+sub mkdsn {
+	my ($host,$port) = @_;
+	my $dsn = "DBI:mysql:database=lifeline;host=$host";
+	$dsn .= ";port=$port" if $port =~ /^\d+$/;
+	$dsn;
+}
+
+sub mkldb {
+	my ($dsn,$username,$password) = @_;
+	my $ldb = DBI->connect($dsn,$username,$password) or die DBI::errstr;
+	$ldb;
+}
 
 our $lldatafile = "/usr/local/asterisk/Lifeline/users.csv";
 our $llmsgdir = "/usr/local/asterisk/lifeline-msgs";
