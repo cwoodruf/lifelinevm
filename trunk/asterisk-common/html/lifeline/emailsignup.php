@@ -23,7 +23,7 @@ if (preg_match('#^\w{32}$#', $id)) {
 	}
 } else {
 
-	$ldata = login_response($_SERVER['PHP_SELF'],'ll_superuser');
+	$ldata = login_response('redirect.php',$_SERVER['PHP_SELF'],'ll_superuser');
 	if (!empty($ldata['vid'])) die("no direct access {$ldata['vid']}!");
 	$vend = ll_vendor(0);
 	$vend['vendor'] = 'admin';
@@ -142,7 +142,7 @@ HTML;
 
 function sendinvites_form() {
 	$perms = htmlentities($_REQUEST['perms']);
-	if (empty($perms)) $perms = 'boxes:invoices';
+	if (empty($perms)) $perms = 'edit:boxes:invoices:logins';
 
 	$emails = htmlentities($_REQUEST['emails']);
 	$vendors = ll_vendors(0);
