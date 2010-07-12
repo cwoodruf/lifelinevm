@@ -28,9 +28,13 @@ function ll_connect () {
 	global $lldb;
 	global $ll_login;
 	global $ll_password;
+	global $ll_host;
+	global $ll_dbname;
 	if (isset($lldb)) return $lldb;
+	if (empty($ll_host)) $ll_host = 'localhost';
+	if (empty($ll_dbname)) $ll_dbname = 'lifeline';
 	try {
-		$lldb = new PDO('mysql:dbname=lifeline;host=localhost',$ll_login,$ll_password);
+		$lldb = new PDO("mysql:dbname=$ll_dbname;host=$ll_host",$ll_login,$ll_password);
 	} catch (Exception $e) {
 		die("ll_connect failed: ".$e->getMessage());
 	}
@@ -264,6 +268,7 @@ function ll_find_boxes($vend,$search) {
 function ll_check_months($vend,$months) {
 	if (!preg_match('#^(?:-|)\d+$#',$months) or $months == 0 or abs($months) > 24) 
 		die("Invalid months value $months!");
+	if (!is_array($vend)) $vend = ll_vendor($vend);
 	if ($vend['months'] < $months) 
 		die("Vendor ".$vend['name']." only has ".$vend['months']." month(s) available!");
 	return $months;
@@ -429,13 +434,14 @@ function ll_showcode($seccode) {
 function ll_add_time($vend,$box,$months) {
 	global $ldata;
 	global $pt_cutoff;
+	if (!is_array($vend)) $vend = ll_vendor($vend);
 
 	if (!preg_match('#^\d+$#',$vend['vid'])) die("ll_add_time: bad vendor id!");
 	if (!preg_match('#^\d+$#',$box)) die("ll_add_time: bad box id!");
 	if (!preg_match('#^-?\d\d?$#',$months)) die("invalid months value!");
 
 	ll_check_box($box);
-	ll_check_months($vend['vid'],$months);
+	ll_check_months($vend,$months);
 	$bdata = ll_load_from_table('boxes','box',$box,false);
 
 	if ($bdata['status'] === 'deleted') $udata['status'] = ''; 
@@ -479,6 +485,54 @@ function ll_add_time($vend,$box,$months) {
 		if (ll_save_to_table('update','vendors',$vdata,'vid',$vend['vid'])) 
 			return $udata['paidto'];
 	}
+}
+/*
+mysql> desc payments;
++--------+-------------+------+-----+---------+-------+
+| Field  | Type        | Null | Key | Default | Extra |
++--------+-------------+------+-----+---------+-------+
+| box    | varchar(32) | NO   | PRI |         |       | 
+| vid    | int(11)     | NO   | PRI | 0       |       | 
+| paidon | datetime    | NO   | PRI | NULL    |       | 
+| amount | float       | YES  |     | 0       |       | 
+| hst    | float       | YES  |     | 0       |       | 
+| months | int(11)     | YES  |     | 0       |       | 
+| login  | varchar(32) | NO   | PRI |         |       | 
+| notes  | text        | YES  |     | NULL    |       | 
++--------+-------------+------+-----+---------+-------+
+*/
+function ll_update_payment($box,$vid,$login,$months,$payment,$howmany=1) {
+	if (!is_array($payment)) return;
+	if (!preg_match('#^\d+$#',$box)) return;
+
+	$lldb = ll_connect();
+	if (!preg_match('#^\d+$#',$months)) $months = 0;
+	if (!preg_match('#^\d+$#',$howmany) or $howmany <= 0) $howmany = 1;
+
+	$paydata['box'] = $box;
+
+	$paydata['months'] = $months;
+
+	$paydata['paidon'] = trim($payment['paidon']);
+	if (preg_match('#^\d{4}-\d{2}-\d{2}(?: \d{2}:\d{2}:\d{2}| \d{2}:\d{2}|)$#', $paydata['paidon'])) 
+		$paydata['paidon'] = $payment['paidon'];
+	else $paydata['paidon'] = date('Y-m-d H:i:s');
+
+	$paydata['notes'] = $payment['notes'];
+	$paydata['login'] = $login;
+	$paydata['vid'] = (int) $vid;
+
+	$paydata['amount'] = sprintf('%.2f', $payment['amount']/$howmany);
+	$tax = get_salestax($paydata['paidon']);
+	$paydata['hst'] = sprintf('%.2f',$paydata['amount'] - $paydata['amount'] / (1 + $tax['rate']));
+	
+	if (ll_save_to_table('replace','payments',$paydata)) 
+		return $paydata['amount'];	
+}
+
+function ll_get_payments($box,$vid) {
+	if (ll_check_box($box) and preg_match('#^\d+$#', $vid)) 
+		return ll_load_from_table('payments',array('box' => $box, 'vid' => $vid));
 }
 
 function ll_update_personal($vend,$box,$personal) {
@@ -713,12 +767,18 @@ function ll_save_to_table($action,$table,$data,$name='',&$key='',$literal=false)
 	return true;
 }
 
-function ll_load_from_table($table,$name,$key,$return_all=true,$query_end='') {
+function ll_load_from_table($table,$name,$key='',$return_all=true,$query_end='') {
         $lldb = ll_connect();
 	static $seen;
 	if ($name == '' and $key == '') 
 		$query = "select * from $table $query_end";
-	else $query = "select * from $table where $name='$key' $query_end";
+	else if (is_array($name)) {
+		foreach ($name as $field => $value) {
+			$whats[] = "$field=".$lldb->quote($value);
+		}
+		$what = implode(' and ', $whats);
+		$query = "select * from $table where $what $query_end";
+	} else $query = "select * from $table where $name='$key' $query_end";
 	if ($seen[$query]) return $seen[$query];
 
 	$st = $lldb->query($query);
