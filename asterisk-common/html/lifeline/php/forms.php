@@ -740,9 +740,7 @@ function view_boxes_form($data,$boxes=null) {
 	$url = "<a href=\"".$data['app']."?box=";
 	$numboxes = count($boxes);
 	if ($numboxes <> 1) $s = 'es';
-	$search_form = search_form($data);
 	$html = <<<HTML
-$search_form
 $numboxes box$s
 $table
 <tr><th><nobr>Box / Paid to</nobr></th><th>Tools</th></tr>
