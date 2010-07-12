@@ -2,6 +2,8 @@
 session_start();
 require_once('php/globals.php'); 
 require_once("$lib/mysql.php"); 
+if (isset($_SESSION['login']['login'])) $printedby = md5($_SESSION['login']['login']);
+
 if (!ll_has_access($_SESSION['login']['vid'],ll_box($_REQUEST['box']))) {
 	unset($_REQUEST);
 }
@@ -32,16 +34,18 @@ i {
 <b>Security code:</b> 
 <?php print $_REQUEST['seccode']  ? htmlentities(ll_showcode($_REQUEST['seccode'])) : '_______'; ?>
 &nbsp;&nbsp;
-Payment: $_______________
+Payment: 
+$<?php print $_REQUEST['amount']  ? htmlentities($_REQUEST['amount']) : '_______'; ?>
 </nobr>
 <p>
 <div style="padding-top: 30px;">
 Received by: __________________________________________
 </div>
-<i>
+<div style="font-size: small; font-style: italic">
 This is your receipt and proof of purchase.<br>
 Please keep this receipt in case of problems with your account.<br>
-</i>
+</div>
+<div style="font-size: x-small; float: right;"><?php print $printedby; ?></div>
 
 <h4>Using voicemail</h4>
 <h4>Leaving messages</h4>
@@ -69,8 +73,8 @@ Please keep this receipt in case of problems with your account.<br>
 </ol>
 
 <h4 style="page-break-before: always;">Listen to messages</h4>
-<i>When you press 1 from the main menu you will hear your latest message.
-Followed by the listen to messages menu:</i>
+<i>When you press 1 from the main menu you will hear the number of messages you have 
+and your latest message followed by the listen to messages menu:</i>
 <ul>
 <li>Press 1 to listen to the next message
 <li>Press 2 to listen to the previous message
