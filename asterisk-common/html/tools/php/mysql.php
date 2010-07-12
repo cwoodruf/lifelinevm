@@ -199,6 +199,12 @@ function ll_box($box) {
 	if (ll_check_box($box,($die=false))) return ll_load_from_table('boxes','box',$box,false);
 }
 
+function ll_calls($box,$limit=null) {
+	if (preg_match('#^\d+$#',$limit)) $limitreq = "limit $limit";
+	if (ll_check_box($box,($die=false))) 
+			return ll_load_from_table('calls','box',$box,true,"order by call_time desc $limitreq ");
+}
+
 function ll_boxes($vend,$showkids=false,$status='not_deleted',$order = "order by paidto desc") {
 	if ($status == 'deleted') $status = " and boxes.status in ('deleted')";
 	else if ($status == 'not_deleted') $status = " and boxes.status not in ('deleted')";

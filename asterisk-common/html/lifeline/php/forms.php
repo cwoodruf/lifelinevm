@@ -408,6 +408,40 @@ $table
 HTML;
 }
 
+function box_activity($data) {
+	global $ldata;
+	$box = $_REQUEST['box'];
+	if (!preg_match('#^\d+$#',$box)) die("showactivity: invalid box!");
+	if (ll_has_access($ldata,$box)) die("showactivity: you do not have access to box $box!");
+	$top = form_top($data); 
+	$end = form_end($data);
+	$callhtml = callhtml($box);
+	return <<<HTML
+$top
+$callhtml
+$end
+HTML;
+}
+
+function callhtml($box,$limit=500) {
+	$calls = ll_calls($box,$limit);
+	$box = htmlentities($box);
+	$callhtml = <<<HTML
+<h4>Last $limit login attempts and messages for box $box</h4>
+<table cellpadding=5 cellspacing=0 border=1>
+
+HTML;
+	foreach ($calls as $call) {
+		if ($call['action'] == 'll-flagmsg.pl') $calltype = 'message left';
+		else if ($call['action'] == 'll-login.pl') $calltype = "login: status {$call['status']}";
+		else $calltype = $call['action'];
+		$i++;
+		$callhtml .= "<tr><td>$i</td><td>{$call['call_time']}</td><td>$calltype &nbsp;</td></tr>\n";
+	}
+	$callhtml .= "</table>\n";
+	return $callhtml;
+}
+
 function delete_months($data) {
 	global $_REQUEST;
 	return update_box_time($data,(-1 * $_REQUEST['months']));
@@ -613,15 +647,18 @@ HTML;
 		$edit = "$url$box&form=edit\">edit</a>";
 		$v = "<input type=hidden name=vendor value=\"".$row['vendor']."\">";
 		$html .= <<<HTML
-<tr><td><nobr>$box &nbsp;&nbsp; $paidto $v</nobr></td>
+<tr><td><nobr><b>$box</b> &nbsp;&nbsp; $paidto $v</nobr></td>
 <td>
 <nobr>
-<b>name:</b> {$row['name']} &nbsp; <b>email:</b> {$row['email']} &nbsp; <b>notes:</b> {$row['notes']} 
+<b>vendor:</b> {$row['vid']} &nbsp;
+<b>name:</b> {$row['name']} &nbsp; 
+<b>email:</b> {$row['email']} &nbsp; 
+<b>notes:</b> {$row['notes']} 
 </nobr>
 </td>
 </tr>
 <tr bgcolor=lightgray>
-<td>$edit</td>
+<td><a href="admin.php?form=Call+Activity&box=$box">activity</a> / $edit</td>
 <td>
 <nobr>
 $add $div $sub $div $del $div $chsc $div $instr
