@@ -48,10 +48,12 @@ HTML;
 		$logout .= "</nobr>\n";
 	}
 	$head = head();
+	$search_form = search_form($data);
 	return <<<HTML
 $head
 <center>
 <h4>Vendor: $vendor <span style="font-weight: normal;">$goback &nbsp;&nbsp; $logout</span></h4>
+$search_form
 <h3>$form</h3>
 $status<p>
 <form action="{$_SERVER['PHP_SELF']}" name="topform" id="topform" method="$method" $formjs>
@@ -88,7 +90,6 @@ function main_form($data) {
 	global $min_purchase;
 	$top = form_top($data,false); 
 	$end = form_end($data);
-	$search_form = search_form($data);
 	if (preg_match('#invoices#',$data['perms'])) {
 		$vend = ll_vendor($ldata['vid']);
 		$credit = credit_left($ldata['vid']);
@@ -130,7 +131,6 @@ HTML;
 		$users = '<input type=submit name=action value="Manage account and users"> <p>';
 	return <<<HTML
 $top
-$search_form
 <input type=submit name=form value="Create a new voicemail box"> <p>
 <input type=submit name=form value="Add time to an existing box"> <p>
 <input type=submit name=form value="View your voicemail boxes"> <p>
