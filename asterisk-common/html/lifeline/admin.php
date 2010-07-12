@@ -70,6 +70,7 @@ if ($ldata['perms'] == 'edit') {
 		'find_boxes' => true,
 		'Search' => true,
 		'showcode' => true,
+		'Call Activity' => true,
 	);
 	if (!$allowed_forms[$form]) $form = 'find_boxes';
 }
