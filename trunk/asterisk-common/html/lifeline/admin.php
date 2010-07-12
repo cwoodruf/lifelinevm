@@ -116,6 +116,8 @@ if ($_REQUEST['listen']) {
 } else {
 	if ($form === 'Create a new voicemail box') {
 		print create_new_box_form($ldata);
+	} else if ($form === 'Call Activity') {
+		print box_activity($ldata);
 	} else if ($form === 'showcode') {
 		print showcode($ldata, sprintf('%04d',$_REQUEST['box']), $_REQUEST['seccode'],'html');
 	} else if ($form === 'View transaction' or $form === 'transaction') {

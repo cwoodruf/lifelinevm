@@ -222,9 +222,9 @@ sub save_seccode {
 # am trying to use this sparingly mainly for bad login attempts and messages so we can get the caller id later
 sub log_calls {
 	my $ll = shift;
-	my $action = shift;
-	my $status = shift;
-	my $callerid = shift;
+	my $action = shift || '';
+	my $status = shift || '';
+	my $callerid = shift || '';
 	my $ins = $ll->{db}->prepare(
 		"insert into calls (box,vid,action,status,message,callerid,call_time) values (?,?,?,?,?,?,now())"
 	);

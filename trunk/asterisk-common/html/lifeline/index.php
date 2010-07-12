@@ -11,6 +11,14 @@ if (!ll_has_access($_SESSION['login']['vid'],ll_box($_REQUEST['box']))) {
 <title>Proof of Payment</title>
 <link rel=stylesheet type=text/css href=css/base.css>
 <link rel=stylesheet type=text/css href=css/admin.css>
+<style type=text/css>
+li {
+	padding-bottom: 10px;
+}
+i {
+	font-size: small;
+}
+</style>
 </head>
 <body>
 <center>
@@ -30,7 +38,7 @@ Payment: $_______________
 <div style="padding-top: 30px;">
 Received by: __________________________________________
 </div>
-<i style="font-size: small;">
+<i>
 This is your receipt and proof of purchase.<br>
 Please keep this receipt in case of problems with your account.<br>
 </i>
@@ -38,22 +46,47 @@ Please keep this receipt in case of problems with your account.<br>
 <h4>Using voicemail</h4>
 <h4>Leaving messages</h4>
 <ol>
-<li>Dial <b>604 248-5760</b><br> 
+<li>Dial <b>604 248-4930</b><br> 
 <li>Enter the box number to leave a message
 <li>You can skip the greeting by pressing #
 <li>Leave a message
 <li><b>To leave another message</b> press a key and wait for the prompt
 </ol>
-<h4>Listening to messages</h4>
-<h4>By phone</h4>
+<h4>Access your box</h4>
 <ol>
 <li>Dial in as above
 <li>Enter the box number
-<li>Enter the security code 
+<li>Enter the security code to hear the main menu:
+<ul>
 <li>Press 1 from the main menu to listen to messages
-<li>Listen to the prompts - <b>for date, time and caller id press #</b>
-<li>Press * any time to go back to the main menu
+<li>Press 2 from the main menu to listen to your greeting
+<li>Press 3 from the main menu to record your greeting
+<li>Press 4 from the main menu to get your subscription date
+<li>Press # from the main menu to change your security code
+<li>Press * from the main menu to go back to the start<br>
+<i>You can go back to the start up to 10 times in one call.</i>
+</ul>
 </ol>
+
+<h4 style="page-break-before: always;">Listen to messages</h4>
+<i>When you press 1 from the main menu you will hear your latest message.
+Followed by the listen to messages menu:</i>
+<ul>
+<li>Press 1 to listen to the next message
+<li>Press 2 to listen to the previous message
+<li>Press 3 to repeat the current message 
+<li>Press 4 to listen to the newest message
+<li>Press 5 to listen to the oldest message
+<li>To delete or restore a message press 7
+<li>To delete or restore all messages press 9<br>
+<i>
+Messages will be deleted only when you hang up or go back to the main menu. 
+In many cases we can recover accidentally deleted messages.</i>
+<li>Press # to hear the date, time and phone number
+<li>Press * any time to go back to the main menu<br>
+<i>
+Any messages you marked for deletion will be deleted at this point</i>
+</ul>
 </td></tr>
 </table>
 </body>
