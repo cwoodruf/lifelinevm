@@ -18,6 +18,14 @@ function login_form ($redirecturl,$app,$callback) {
 <style type=text/css>
 * {
 	font-family: arial, verdana, sans-serif;
+	color: brown;
+}
+a {
+	color: green;
+}
+input {
+	color: black;
+	font-size: 12pt;
 }
 table {
 	background: white;
