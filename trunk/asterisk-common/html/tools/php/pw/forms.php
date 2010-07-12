@@ -13,9 +13,23 @@ function login_form ($redirecturl,$app,$callback) {
 	$login = htmlentities($vars['login']);
 	return <<<HTML
 <html>
-<head><title>Login</title></head>
-<body>
+<head>
+<title>Login</title>
+<style type=text/css>
+* {
+	font-family: arial, verdana, sans-serif;
+}
+table {
+	background: white;
+	width: 500px;
+	border: 1px black solid;
+}
+</style>
+</head>
+<body bgcolor=lightyellow>
+<center>
 <h3>{$_SERVER['SERVER_NAME']} log in</h3>
+<div>
 <form name=form_login action="$redirecturl" method=post>
 <input type=hidden name=app value="$app">
 <input type=hidden name=callback value="$callback">
@@ -30,6 +44,7 @@ $hidden
     <td align=right><input type=submit name=action value="Log In"></td></tr>
 </table>
 </form>
+</div>
 <span style="font-size: small">
 Voice Mail $uptime.
 <script>
@@ -99,6 +114,7 @@ document.write('a');
 document.write(gt);
 </script>
 </span>
+</center>
 </body>
 </html>
 HTML;
