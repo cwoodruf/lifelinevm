@@ -53,6 +53,7 @@ function ll_vendor($vid,$refresh=false) {
 	global $vend;
 	if (!preg_match('#^\d+$#',$vid)) return;
 	if (isset($vend) and $vend['vid'] === $vid and !$refresh) return $vend;
+if ($refresh) print "refresh vendor data<br>\n";
 	$vend = ll_load_from_table('vendors','vid',$vid,false);
 	if ($vend === false) return false;
 	$vend['unpaid_months'] = ll_get_unpaid_months($vid);
@@ -256,8 +257,8 @@ function ll_find_boxes($vend,$search) {
 		$where .= "1=1";
 	} else {
 		foreach (array('box', 'name', 'email', 'paidto', 'notes', 'status') as $field) {
-			$value = $lldb->quote('%'.$search.'%');
-			$wheres[] = "$field like ($value)";
+			$value = $lldb->quote($search);
+			$wheres[] = "$field regexp ($value)";
 		}
 		$where .= implode(' or ',$wheres);
 	}
@@ -266,8 +267,10 @@ function ll_find_boxes($vend,$search) {
 }
 
 function ll_check_months($vend,$months) {
-	if (!preg_match('#^(?:-|)\d+$#',$months) or $months == 0 or abs($months) > 24) 
+	if (!preg_match('#^(?:-|)\d+$#',$months))
 		die("Invalid months value $months!");
+	if (is_numeric(MAXMONTHS) and abs($months) > MAXMONTHS) 
+		die("Months value $months exceeds maximum ".MAXMONTHS."!");
 	if (!is_array($vend)) $vend = ll_vendor($vend);
 	if ($vend['months'] < $months) 
 		die("Vendor ".$vend['name']." only has ".$vend['months']." month(s) available!");
@@ -445,6 +448,13 @@ function ll_add_time($vend,$box,$months) {
 	$bdata = ll_load_from_table('boxes','box',$box,false);
 
 	if ($bdata['status'] === 'deleted') $udata['status'] = ''; 
+	# if the box has never been used then there will be months in the status
+	# grab these and add them to whatever we want to add
+	if (preg_match('#add (\d+) months#', $bdata['status'], $m)) {
+		$bdata['status'] = '';
+		$months += $m[1]; 
+	}
+
 	$udata['login'] = $ldata['login'];
 
 	if ($bdata['vid'] !== $vend['vid']) 
@@ -452,15 +462,7 @@ function ll_add_time($vend,$box,$months) {
 
 	# if the box has no paidto date ...
 	if ($bdata['paidto'] == 0 and preg_match('#add (\d+) month#', $bdata['status'],$m)) {
-		# ... revert the status ...
-		$udata['status'] = 'deleted';
-		if (ll_save_to_table('update','boxes',$udata,'box',$box)) {
-			# ... and add the time back
-			$vdata['months'] = $vend['months'] + $m[1];
-			if (ll_save_to_table('update','vendors',$vdata,'vid',$vend['vid'])) 
-				return $udata['paidto'];
-		}
-		die("ll_add_time: error saving vendor and box data!");
+		$bdata['paidto'] = date('Y-m-d');
 	}
 
 	# if you are subtracting time make sure box has enough time to subtract from
@@ -561,7 +563,13 @@ function ll_delete_box($vend,$box) {
 	if ($bdata['vid'] !== $vend['vid']) 
 		die("Box $box does not belong to vendor ".$vend['vendor']."! Please contact us.");
 	$lldb = ll_connect();
+
 	$months = ll_months_left($bdata['paidto']);
+	# if the box has never been used add on those as well
+	if (preg_match('#add (\d+) months#', $bdata['status'], $m))
+		$months += $m[1];
+
+	# ddata is the container for updating the box information bdata is the original
 	$ddata['status'] = 'deleted';
 	$ddata['paidto'] = null;
 	if (ll_save_to_table('update','boxes',$ddata,'box',$box)) {
