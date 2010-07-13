@@ -35,7 +35,7 @@ i {
 <?php print $_REQUEST['seccode']  ? htmlentities(ll_showcode($_REQUEST['seccode'])) : '_______'; ?>
 &nbsp;&nbsp;
 Payment: 
-$<?php print $_REQUEST['amount']  ? htmlentities($_REQUEST['amount']) : '_______'; ?>
+$<?php print $_REQUEST['amount']  ? sprintf('%.2f',$_REQUEST['amount']) : '_______'; ?>
 </nobr>
 <p>
 <div style="padding-top: 30px;">
