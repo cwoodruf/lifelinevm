@@ -230,12 +230,6 @@ function payment_form($box) {
 	$amount = $payment['amount'];
 	if (!is_numeric($amount) or $amount < 0) $amount = sprintf('%.2f', 0);
 
-	$tax = get_salestax(date('Y-m-d'));
-	$hst = sprintf('%.2f', (float) $amount - (float) $amount/(1.0 + (float) $tax['rate']));
-
-	$months = $payment['months'];
-	if (!preg_match('#^\d+$#',$months)) $months = 0;
-
 	$notes = htmlentities($payment['notes']);
 
 	if ($box) $forbox = "for $box";
@@ -393,6 +387,7 @@ function new_box_instructions($data,$box,$seccode,$amount,$personal) {
 	return <<<HTML
 $top
 $table
+<tr><td><b>Box:</b></td><td>$box</td></tr>
 <tr><td><b>Status:</b></td><td>{$bdata['status']} $paidto</td></tr>
 <tr><td><b>Name:</b></td><td>{$personal['name']}</td></tr>
 <tr><td><b>Email:</b></td><td>{$personal['email']}</td></tr>
@@ -453,7 +448,7 @@ HTML;
 	return <<<HTML
 $top
 <input type=hidden name=trans value="$trans">
-<div style="width: 500px; background: white; border: 1px black solid; padding: 3px;">
+<div style="width: 540px; background: white; border: 1px black solid; padding: 3px;">
 Box: <input $is_hidden name=box size=7 value="$box"><b>$box</b> $status &nbsp;&nbsp;
 $seccode_input
 $month_input
@@ -580,8 +575,8 @@ HTML;
 
 function delete_box($data) {
 	global $_REQUEST;
-	$vend = ll_vendor($data['vid']);
 	$box = $_REQUEST['box'];
+	$vend = ll_vendor($data['vid'],true);
 	ll_delete_box($vend,$box);
 	cleanup_files($box);
 	$vend = ll_vendor($data['vid'],true);
@@ -655,16 +650,22 @@ function update_box_time($data,$months='') {
 	ll_delete_trans($vend,$_REQUEST['trans']);
 	if ($months === '') $months = $_REQUEST['months'];
 	$box = $_REQUEST['box'];
-	$paidto = ll_add_time($vend,$box,$months);
 	$vend = ll_vendor($data['vid'],true);
 	$top = form_top($data); 
 	$end = form_end($data);
 	$bdata = ll_box($box);
 	$amount = ll_update_payment($box,$data['vid'],$ldata['login'],$months,$_REQUEST['payment']);
+
+	if ($months != 0) {
+		$paidto = ll_add_time($vend,$box,$months);
+	} else {
+		$paidto = $bdata['paidto'].' '.$bdata['status'];
+	}
+		
 	return <<<HTML
 $top
 $table
-<tr><td><b>Box:</b></td><td>$box</td></tr>
+<tr><td><b>Box:</b></td><td><a href="admin.php?form=Search&search=$box">$box</a></td></tr>
 <tr><td><b>Paid to:</b></td><td>$paidto</td></tr>
 <tr><td colspan=2 align=right>
 <a href="index.php?box=$box&seccode={$bdata['seccode']}&amount=$amount" target=_blank>receipt / instructions</a>
@@ -686,7 +687,7 @@ function update_personal($data) {
 	return <<<HTML
 $top
 $table
-<tr><td><b>Box:</b></td><td>$box</td></tr>
+<tr><td><b>Box:</b></td><td><a href="admin.php?form=Search&search=$box">$box</a></td></tr>
 <tr><td><b>Name:</b></td><td>{$bdata['name']}</td></tr>
 <tr><td><b>Email:</b></td><td>{$bdata['email']}</td></tr>
 <tr><td><b>Notes:</b></td><td>{$bdata['notes']}</td></tr>
@@ -723,6 +724,7 @@ function mk_sel($name,$items,$multiple=null) {
 
 function search_form($data) {
 	$search = htmlentities($_REQUEST['search']);
+	if (!$search and $_REQUEST['box']) $search = htmlentities($_REQUEST['box']);
 	return <<<HTML
 <form action=admin.php method=get>
 <input name="search" value="$search">
@@ -730,7 +732,7 @@ function search_form($data) {
 <input type=submit name=form value="Search">
 <br>
 Boxes: &nbsp;
-<a href="admin.php?form=Search&search=add%25months&vid={$data['vid']}">Show unused</a> &nbsp;&nbsp;
+<a href="admin.php?form=Search&search=add [0-9]* months&vid={$data['vid']}">Show unused</a> &nbsp;&nbsp;
 <a href="admin.php?form=View your voicemail boxes&vid={$data['vid']}">Show all</a>
 </form>
 HTML;
@@ -771,15 +773,22 @@ HTML;
 		$chsc = "$shsc / $url$box&form=chsc\">change security code</a>";
 		$edit = "$url$box&form=edit\">edit</a>";
 		$v = "<input type=hidden name=vendor value=\"".$row['vendor']."\">";
+
+		if (strlen($row['name']) > 30) $namebr = '<br>';
+		else $namebr = '';
+		if (strlen($row['notes']) > 20) $notesbr = '<br>';
+		else $notesbr = '';
+
 		$html .= <<<HTML
-<tr><td><nobr><b>$box</b> &nbsp;&nbsp; $paidto $v</nobr></td>
+<tr valign=top>
+<td><nobr><b>$box</b> &nbsp;&nbsp; $paidto $v</nobr></td>
 <td>
-<nobr>
 <b>vendor:</b> {$row['vid']} &nbsp;
 <b>name:</b> {$row['name']} &nbsp; 
+$namebr
 <b>email:</b> {$row['email']} &nbsp; 
+$notesbr
 <b>notes:</b> {$row['notes']} 
-</nobr>
 </td>
 </tr>
 <tr bgcolor=lightgray>

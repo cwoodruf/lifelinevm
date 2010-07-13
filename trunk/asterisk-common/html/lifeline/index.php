@@ -30,12 +30,14 @@ i {
 <h4>Date: <?php print date('Y-m-d'); ?></h4>
 <p>
 <nobr>
-<b>Box:</b> <?php print $_REQUEST['box']  ? htmlentities($_REQUEST['box']) : '_______'; ?> &nbsp;&nbsp;
+<b>Your phone number:</b> <?php print $phone; ?> &nbsp;
+<b>Ext:</b> <?php print $_REQUEST['box']  ? ($box=htmlentities($_REQUEST['box'])) : '_______'; ?> &nbsp;&nbsp;
 <b>Security code:</b> 
-<?php print $_REQUEST['seccode']  ? htmlentities(ll_showcode($_REQUEST['seccode'])) : '_______'; ?>
-&nbsp;&nbsp;
+<?php print $_REQUEST['seccode']  ? ($sc=htmlentities(ll_showcode($_REQUEST['seccode']))) : '_______'; ?>
+<?php if ($_REQUEST['amount']) : ?>
+<p>
 Payment: 
-$<?php print $_REQUEST['amount']  ? sprintf('%.2f',$_REQUEST['amount']) : '_______'; ?>
+$<?php print sprintf('%.2f',$_REQUEST['amount']) ?>
 </nobr>
 <p>
 <div style="padding-top: 30px;">
@@ -46,21 +48,22 @@ This is your receipt and proof of purchase.<br>
 Please keep this receipt in case of problems with your account.<br>
 </div>
 <div style="font-size: x-small; float: right;"><?php print $printedby; ?></div>
+<?php endif; ?>
 
 <h4>Using voicemail</h4>
 <h4>Leaving messages</h4>
 <ol>
-<li>Dial <b>604 248-4930</b><br> 
-<li>Enter the box number to leave a message
+<li>Dial <b><?php print $phone; ?></b>
+<li>Enter the box number <b><?php print $box; ?></b> to leave a message
 <li>You can skip the greeting by pressing #
 <li>Leave a message
 <li><b>To leave another message</b> press a key and wait for the prompt
 </ol>
-<h4>Access your box</h4>
+<h4>Accessing your box for the first time</h4>
 <ol>
-<li>Dial in as above
-<li>Enter the box number
-<li>Enter the security code to hear the main menu:
+<li>Dial <b><?php print $phone; ?></b>
+<li>Enter the box number <b><?php print $box; ?></b>
+<li>Enter the security code <b><?php print $sc; ?></b> to hear the main menu:
 <ul>
 <li>Press 1 from the main menu to listen to messages
 <li>Press 2 from the main menu to listen to your greeting
@@ -73,7 +76,7 @@ Please keep this receipt in case of problems with your account.<br>
 </ol>
 
 <h4 style="page-break-before: always;">Listen to messages</h4>
-<i>When you press 1 from the main menu you will hear the number of messages you have 
+<i>When you press 1 from the main menu you will hear the number of messages you have <br>
 and your latest message followed by the listen to messages menu:</i>
 <ul>
 <li>Press 1 to listen to the next message
@@ -84,7 +87,7 @@ and your latest message followed by the listen to messages menu:</i>
 <li>To delete or restore a message press 7
 <li>To delete or restore all messages press 9<br>
 <i>
-Messages will be deleted only when you hang up or go back to the main menu. 
+Messages will be deleted only when you hang up or go back to the main menu. <br>
 In many cases we can recover accidentally deleted messages.</i>
 <li>Press # to hear the date, time and phone number
 <li>Press * any time to go back to the main menu<br>

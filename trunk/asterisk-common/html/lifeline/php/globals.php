@@ -2,6 +2,7 @@
 define("MAXBOXES",20); # normally would be 20
 define("MAXMONTHS",24); # normally would be 12
 # used in the ll_new_box function
+$phone = '604 248-4930'; # phone number for instructions
 function get_box_range() { 
 	# these ranges avoid new boxes from the DERA vm service
 	# we do this so both can be used at the same time without collisions
