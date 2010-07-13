@@ -88,9 +88,16 @@ sub init {
 	# this is for remote backup servers that are not using localhost
 	unless ($ll->{db} = DBI->connect($dsn,$db_user,$db_secret) and $db_host ne 'localhost') {
 		warn "$db_host $db_port: ".DBI->errstr;
-		my $dsn = "$db_engine:database=$db_name;host=localhost";
-		$ll->{db} = DBI->connect($dsn,$db_user,$db_secret) 
-			or die "localhost: ".DBI->errstr;
+		my $db_alt_host = $ll->get('db_alt_host');
+		if (!defined $db_alt_host) {
+			die "no alternate db host set up!";
+		}
+		my $db_alt_port = $ll->get('db_alt_port') || $db_port;
+		my $db_alt_user = $ll->get('db_alt_user') || $db_user;
+		my $db_alt_secret = $ll->get('db_alt_secret') || $db_secret;
+		$dsn = "$db_engine:database=$db_name;host=$db_alt_host;port=$db_alt_port";
+		$ll->{db} = DBI->connect($dsn,$db_alt_user,$db_alt_secret) 
+			or die "$db_alt_host $db_alt_port: ".DBI->errstr;
 	}
 
 	END { $ll->{db}->disconnect if defined $ll->{db} }
