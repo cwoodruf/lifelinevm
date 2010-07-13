@@ -84,7 +84,14 @@ sub init {
 
 	my $dsn = "$db_engine:database=$db_name;host=$db_host;port=$db_port";
 
-	$ll->{db} = DBI->connect($dsn,$db_user,$db_secret) or die DBI->errstr;
+	# if we fail with the given host (which may be external) try localhost instead if possible
+	# this is for remote backup servers that are not using localhost
+	unless ($ll->{db} = DBI->connect($dsn,$db_user,$db_secret) and $db_host ne 'localhost') {
+		warn "$db_host $db_port: ".DBI->errstr;
+		my $dsn = "$db_engine:database=$db_name;host=localhost";
+		$ll->{db} = DBI->connect($dsn,$db_user,$db_secret) 
+			or die "localhost: ".DBI->errstr;
+	}
 
 	END { $ll->{db}->disconnect if defined $ll->{db} }
 
@@ -225,10 +232,11 @@ sub log_calls {
 	my $action = shift || '';
 	my $status = shift || '';
 	my $callerid = shift || '';
+	my $message = $ll->{new_msg} || '';
 	my $ins = $ll->{db}->prepare(
 		"insert into calls (box,vid,action,status,message,callerid,call_time) values (?,?,?,?,?,?,now())"
 	);
-	$ins->execute($ll->{box},$ll->{vid},$action,$status,$ll->{new_msg},$callerid) or die $ins->errstr;
+	$ins->execute($ll->{box},$ll->{vid},$action,$status,$message,$callerid) or die $ins->errstr;
 }
 
 sub log_err {
