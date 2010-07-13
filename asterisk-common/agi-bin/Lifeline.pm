@@ -71,22 +71,21 @@ sub init {
 	my $db_user = $ll->get('db_user');
 	my $db_secret = $ll->get('db_secret');
 	my $db_engine = $ll->get('db_engine');
-	my $db_host = $ll->get('db_host');
+	my $db_host = $ll->get('db_host') || 'localhost';
 	my $db_port = $ll->get('db_port');
-	# required fields
+	# required asterisk variables
 	if ($db_name !~ /^\w+$/ or $db_user eq '' or $db_secret eq '') {
 		die "missing database login information!";
 	}
 	# optional
 	$db_engine = 'DBI:mysql' if $db_engine eq '';
 	$db_host = 'localhost' if $db_host eq '';
-	$db_port = 3306 if $db_port eq '';
-
-	my $dsn = "$db_engine:database=$db_name;host=$db_host;port=$db_port";
+	my $dsn = "$db_engine:database=$db_name;host=$db_host";
+	$dsn .= ";port=$db_port" if $db_port =~ /^\d+$/;
 
 	# if we fail with the given host (which may be external) try localhost instead if possible
 	# this is for remote backup servers that are not using localhost
-	unless ($ll->{db} = DBI->connect($dsn,$db_user,$db_secret) and $db_host ne 'localhost') {
+	unless ($ll->{db} = DBI->connect($dsn,$db_user,$db_secret)) {
 		warn "$db_host $db_port: ".DBI->errstr;
 		my $db_alt_host = $ll->get('db_alt_host');
 		if (!defined $db_alt_host) {
@@ -95,7 +94,8 @@ sub init {
 		my $db_alt_port = $ll->get('db_alt_port') || $db_port;
 		my $db_alt_user = $ll->get('db_alt_user') || $db_user;
 		my $db_alt_secret = $ll->get('db_alt_secret') || $db_secret;
-		$dsn = "$db_engine:database=$db_name;host=$db_alt_host;port=$db_alt_port";
+		$dsn = "$db_engine:database=$db_name;host=$db_alt_host";
+		$dsn .= ";port=$db_alt_port" if $db_alt_port =~ /^\d+$/;
 		$ll->{db} = DBI->connect($dsn,$db_alt_user,$db_alt_secret) 
 			or die "$db_alt_host $db_alt_port: ".DBI->errstr;
 	}

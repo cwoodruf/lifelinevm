@@ -15,7 +15,7 @@ echo start rsync `/bin/date`
 echo start scp `/bin/date`
 # /usr/bin/scp asterisk@lifelinevm.net:/usr/local/asterisk/lifeline*.zip /usr/local/asterisk/
 /usr/bin/scp asterisk@lifelinevm.net:/usr/local/asterisk/lifeline.mysql /usr/local/asterisk/
-echo updating database `/bin/date`
+echo cleanup `/bin/date`
 # now using replication for this
 # /bin/cat /usr/local/asterisk/lifeline.mysql | /usr/bin/mysql -ull -p'85$82$str' -Dlifeline
 /usr/local/asterisk/bin/cleanup.pl -v
