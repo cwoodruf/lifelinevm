@@ -537,14 +537,23 @@ function callhtml($box,$limit=50) {
 	$callhtml = <<<HTML
 <h4>Recent login attempts and messages for box $box</h4>
 <table cellpadding=5 cellspacing=0 border=1>
+<tr><th>#</th><th>Time</th><th>Action</th><th>Caller ID</th></tr>
 
 HTML;
 	foreach ($calls as $call) {
 		if ($call['action'] == 'll-flagmsg.pl') $calltype = 'message left';
 		else if ($call['action'] == 'll-login.pl') $calltype = "login: status {$call['status']}";
 		else $calltype = $call['action'];
+		$callerid = htmlentities($call['callerid']);
 		$i++;
-		$callhtml .= "<tr><td>$i</td><td>{$call['call_time']}</td><td>$calltype &nbsp;</td></tr>\n";
+		$callhtml .= <<<HTML
+<tr>
+<td>$i</td>
+<td>{$call['call_time']}</td>
+<td>$calltype &nbsp;</td>
+<td>$callerid &nbsp;</td>
+</tr>
+HTML;
 	}
 	$callhtml .= "</table>\n";
 	return $callhtml;
@@ -720,6 +729,7 @@ function search_form($data) {
 <input type=hidden name="vid" value="{$data['vid']}">
 <input type=submit name=form value="Search">
 <br>
+Boxes: &nbsp;
 <a href="admin.php?form=Search&search=add%25months&vid={$data['vid']}">Show unused</a> &nbsp;&nbsp;
 <a href="admin.php?form=View your voicemail boxes&vid={$data['vid']}">Show all</a>
 </form>

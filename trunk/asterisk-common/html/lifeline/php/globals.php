@@ -1,6 +1,6 @@
 <?php
-define("MAXBOXES",5); # normally would be 20
-define("MAXMONTHS",2); # normally would be 12
+define("MAXBOXES",20); # normally would be 20
+define("MAXMONTHS",24); # normally would be 12
 # used in the ll_new_box function
 function get_box_range() { 
 	# these ranges avoid new boxes from the DERA vm service
