@@ -53,7 +53,6 @@ function ll_vendor($vid,$refresh=false) {
 	global $vend;
 	if (!preg_match('#^\d+$#',$vid)) return;
 	if (isset($vend) and $vend['vid'] === $vid and !$refresh) return $vend;
-if ($refresh) print "refresh vendor data<br>\n";
 	$vend = ll_load_from_table('vendors','vid',$vid,false);
 	if ($vend === false) return false;
 	$vend['unpaid_months'] = ll_get_unpaid_months($vid);
@@ -271,7 +270,16 @@ function ll_check_months($vend,$months) {
 		die("Invalid months value $months!");
 	if (is_numeric(MAXMONTHS) and abs($months) > MAXMONTHS) 
 		die("Months value $months exceeds maximum ".MAXMONTHS."!");
-	if (!is_array($vend)) $vend = ll_vendor($vend);
+	if (!isset($vend['months'])) {
+		if (!is_array($vend)) {
+			if (!preg_match('#^\d+$#',$vend)) die("ll_check_months: bad vendor id!");
+			$vend = ll_vendor($vend);
+		} else if (!preg_match('#^\d+$#',$vend['vid'])) {
+			die("ll_check_months: bad vendor id from array!");
+		} else {
+			$vend = ll_vendor($vend['vid']);
+		}
+	}
 	if ($vend['months'] < $months) 
 		die("Vendor ".$vend['name']." only has ".$vend['months']." month(s) available!");
 	return $months;
