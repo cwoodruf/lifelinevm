@@ -1,30 +1,41 @@
 <?php 
 session_start();
 require_once('php/globals.php'); 
-require_once("$lib/mysql.php"); 
+@include_once("$lib/mysql.php"); 
+if (!function_exists(ll_has_access)) {
+	function ll_has_access($you,$me) { return true; }
+	function ll_showcode($code) { return; }
+	function ll_box($box) { return; }
+}
+
 if (isset($_SESSION['login']['login'])) $printedby = md5($_SESSION['login']['login']);
 
 if (!ll_has_access($_SESSION['login']['vid'],ll_box($_REQUEST['box']))) {
 	unset($_REQUEST);
 }
+if ($_REQUEST['amount']) {
+	$title = "Proof of Payment / Instructions";
+} else {
+	$title = "Lifeline: Instructions";
+}
 ?>
 <html>
 <head>
-<title>Proof of Payment</title>
+<title><?php print $title; ?></title>
 <link rel=stylesheet type=text/css href=css/base.css>
 <link rel=stylesheet type=text/css href=css/admin.css>
 <style type=text/css>
 li {
 	padding-bottom: 10px;
 }
-i {
+i, i * {
 	font-size: small;
 }
 </style>
 </head>
 <body>
 <center>
-<h3>Proof of Payment / Instructions</h3>
+<h3><?php print $title; ?></h3>
 <table width=540 cellpadding=3 cellspacing=0 border=0>
 <tr><td>
 <h4>Date: <?php print date('Y-m-d'); ?></h4>
@@ -77,12 +88,12 @@ Please keep this receipt in case of problems with your account.<br>
 
 <h4 style="page-break-before: always;">Listen to messages</h4>
 <i>When you press 1 from the main menu you will hear the number of messages you have <br>
-and your latest message followed by the listen to messages menu:</i>
+and your <b>most recent</b> message followed by the listen to messages menu:</i>
 <ul>
-<li>Press 1 to listen to the next message
+<li>Press 1 to listen to the next most recent message
 <li>Press 2 to listen to the previous message
 <li>Press 3 to repeat the current message 
-<li>Press 4 to listen to the newest message
+<li>Press 4 to listen to the most recent message
 <li>Press 5 to listen to the oldest message
 <li>To delete or restore a message press 7
 <li>To delete or restore all messages press 9<br>
