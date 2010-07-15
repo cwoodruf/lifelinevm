@@ -10,7 +10,7 @@ if ($ll->{login_ok}) {
 	$ll->{agi}->set_priority(100);
 	$ll->load_msgs;	
 	$ll->play_msg_count('play "no messages" only');
-	$ll->log_calls('ll-login.pl','ok');
+	$ll->log_calls('ll-login.pl','ok',$callerid);
 } else {
 	$ll->log_calls('ll-login.pl','failed',$callerid);
 }
