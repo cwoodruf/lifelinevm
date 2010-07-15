@@ -448,7 +448,7 @@ HTML;
 	return <<<HTML
 $top
 <input type=hidden name=trans value="$trans">
-<div style="width: 540px; background: white; border: 1px black solid; padding: 3px;">
+<div style="width: 740px; background: cornsilk; border: 1px black solid; padding: 3px;">
 Box: <input $is_hidden name=box size=7 value="$box"><b>$box</b> $status &nbsp;&nbsp;
 $seccode_input
 $month_input
@@ -683,7 +683,7 @@ function update_personal($data) {
 	if (!preg_match('#^\d+$#',$box)) 
 		die("update_personal: box should be a number not $box!");
 	ll_update_personal($vend,$box,$_REQUEST['personal']);
-	$bdata = ll_box($box);
+	$bdata = ll_box($box,($refresh=true));
 	return <<<HTML
 $top
 $table

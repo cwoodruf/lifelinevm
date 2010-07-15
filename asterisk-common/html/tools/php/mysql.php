@@ -199,8 +199,8 @@ function ll_paycodeinfo($paycode) {
 	return $row;
 }
 
-function ll_box($box) {
-	if (ll_check_box($box,($die=false))) return ll_load_from_table('boxes','box',$box,false);
+function ll_box($box,$refresh=false) {
+	if (ll_check_box($box,($die=false))) return ll_load_from_table('boxes','box',$box,false,'',$refresh);
 }
 
 function ll_calls($box,$limit=null) {
@@ -783,7 +783,7 @@ function ll_save_to_table($action,$table,$data,$name='',&$key='',$literal=false)
 	return true;
 }
 
-function ll_load_from_table($table,$name,$key='',$return_all=true,$query_end='') {
+function ll_load_from_table($table,$name,$key='',$return_all=true,$query_end='',$refresh=false) {
         $lldb = ll_connect();
 	static $seen;
 	if ($name == '' and $key == '') 
@@ -795,7 +795,7 @@ function ll_load_from_table($table,$name,$key='',$return_all=true,$query_end='')
 		$what = implode(' and ', $whats);
 		$query = "select * from $table where $what $query_end";
 	} else $query = "select * from $table where $name='$key' $query_end";
-	if ($seen[$query]) return $seen[$query];
+	if (!$refresh and $seen[$query]) return $seen[$query];
 
 	$st = $lldb->query($query);
 	if ($st === false) {
