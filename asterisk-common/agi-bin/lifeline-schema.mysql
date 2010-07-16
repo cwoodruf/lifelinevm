@@ -1,8 +1,8 @@
--- MySQL dump 10.13  Distrib 5.1.41, for debian-linux-gnu (i486)
+-- MySQL dump 10.11
 --
 -- Host: localhost    Database: lifeline
 -- ------------------------------------------------------
--- Server version	5.1.41-3ubuntu12.3-log
+-- Server version	5.0.77-log
 
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
 /*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
@@ -20,280 +20,280 @@
 --
 
 DROP TABLE IF EXISTS `boxes`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+SET @saved_cs_client     = @@character_set_client;
+SET character_set_client = utf8;
 CREATE TABLE `boxes` (
-  `box` varchar(32) NOT NULL DEFAULT '',
-  `name` varchar(64) DEFAULT NULL,
+  `box` varchar(32) NOT NULL default '',
+  `name` varchar(64) default NULL,
   `notes` text,
-  `seccode` varchar(32) DEFAULT NULL,
-  `email` varchar(64) DEFAULT NULL,
-  `paidto` date DEFAULT NULL,
-  `inuse` int(11) DEFAULT NULL,
-  `new_msgs` int(11) DEFAULT NULL,
-  `status` varchar(32) DEFAULT '',
-  `vid` int(11) NOT NULL DEFAULT '0',
-  `login` varchar(32) DEFAULT NULL,
-  `created` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  `modified` timestamp NOT NULL DEFAULT '0000-00-00 00:00:00',
-  `trans` varchar(32) DEFAULT NULL,
-  PRIMARY KEY (`box`)
+  `seccode` varchar(32) default NULL,
+  `email` varchar(64) default NULL,
+  `paidto` date default NULL,
+  `inuse` int(11) default NULL,
+  `new_msgs` int(11) default NULL,
+  `status` varchar(32) default '',
+  `vid` int(11) NOT NULL default '0',
+  `login` varchar(32) default NULL,
+  `created` timestamp NOT NULL default CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP,
+  `modified` timestamp NOT NULL default '0000-00-00 00:00:00',
+  `trans` varchar(32) default NULL,
+  PRIMARY KEY  (`box`)
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1;
-/*!40101 SET character_set_client = @saved_cs_client */;
+SET character_set_client = @saved_cs_client;
 
 --
 -- Table structure for table `calls`
 --
 
 DROP TABLE IF EXISTS `calls`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+SET @saved_cs_client     = @@character_set_client;
+SET character_set_client = utf8;
 CREATE TABLE `calls` (
-  `box` varchar(32) NOT NULL DEFAULT '',
-  `call_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  `action` varchar(32) NOT NULL DEFAULT '',
-  `status` varchar(32) NOT NULL DEFAULT '',
+  `box` varchar(32) NOT NULL default '',
+  `call_time` timestamp NOT NULL default CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP,
+  `action` varchar(32) NOT NULL default '',
+  `status` varchar(32) NOT NULL default '',
   `message` text NOT NULL,
-  `callerid` varchar(64) DEFAULT NULL,
-  `vid` int(11) DEFAULT NULL,
-  PRIMARY KEY (`box`,`action`,`call_time`,`status`,`message`(255))
+  `callerid` varchar(64) default NULL,
+  `vid` int(11) default NULL,
+  PRIMARY KEY  (`box`,`action`,`call_time`,`status`,`message`(255))
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1;
-/*!40101 SET character_set_client = @saved_cs_client */;
+SET character_set_client = @saved_cs_client;
 
 --
 -- Table structure for table `emailsignup`
 --
 
 DROP TABLE IF EXISTS `emailsignup`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+SET @saved_cs_client     = @@character_set_client;
+SET character_set_client = utf8;
 CREATE TABLE `emailsignup` (
-  `vid` int(11) DEFAULT NULL,
-  `email` varchar(128) NOT NULL DEFAULT '',
-  `perms` varchar(64) DEFAULT NULL,
-  `id` varchar(32) DEFAULT NULL,
-  PRIMARY KEY (`email`),
+  `vid` int(11) default NULL,
+  `email` varchar(128) NOT NULL default '',
+  `perms` varchar(64) default NULL,
+  `id` varchar(32) default NULL,
+  PRIMARY KEY  (`email`),
   UNIQUE KEY `emailsignup_id_idx` (`id`),
   KEY `vid` (`vid`)
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1;
-/*!40101 SET character_set_client = @saved_cs_client */;
+SET character_set_client = @saved_cs_client;
 
 --
 -- Table structure for table `invoices`
 --
 
 DROP TABLE IF EXISTS `invoices`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+SET @saved_cs_client     = @@character_set_client;
+SET character_set_client = utf8;
 CREATE TABLE `invoices` (
-  `invoice` int(11) NOT NULL AUTO_INCREMENT,
-  `created` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  `paidon` datetime DEFAULT NULL,
-  `months` int(11) DEFAULT NULL,
-  `gst` float DEFAULT NULL,
-  `pst` float DEFAULT NULL,
-  `total` float DEFAULT NULL,
+  `invoice` int(11) NOT NULL auto_increment,
+  `created` timestamp NOT NULL default CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP,
+  `paidon` datetime default NULL,
+  `months` int(11) default NULL,
+  `gst` float default NULL,
+  `pst` float default NULL,
+  `total` float default NULL,
   `notes` mediumtext,
-  `vid` int(11) DEFAULT NULL,
-  `login` varchar(32) DEFAULT NULL,
-  `modified` datetime DEFAULT NULL,
-  `trans` varchar(32) DEFAULT NULL,
-  PRIMARY KEY (`invoice`)
+  `vid` int(11) default NULL,
+  `login` varchar(32) default NULL,
+  `modified` datetime default NULL,
+  `trans` varchar(32) default NULL,
+  PRIMARY KEY  (`invoice`)
 ) ENGINE=MyISAM AUTO_INCREMENT=6237 DEFAULT CHARSET=latin1;
-/*!40101 SET character_set_client = @saved_cs_client */;
+SET character_set_client = @saved_cs_client;
 
 --
 -- Table structure for table `messages`
 --
 
 DROP TABLE IF EXISTS `messages`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+SET @saved_cs_client     = @@character_set_client;
+SET character_set_client = utf8;
 CREATE TABLE `messages` (
   `message` varchar(255) NOT NULL,
   `box` varchar(32) NOT NULL,
-  `callerid` varchar(64) DEFAULT NULL,
-  `vid` int(11) DEFAULT NULL,
-  `recorded` datetime DEFAULT NULL,
-  PRIMARY KEY (`message`)
+  `callerid` varchar(64) default NULL,
+  `vid` int(11) default NULL,
+  `recorded` datetime default NULL,
+  PRIMARY KEY  (`message`)
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1;
-/*!40101 SET character_set_client = @saved_cs_client */;
+SET character_set_client = @saved_cs_client;
 
 --
 -- Table structure for table `numrange`
 --
 
 DROP TABLE IF EXISTS `numrange`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+SET @saved_cs_client     = @@character_set_client;
+SET character_set_client = utf8;
 CREATE TABLE `numrange` (
-  `i` int(11) DEFAULT NULL
+  `i` int(11) default NULL
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1;
-/*!40101 SET character_set_client = @saved_cs_client */;
+SET character_set_client = @saved_cs_client;
 
 --
 -- Table structure for table `paycode`
 --
 
 DROP TABLE IF EXISTS `paycode`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+SET @saved_cs_client     = @@character_set_client;
+SET character_set_client = utf8;
 CREATE TABLE `paycode` (
   `code` varchar(32) NOT NULL,
-  `months` int(11) DEFAULT '0',
-  `created` datetime DEFAULT NULL,
-  `used` datetime DEFAULT NULL,
-  `box` varchar(16) DEFAULT NULL,
-  PRIMARY KEY (`code`)
+  `months` int(11) default '0',
+  `created` datetime default NULL,
+  `used` datetime default NULL,
+  `box` varchar(16) default NULL,
+  PRIMARY KEY  (`code`)
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1;
-/*!40101 SET character_set_client = @saved_cs_client */;
+SET character_set_client = @saved_cs_client;
 
 --
 -- Table structure for table `payments`
 --
 
 DROP TABLE IF EXISTS `payments`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+SET @saved_cs_client     = @@character_set_client;
+SET character_set_client = utf8;
 CREATE TABLE `payments` (
-  `box` varchar(32) NOT NULL DEFAULT '',
-  `vid` int(11) NOT NULL DEFAULT '0',
+  `box` varchar(32) NOT NULL default '',
+  `vid` int(11) NOT NULL default '0',
   `paidon` datetime NOT NULL,
-  `amount` float DEFAULT '0',
-  `hst` float DEFAULT '0',
-  `months` int(11) DEFAULT '0',
-  `login` varchar(32) NOT NULL DEFAULT '',
+  `amount` float default '0',
+  `hst` float default '0',
+  `months` int(11) default '0',
+  `login` varchar(32) NOT NULL default '',
   `notes` text,
-  PRIMARY KEY (`box`,`vid`,`paidon`,`login`)
+  PRIMARY KEY  (`box`,`vid`,`paidon`,`login`)
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1;
-/*!40101 SET character_set_client = @saved_cs_client */;
+SET character_set_client = @saved_cs_client;
 
 --
 -- Table structure for table `sync_calls`
 --
 
 DROP TABLE IF EXISTS `sync_calls`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+SET @saved_cs_client     = @@character_set_client;
+SET character_set_client = utf8;
 CREATE TABLE `sync_calls` (
-  `synctime` datetime DEFAULT NULL
+  `synctime` datetime default NULL
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1;
-/*!40101 SET character_set_client = @saved_cs_client */;
+SET character_set_client = @saved_cs_client;
 
 --
 -- Table structure for table `transactions`
 --
 
 DROP TABLE IF EXISTS `transactions`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+SET @saved_cs_client     = @@character_set_client;
+SET character_set_client = utf8;
 CREATE TABLE `transactions` (
-  `trans` varchar(128) NOT NULL DEFAULT '',
-  `time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  `vid` int(11) DEFAULT NULL,
-  `table_name` varchar(32) DEFAULT NULL,
-  `status` varchar(32) DEFAULT NULL,
-  PRIMARY KEY (`trans`)
+  `trans` varchar(128) NOT NULL default '',
+  `time` timestamp NOT NULL default CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP,
+  `vid` int(11) default NULL,
+  `table_name` varchar(32) default NULL,
+  `status` varchar(32) default NULL,
+  PRIMARY KEY  (`trans`)
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1;
-/*!40101 SET character_set_client = @saved_cs_client */;
+SET character_set_client = @saved_cs_client;
 
 --
 -- Table structure for table `updates`
 --
 
 DROP TABLE IF EXISTS `updates`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+SET @saved_cs_client     = @@character_set_client;
+SET character_set_client = utf8;
 CREATE TABLE `updates` (
-  `box` varchar(32) DEFAULT NULL,
-  `months` int(11) DEFAULT NULL,
-  `oldpaidto` date DEFAULT NULL,
-  `newpaidto` date DEFAULT NULL,
-  `paycode` varchar(32) DEFAULT NULL,
-  `updated` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  `login` varchar(32) DEFAULT NULL,
-  `vid` int(11) DEFAULT NULL,
-  `action` varchar(128) DEFAULT NULL,
-  `app` varchar(128) DEFAULT NULL
+  `box` varchar(32) default NULL,
+  `months` int(11) default NULL,
+  `oldpaidto` date default NULL,
+  `newpaidto` date default NULL,
+  `paycode` varchar(32) default NULL,
+  `updated` timestamp NOT NULL default CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP,
+  `login` varchar(32) default NULL,
+  `vid` int(11) default NULL,
+  `action` varchar(128) default NULL,
+  `app` varchar(128) default NULL
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1;
-/*!40101 SET character_set_client = @saved_cs_client */;
+SET character_set_client = @saved_cs_client;
 
 --
 -- Table structure for table `users`
 --
 
 DROP TABLE IF EXISTS `users`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+SET @saved_cs_client     = @@character_set_client;
+SET character_set_client = utf8;
 CREATE TABLE `users` (
-  `login` varchar(32) DEFAULT NULL,
-  `password` varchar(32) DEFAULT NULL,
-  `created` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  `vid` int(11) DEFAULT NULL,
-  `perms` varchar(128) DEFAULT NULL,
+  `login` varchar(64) default NULL,
+  `password` varchar(64) default NULL,
+  `created` timestamp NOT NULL default CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP,
+  `vid` int(11) default NULL,
+  `perms` varchar(128) default NULL,
   UNIQUE KEY `users_vendor_login` (`login`)
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1;
-/*!40101 SET character_set_client = @saved_cs_client */;
+SET character_set_client = @saved_cs_client;
 
 --
 -- Table structure for table `vendors`
 --
 
 DROP TABLE IF EXISTS `vendors`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+SET @saved_cs_client     = @@character_set_client;
+SET character_set_client = utf8;
 CREATE TABLE `vendors` (
-  `vid` int(11) NOT NULL AUTO_INCREMENT,
-  `vendor` varchar(128) NOT NULL DEFAULT '',
-  `created` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `vid` int(11) NOT NULL auto_increment,
+  `vendor` varchar(128) NOT NULL default '',
+  `created` timestamp NOT NULL default CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP,
   `parent` text,
-  `address` varchar(128) DEFAULT NULL,
-  `phone` varchar(128) DEFAULT NULL,
-  `contact` varchar(128) DEFAULT NULL,
-  `email` varchar(128) DEFAULT NULL,
-  `fax` varchar(128) DEFAULT NULL,
-  `gstexempt` int(11) DEFAULT '0',
-  `rate` float DEFAULT NULL,
-  `months` int(11) DEFAULT '0',
-  `actual_months` int(11) DEFAULT '0',
-  `all_months` int(11) DEFAULT '0',
-  `pst_number` varchar(128) DEFAULT NULL,
-  `gst_number` varchar(128) DEFAULT NULL,
-  `credit_limit` float DEFAULT NULL,
-  `status` varchar(32) DEFAULT '',
+  `address` varchar(128) default NULL,
+  `phone` varchar(128) default NULL,
+  `contact` varchar(128) default NULL,
+  `email` varchar(128) default NULL,
+  `fax` varchar(128) default NULL,
+  `gstexempt` int(11) default '0',
+  `rate` float default NULL,
+  `months` int(11) default '0',
+  `actual_months` int(11) default '0',
+  `all_months` int(11) default '0',
+  `pst_number` varchar(128) default NULL,
+  `gst_number` varchar(128) default NULL,
+  `credit_limit` float default NULL,
+  `status` varchar(32) default '',
   `notes` text,
-  PRIMARY KEY (`vid`)
+  PRIMARY KEY  (`vid`)
 ) ENGINE=MyISAM AUTO_INCREMENT=6962 DEFAULT CHARSET=latin1;
-/*!40101 SET character_set_client = @saved_cs_client */;
+SET character_set_client = @saved_cs_client;
 
 --
 -- Table structure for table `vendors_20100615`
 --
 
 DROP TABLE IF EXISTS `vendors_20100615`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+SET @saved_cs_client     = @@character_set_client;
+SET character_set_client = utf8;
 CREATE TABLE `vendors_20100615` (
-  `vid` int(11) NOT NULL DEFAULT '0',
-  `vendor` varchar(128) NOT NULL DEFAULT '',
-  `created` timestamp NOT NULL DEFAULT '0000-00-00 00:00:00',
-  `parent` int(11) DEFAULT NULL,
-  `address` varchar(128) DEFAULT NULL,
-  `phone` varchar(128) DEFAULT NULL,
-  `contact` varchar(128) DEFAULT NULL,
-  `email` varchar(128) DEFAULT NULL,
-  `fax` varchar(128) DEFAULT NULL,
-  `gstexempt` int(11) DEFAULT '0',
-  `rate` float DEFAULT NULL,
-  `months` int(11) DEFAULT '0',
-  `all_months` int(11) DEFAULT '0',
-  `pst_number` varchar(128) DEFAULT NULL,
-  `gst_number` varchar(128) DEFAULT NULL,
-  `credit_limit` float DEFAULT NULL,
-  `status` varchar(32) DEFAULT '',
+  `vid` int(11) NOT NULL default '0',
+  `vendor` varchar(128) NOT NULL default '',
+  `created` timestamp NOT NULL default '0000-00-00 00:00:00',
+  `parent` int(11) default NULL,
+  `address` varchar(128) default NULL,
+  `phone` varchar(128) default NULL,
+  `contact` varchar(128) default NULL,
+  `email` varchar(128) default NULL,
+  `fax` varchar(128) default NULL,
+  `gstexempt` int(11) default '0',
+  `rate` float default NULL,
+  `months` int(11) default '0',
+  `all_months` int(11) default '0',
+  `pst_number` varchar(128) default NULL,
+  `gst_number` varchar(128) default NULL,
+  `credit_limit` float default NULL,
+  `status` varchar(32) default '',
   `notes` text
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1;
-/*!40101 SET character_set_client = @saved_cs_client */;
+SET character_set_client = @saved_cs_client;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
@@ -304,4 +304,4 @@ CREATE TABLE `vendors_20100615` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2010-07-13 23:54:39
+-- Dump completed on 2010-07-16 21:55:57
