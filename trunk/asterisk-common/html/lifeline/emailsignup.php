@@ -3,12 +3,13 @@
 require_once("php/globals.php");
 require_once("$lib/pw/auth.php");
 require_once("php/forms.php");
+$emailpat = '#([a-z0-9_][\w\-\.]*@(?:(?:[a-z0-9\-]+)\.)+[a-z]{2,4})#';
 
 $id = $_REQUEST['id'];
 $action = $_REQUEST['action'];
 if ($action === 'logout') delete_login();
-$login = $_REQUEST['login'];
-if (!preg_match('#^[\w\.\@-]*$#',$login)) die("bad login value $login for adding or updating user!");
+$login = trim($_REQUEST['login']);
+if (!preg_match('#^[\w\.\@ -]{0,64}$#',$login)) die("bad login value $login for adding or updating user!");
 
 if (preg_match('#^\w{32}$#', $id)) {
 
@@ -83,6 +84,7 @@ HTML;
 }
 
 function confirmsendinvites_form() {
+	global $emailpat;
 
 	$defvend = false;
 	if (preg_match('#^\d+$#',($vid = $_REQUEST['vid']))) {
@@ -95,10 +97,12 @@ function confirmsendinvites_form() {
 
 	foreach ($emaillist as $email) {
 		$email = trim(strtolower(str_replace(",","",$email)));
-		if (!preg_match('#^[a-z0-9_][\w\-\.]*@(?:(?:[a-z0-9\-]+)\.)+[a-z]{2,4}$#',$email)) {
+		if (empty($email)) continue;
+		if (!preg_match($emailpat, $email, $m)) {
 			$warnings .= "email $email is not valid!<br>\n";
 			continue;
 		}
+		$email = $m[1];
 		if (!$defvend) $vendor = ll_vendor_from_email($email);
 		if (!$vendor) {
 			$warnings .= "can't find vendor for $email!<br>";
@@ -107,6 +111,12 @@ function confirmsendinvites_form() {
 		$ids[$email] = ll_emailsignup_id($email,$vendor,$_REQUEST['perms']);
 	}
 	if (isset($warnings)) die($warnings);
+	if (!is_array($ids)) {
+		if (preg_match($emailpat, $defvend['email'], $m)) {
+			$email = $m[1];
+			$ids[$email] = ll_emailsignup_id($email,$defvend,$_REQUEST['perms']);
+		}
+	}
 
 	foreach (array('emails','perms','subject','emailtext') as $name) {
 		$value = htmlentities($_REQUEST[$name]);

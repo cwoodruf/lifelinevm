@@ -16,7 +16,7 @@ function login_response($redirecturl,$app,$callback) {
 function authenticate($app,$callback) {
 	if (isset($_SESSION['login'])) return $_SESSION['login'];
 	$login = $_REQUEST['login'];
-	if (!preg_match("#^\S{1,32}$#",$login)) return;
+	if (!preg_match("#^\S{1,64}$#",$login)) return;
 	$password = $_POST[password];
 	if ($password == '' or strlen($password) > 50) return;
 	$password = md5($password);
