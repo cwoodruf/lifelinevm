@@ -145,7 +145,7 @@ function ll_vendors($vid) {
 function ll_add_user($vend,$login,$password,$perms) {
 	if (!preg_match('#^\d+$#',$vend['vid'])) 
 		die("Bad vendor ".$vend['vid'].", ".$vend['vendor']."!");
-	if (!preg_match('#^\S{1,32}$#',$login)) die("bad login $login!");
+	if (!preg_match('#^\S{1,64}$#',$login)) die("bad login $login!");
 	if (!preg_match('#^[\w:]*$#',$perms)) die("bad perms $perms!");
 	if (!empty($password)) {
 		if (!preg_match('#^\S{1,32}$#',$password)) die("bad password $password!");
@@ -161,7 +161,7 @@ function ll_add_user($vend,$login,$password,$perms) {
 function ll_del_user($vend,$login) {
 	global $lldb;
 	if (!isset($vend)) die("no vendor!");
-	if (!preg_match('#^\S{1,32}$#',$login)) die("bad login $login!");
+	if (!preg_match('#^\S{1,64}$#',$login)) die("bad login $login!");
 	$udata = ll_pw_data($login);
 	// user doesn't exist
 	if ($udata['vid'] === null) return;
