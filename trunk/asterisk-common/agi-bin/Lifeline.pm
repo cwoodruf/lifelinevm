@@ -240,7 +240,7 @@ sub log_calls {
 	my $status = shift || '';
 	my $callerid = shift || '';
 	my $message = $ll->{new_msg} || '';
-	my $host = $ENV{HOSTNAME};
+	my $host = $ENV{HOSTNAME} || `hostname` || '';
 	my $ins = $ll->{db}->prepare(
 		"insert into calls (box,vid,action,status,message,callerid,host,call_time) ".
 		"values (?,?,?,?,?,?,?,now())"

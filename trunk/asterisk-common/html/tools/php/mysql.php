@@ -209,6 +209,74 @@ function ll_calls($box,$limit=null) {
 			return ll_load_from_table('calls','box',$box,true,"order by call_time desc $limitreq ");
 }
 
+function ll_calls_by_date($vid,$date) {
+	$lldb = ll_connect();
+	if (!preg_match('#^\d+$#', $vid)) die("ll_calls_by_date: bad vendor id $vid!");
+	if (!preg_match('#^\d{4}-\d{2}-\d{2}$#', $date)) die("ll_calls_by_date: bad date $date!");
+	$query = "select calls.*,vendors.vendor,vendors.vid ".
+		"from calls join boxes on (calls.box=boxes.box) join vendors on (vendors.vid=boxes.vid) ".
+		"where (vendors.vid='$vid' or vendors.parent regexp '(^|:)$vid(:|$)') ".
+		"and call_time between '$date 00:00:00' and '$date 23:59:59' ".
+		"order by call_time desc";
+	$st = $lldb->query($query);
+	if ($st === false) die(ll_err());
+	$calls = array();
+	while ($row = $st->fetch()) {
+		$calls[] = $row;
+	}
+	return $calls;
+}
+
+function ll_payments_by_date($vid,$date) {
+	$lldb = ll_connect();
+	if (!preg_match('#^\d+$#', $vid)) die("ll_payments_by_date: bad vendor id $vid!");
+	if (!preg_match('#^\d{4}-\d{2}-\d{2}$#', $date)) die("ll_payments_by_date: bad date $date!");
+	$query = "select payments.*,vendors.vendor,vendors.vid ".
+		"from payments join boxes on (payments.box=boxes.box) join vendors on (vendors.vid=boxes.vid) ".
+		"where (vendors.vid='$vid' or vendors.parent regexp '(^|:)$vid(:|$)') ".
+		"and paidon between '$date 00:00:00' and '$date 23:59:59' ".
+		"order by paidon desc";
+	$st = $lldb->query($query);
+	if ($st === false) die(ll_err());
+	$payments = array();
+	while ($row = $st->fetch()) {
+		$payments[] = $row;
+	}
+	return $payments;
+}
+
+function ll_calldates($vid) {
+	$lldb = ll_connect();
+	if (!preg_match('#^\d+$#', $vid)) die("ll_calldates: bad vendor id $vid!");
+	$query = "select distinct date(call_time) as day ".
+		"from calls join boxes on (calls.box=boxes.box) join vendors on (vendors.vid=boxes.vid) ".
+		"where (vendors.vid='$vid' or vendors.parent regexp '(^|:)$vid(:|$)') ".
+		"order by day desc ";
+	$st = $lldb->query($query);
+	If ($st === false) die(ll_err());
+	$dates = array();
+	while ($row = $st->fetch()) {
+		$dates[] = $row['day'];
+	}
+	return $dates;
+}
+
+function ll_paymentdates($vid) {
+	$lldb = ll_connect();
+	if (!preg_match('#^\d+$#', $vid)) die("ll_calldates: bad vendor id $vid!");
+	$query = "select distinct date(paidon) as day ".
+		"from payments join boxes on (payments.box=boxes.box) join vendors on (vendors.vid=boxes.vid) ".
+		"where (vendors.vid='$vid' or vendors.parent regexp '(^|:)$vid(:|$)') ".
+		"order by day desc ";
+	$st = $lldb->query($query);
+	If ($st === false) die(ll_err());
+	$dates = array();
+	while ($row = $st->fetch()) {
+		$dates[] = $row['day'];
+	}
+	return $dates;
+}
+
 function ll_boxes($vend,$showkids=false,$status='not_deleted',$order = "order by paidto desc") {
 	if ($status == 'deleted') $status = " and boxes.status in ('deleted')";
 	else if ($status == 'not_deleted') $status = " and boxes.status not in ('deleted')";
@@ -348,7 +416,7 @@ function ll_log($vend,$cdata) {
 
 # find a new box based on a range of numbers
 # by default do not put in a subscription date - this is done when the box is called for the first time
-function ll_new_box($trans,$vend,$months,$min_box,$max_box,$activate=false) {
+function ll_new_box($trans,$vend,$months,$llphone,$min_box,$max_box,$activate=false) {
 	global $ldata, $salt;
 	static $available;
 
@@ -405,8 +473,10 @@ function ll_new_box($trans,$vend,$months,$min_box,$max_box,$activate=false) {
 		$add = "add $months months";
 	}
 
-	$query = "replace into boxes (box,seccode,vid,paidto,login,modified,created,status,trans) ".
-		"values ('$box',md5('$seccode$salt'),'$vend[vid]','$paidto','$ldata[login]',now(),now(),'$add','$trans')";
+	$qllphone = $lldb->quote($llphone);
+	$query = "replace into boxes (box,seccode,vid,llphone,paidto,login,modified,created,status,trans) ".
+		"values ('$box',md5('$seccode$salt'),'$vend[vid]',$qllphone,".
+		"'$paidto','$ldata[login]',now(),now(),'$add','$trans')";
 
 	$result = $lldb->exec($query);
 	if ($result === false) die(ll_err());
