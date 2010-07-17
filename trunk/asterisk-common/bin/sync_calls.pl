@@ -3,7 +3,7 @@
 # as there is no primary key we have to be careful about not duplicating data
 # this should be only run on lifelinevm.net
 $mainhost = 'lifelinevm.net';
-die "should only run on $mainhost!" unless $ENV{HOSTNAME} eq $mainhost;
+die "should only run on $mainhost not $ENV{HOSTNAME}!" unless $ENV{HOSTNAME} eq $mainhost;
 
 use Lifeline::DB;
 use Getopt::Std;
