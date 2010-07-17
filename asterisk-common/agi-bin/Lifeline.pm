@@ -240,10 +240,12 @@ sub log_calls {
 	my $status = shift || '';
 	my $callerid = shift || '';
 	my $message = $ll->{new_msg} || '';
+	my $host = $ENV{HOSTNAME};
 	my $ins = $ll->{db}->prepare(
-		"insert into calls (box,vid,action,status,message,callerid,call_time) values (?,?,?,?,?,?,now())"
+		"insert into calls (box,vid,action,status,message,callerid,host,call_time) ".
+		"values (?,?,?,?,?,?,?,now())"
 	);
-	$ins->execute($ll->{box},$ll->{vid},$action,$status,$message,$callerid) or die $ins->errstr;
+	$ins->execute($ll->{box},$ll->{vid},$action,$status,$message,$callerid,$host) or die $ins->errstr;
 }
 
 sub log_err {
