@@ -153,7 +153,7 @@ else if (
 	(isset($vid) and $sdata['vid'] === 0) or 
 	$action === 'edit' or 
 	$action === 'Update info') vendor_form($vend);
-else list_vendors();
+else list_vendors($_REQUEST['findvid']);
 
 print <<<HTML
 </form>
@@ -309,9 +309,14 @@ function show_emails() {
 	print "</td></tr></table>\n";
 }
 
-function list_vendors() {
+function list_vendors($vid=null) {
 	global $ldata,$from;
-	$vendors = ll_vendors($ldata['vid']);
+	if (preg_match('#^\d+$#',$vid)) {
+		if (!ll_has_access($ldata,ll_vendor($vid))) die("you do not have access to this vendor!");
+		$vendors[] = ll_vendor($vid);
+	} else {
+		$vendors = ll_vendors($ldata['vid']);
+	}
 	if ($vendors === false) return;
 	$make = "/lifeline/make.php";
 	$div = ''; # "&nbsp;-&nbsp;";

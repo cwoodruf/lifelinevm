@@ -38,11 +38,11 @@ function form_top($data,$show_goback=true,$show_status=true,$method='get',$formj
 <nobr>
 <a href="admin.php?action=logout">Log out</a>
 HTML;
-		if (preg_match('#^\d+$#', $ldata['orig_vid'])) {
+		if (preg_match('#^\d+$#', $ldata['orig_vid']) and $ldata['orig_vid'] == $ldata['initial_vid']) {
 			$logout .= <<<HTML
 &nbsp; 
 / &nbsp; <a href="admin.php?switch_vendor={$ldata['orig_vid']}">
-Log in as {$ldata['orig_vendor']}</a>
+Return to {$ldata['orig_vendor']}</a>
 HTML;
 		}
 		$logout .= "</nobr>\n";
@@ -173,7 +173,8 @@ JS;
 	# if this is a redirect from the old gc.pl file we'll have some paycode data
 	$pc = ll_paycodeinfo($_REQUEST['paycode']);
 	$max = MAXBOXES;
-	$maxmonths = MAXMONTHS;
+	if (MAXMONTHS > $vend['months']) $maxmonths = $vend['months'];
+	else $maxmonths = MAXMONTHS;
 	if (is_array($pc)) {
 		$months = $pc['months'];
 		$vend['paycode'] = $_REQUEST['paycode'];
@@ -447,8 +448,13 @@ HTML;
 			$months = 1;
 			$payment_form = payment_form($box)."<br>\n";
 		}
-		if (!$month_input) 
-			$month_input = " Months: <input size=3 name=months value=$months> &nbsp;&nbsp;"; 
+		if (!$month_input and $vend['months'] > 0) {
+			if ($vend['months'] < MAXMONTHS) $maxmonths = $vend['months'];
+			else $maxmonths = MAXMONTHS;
+			$month_input = <<<HTML
+Months: <input size=3 name=months value=$months> (up to $maxmonths months)
+HTML;
+		}
 		$trans = ll_generate_trans($vend,'boxes');
 	}
 	return <<<HTML
@@ -521,7 +527,18 @@ function paymentlist($box,$vid) {
 	return formatpaymentlist($title, $payments);
 }
 
+function vendlink($vid) {
+	global $permcheck;
+	if ($permcheck['vendors']) {
+		$vendlink = "<a href=\"make.php?findvid=$vid\">$vid</a>";
+	} else {
+		$vendlink = $vid;
+	}
+	return $vendlink;
+}
+
 function formatpaymentlist($title,$payments) {
+	global $permcheck;
 	$html = <<<HTML
 $title
 <table cellpadding=5 cellspacing=0 border=1>
@@ -536,11 +553,12 @@ HTML;
 		$item++;
 		$amount = sprintf('$ %.2f', $p['amount']);
 		$hst = sprintf('$ %.2f', $p['hst']);
+		$vendlink = vendlink($p['vid']);
 		$html .= <<<HTML
 <tr>
 <td>$item</td>
-<td>{$p['box']}</td>
-<td>{$p['vid']}</td>
+<td><a href="admin.php?form=Search Boxes&search={$p['box']}">{$p['box']}</a></td>
+<td>$vendlink</td>
 <td>{$p['paidon']}</td>
 <td align=right>$amount</td>
 <td align=right>$hst</td>
@@ -573,13 +591,14 @@ HTML;
 		if ($call['action'] == 'll-flagmsg.pl') $calltype = 'message left';
 		else if ($call['action'] == 'll-login.pl') $calltype = "login: status {$call['status']}";
 		else $calltype = $call['action'];
+		$vendlink = vendlink($call['vid']);
 		$callerid = htmlentities($call['callerid']);
 		$i++;
 		$callhtml .= <<<HTML
 <tr>
 <td>$i</td>
-<td>{$call['box']}</td>
-<td>{$call['vid']}</td>
+<td><a href="admin.php?form=Search Boxes&search={$call['box']}">{$call['box']}</a></td>
+<td>$vendlink</td>
 <td>{$call['call_time']}</td>
 <td>$calltype &nbsp;</td>
 <td>$callerid &nbsp;</td>

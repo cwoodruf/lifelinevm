@@ -8,11 +8,14 @@ if ($action === 'logout') delete_login();
 $ldata = login_response('redirect.php',$_SERVER['PHP_SELF'],'ll_pw_data');
 $vdata = ll_vendor($ldata['vid']);
 
-# switch to another vendor
+# temporarily become another vendor
 if (preg_match('#^\d+$#',$_REQUEST['switch_vendor'])) {
-	$ldata['orig_vid'] = $_SESSION['login']['orig_vid'] = $ldata['vid'];
-	$ldata['orig_vendor'] = $_SESSION['login']['orig_vendor'] = $vdata['vendor'];
-	$ldata['vid'] = $_SESSION['login']['vid'] = $_REQUEST['switch_vendor'];
+	$switchto = $_REQUEST['switch_vendor'];
+	if ($switchto == $ldata['initial_vid'] or ll_has_access($ldata,ll_vendor($switchto))) {
+		$ldata['orig_vid'] = $_SESSION['login']['orig_vid'] = $ldata['vid'];
+		$ldata['orig_vendor'] = $_SESSION['login']['orig_vendor'] = $vdata['vendor'];
+		$ldata['vid'] = $_SESSION['login']['vid'] = $switchto;
+	}
 }
 $vdata = ll_vendor($ldata['vid']);
 if ($vdata['status'] == 'deleted') {
