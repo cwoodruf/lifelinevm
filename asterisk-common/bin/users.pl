@@ -53,11 +53,12 @@ my @interesting = qw/
 	MISC
 	ACTIVE
 	PAID_TO
+	PHONE
 /;
 
 my $ins = $ldb->prepare(
-	"replace into boxes (box,seccode,vid,name,notes,status,paidto) ".
-	"values (?,md5(?),?,?,?,?,?) "
+	"replace into boxes (box,seccode,vid,name,notes,status,paidto,phone) ".
+	"values (?,md5(?),?,?,?,?,?,?) "
 );
 
 open IN, $lldatafile or die "can't open $lldatafile: $!";
@@ -102,6 +103,7 @@ while (my $raw = <IN>) {
 	} elsif ($in{BOX_TYPE} =~ /MSG/) {
 		print Dumper([@in{@interesting}]) if $opt{v};
 		$in{SEC_CODE} .= $salt;
+		$in{PHONE} = '604 682-3269';
 		$ins->execute(@in{@interesting}) or die $ins->errstr;
 	}
 }

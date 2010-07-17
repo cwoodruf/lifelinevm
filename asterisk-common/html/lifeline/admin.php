@@ -67,8 +67,10 @@ if ($ldata['perms'] == 'edit') {
 		'chsc' => true,
 		'edit' => true,
 		'View your voicemail boxes' => true,
+		'View payments' => true,
+		'View call events' => true,
 		'find_boxes' => true,
-		'Search' => true,
+		'Search Boxes' => true,
 		'showcode' => true,
 		'Call Activity' => true,
 	);
@@ -135,7 +137,11 @@ if ($_REQUEST['listen']) {
 		print update_box_form($ldata,'Update name, email etc.');
 	} else if ($form === 'View your voicemail boxes' or $form === 'find_boxes') {
 		print find_boxes_form($finddata);
-	} else if ($form === 'Search') {
+	} else if ($form === 'View call events') {
+		print find_calls_form($finddata);
+	} else if ($form === 'View payments') {
+		print find_payments_form($finddata);
+	} else if ($form === 'Search Boxes') {
 		print find_boxes_form($finddata,ll_find_boxes($findvid,$_REQUEST['search']));
 	} else if ($form === 'Show all invoices') {
 		print list_invoices($vdata,true);

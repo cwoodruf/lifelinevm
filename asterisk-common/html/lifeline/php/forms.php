@@ -121,7 +121,7 @@ HTML;
 		$purchase .= <<<HTML
 <br>
 <nobr>
-<input type=submit name=form value="Show all invoices"> &nbsp;&nbsp;
+<input type=submit name=form value="Show all invoices"> 
 <input type=submit name=form value="Show unpaid invoices">
 </nobr>
 <p>
@@ -133,7 +133,9 @@ HTML;
 $top
 <input type=submit name=form value="Create a new voicemail box"> <p>
 <input type=submit name=form value="Add time to an existing box"> <p>
-<input type=submit name=form value="View your voicemail boxes"> <p>
+<input type=submit name=form value="View payments"> 
+<input type=submit name=form value="View call events">
+<p>
 $users
 $purchase
 $end
@@ -249,7 +251,7 @@ HTML;
 }
 
 function create_new_box($data) {
-	global $ldata;
+	global $ldata, $phone;
 	$vend = ll_vendor($data['vid']);
 	$trans = ll_valid_trans($_REQUEST['trans']);
 	ll_delete_trans($vend,$trans);
@@ -267,9 +269,12 @@ function create_new_box($data) {
 	$netmonths = $vend['months'];
 	$vid = $vend['vid'];
 
+	$llphone = $_REQUEST['llphone'];
+	if (empty($llphone)) $llphone = $phone;
+
 	list($min_box,$max_box) = get_box_range(); # pick a random box range 
 	if ($boxes == 1) {
-		list ($box,$seccode,$paidto) = ll_new_box($trans,$vend,$months,$min_box,$max_box);
+		list ($box,$seccode,$paidto) = ll_new_box($trans,$vend,$months,$llphone,$min_box,$max_box);
 		$amount = ll_update_payment($box,$vid,$ldata['login'],$months,$_REQUEST['payment']);
 		ll_update_personal($vend,$box,$_REQUEST['personal']);
 
@@ -280,7 +285,7 @@ function create_new_box($data) {
 	}
 	$boxlist = array();
 	for ($i=0; $i < $boxes; $i++) {
-		list ($box,$seccode,$paidto) = ll_new_box($trans,$vend,$months,$min_box,$max_box);
+		list ($box,$seccode,$paidto) = ll_new_box($trans,$vend,$months,$llphone,$min_box,$max_box);
 		$amount = ll_update_payment($box,$vid,$ldata['login'],$months,$_REQUEST['payment'],$boxes);
 		ll_update_personal($vend,$box,$_REQUEST['personal']);
 
@@ -394,7 +399,8 @@ $table
 <tr><td><b>Amount:</b></td><td>{$amount}</td></tr>
 <tr><td><b>Notes:</b></td><td>{$personal['notes']}</td></tr>
 <tr><td colspan=2 align=right>
-<a href="index.php?box=$box&seccode={$bdata['seccode']}&amount=$amount" target=_blank>receipt / instructions</a>
+<a href="index.php?box=$box&seccode={$bdata['seccode']}&amount=$amount&llphone={$bdata['llphone']}" 
+   target=_blank>receipt / instructions</a>
 </td></tr>
 </table>
 $instr
@@ -462,11 +468,15 @@ HTML;
 }
 
 function mk_personal_input($bdata=array(),$vend=array()) {
-	global $table;
+	global $table,$phone;
 	if (empty($bdata['notes'])) $bdata['notes'] = $vend['vendor'].' '.$vend['paycode'];
+	if (empty($bdata['llphone'])) $bdata['llphone'] = $vend['llphone'];
+	if (empty($bdata['llphone'])) $bdata['llphone'] = $phone;
 	return <<<HTML
 <p>
 $table
+<tr><td>Phone:</td><td>{$bdata['llphone']}
+       <input type=hidden phone="personal[llphone]" value="{$bdata['llphone']}"></td></tr>
 <tr><td>Name:</td><td><input size=32 name="personal[name]" value="{$bdata['name']}"></td></tr>
 <tr><td>Email:</td><td><input size=40 name="personal[email]" value="{$bdata['email']}"></td></tr>
 <tr><td>Notes:</td><td><input size=64 name="personal[notes]" value="{$bdata['notes']}"></td></tr>
@@ -492,14 +502,33 @@ $end
 HTML;
 }
 
+function datesel($vid,$selected,$callback) {
+	$dates = $callback($vid);
+	$sel = "<select name=date>\n";
+	foreach ($dates as $date) {
+		if ($selected == $date) $s = "selected";
+		else $s = "";
+		$sel .= "<option $s>$date</option>\n";
+	}
+	$sel .= "</select>\n";
+	return $sel;
+}
+
 function paymentlist($box,$vid) {
 	$payments = ll_get_payments($box,$vid);
 	if (!count($payments)) return;
+	$title = "<h4>Payments for box $box</h4>";
+	return formatpaymentlist($title, $payments);
+}
+
+function formatpaymentlist($title,$payments) {
 	$html = <<<HTML
-<h4>Payments for box $box</h4>
+$title
 <table cellpadding=5 cellspacing=0 border=1>
 <tr>
-<th>#</tH><th>Paid On</th><th>Amount with tax</th><th>Tax</th><th>Months</th><th>Received by</th><th>Notes</th>
+<th>#</tH><th>Box</th><th>Vendor Id</th><th>Paid On</th>
+<th>Amount with tax</th><th>Tax</th><th>Months</th>
+<th>Received by</th><th>Notes</th>
 </tr>
 
 HTML;
@@ -510,6 +539,8 @@ HTML;
 		$html .= <<<HTML
 <tr>
 <td>$item</td>
+<td>{$p['box']}</td>
+<td>{$p['vid']}</td>
 <td>{$p['paidon']}</td>
 <td align=right>$amount</td>
 <td align=right>$hst</td>
@@ -528,11 +559,14 @@ function callhtml($box,$limit=50) {
 	$calls = ll_calls($box,$limit);
 	$box = htmlentities($box);
 	if (!count($calls)) return "<h4>No activity for box $box</h4>";
+	return formatcallhtml("<h4>Recent login attempts and messages for box $box</h4>", $calls);
+}
 
+function formatcallhtml($title,$calls) {
 	$callhtml = <<<HTML
-<h4>Recent login attempts and messages for box $box</h4>
+$title
 <table cellpadding=5 cellspacing=0 border=1>
-<tr><th>#</th><th>Time</th><th>Action</th><th>Caller ID</th></tr>
+<tr><th>#</th><th>Box</th><th>Vendor Id</th><th>Time</th><th>Action</th><th>Caller ID</th></tr>
 
 HTML;
 	foreach ($calls as $call) {
@@ -544,6 +578,8 @@ HTML;
 		$callhtml .= <<<HTML
 <tr>
 <td>$i</td>
+<td>{$call['box']}</td>
+<td>{$call['vid']}</td>
 <td>{$call['call_time']}</td>
 <td>$calltype &nbsp;</td>
 <td>$callerid &nbsp;</td>
@@ -665,10 +701,11 @@ function update_box_time($data,$months='') {
 	return <<<HTML
 $top
 $table
-<tr><td><b>Box:</b></td><td><a href="admin.php?form=Search&search=$box">$box</a></td></tr>
+<tr><td><b>Box:</b></td><td><a href="admin.php?form=Search Boxes&search=$box">$box</a></td></tr>
 <tr><td><b>Paid to:</b></td><td>$paidto</td></tr>
 <tr><td colspan=2 align=right>
-<a href="index.php?box=$box&seccode={$bdata['seccode']}&amount=$amount" target=_blank>receipt / instructions</a>
+<a href="index.php?box=$box&seccode={$bdata['seccode']}&amount=$amount&llphone={$bdata['llphone']}" 
+   target=_blank>receipt / instructions</a>
 </td></tr>
 </table>
 $end;
@@ -687,13 +724,65 @@ function update_personal($data) {
 	return <<<HTML
 $top
 $table
-<tr><td><b>Box:</b></td><td><a href="admin.php?form=Search&search=$box">$box</a></td></tr>
+<tr><td><b>Box:</b></td><td><a href="admin.php?form=Search Boxes&search=$box">$box</a></td></tr>
 <tr><td><b>Name:</b></td><td>{$bdata['name']}</td></tr>
 <tr><td><b>Email:</b></td><td>{$bdata['email']}</td></tr>
 <tr><td><b>Notes:</b></td><td>{$bdata['notes']}</td></tr>
 </table>
 $end
 
+HTML;
+}
+
+function find_calls_form($data) {
+	$date = $_REQUEST['date'];
+	if (!preg_match('#^\d{4}-\d{2}-\d{2}$#',$date)) 
+		$date = date('Y-m-d');
+	$calls = ll_calls_by_date($data['vid'],$date);
+	$numcalls = count($calls);
+	$top = form_top($data);
+	$end = form_end($data);
+	if ($numcalls == 0) {
+		$callhtml = "<h4>No call events for $date</h4>";
+	} else {
+		if ($numcalls == 1) $s = '';
+		else $s = 's';
+		$title = "<h4>$numcalls call event$s for $date</h4>";
+		$callhtml = formatcallhtml($title, $calls);
+	}
+	$datesel = datesel($data['vid'],$date,'ll_calldates');
+	return <<<HTML
+$top
+$datesel <input type=submit name=form value="View call events">
+<p>
+$callhtml
+$end
+HTML;
+}
+
+function find_payments_form($data) {
+	$date = $_REQUEST['date'];
+	if (!preg_match('#^\d{4}-\d{2}-\d{2}$#',$date)) 
+		$date = date('Y-m-d');
+	$payments = ll_payments_by_date($data['vid'],$date);
+	$numpayments = count($payments);
+	$top = form_top($data);
+	$end = form_end($data);
+	if ($numpayments == 0) {
+		$paymentlist = "<h4>No payments for $date</h4>";
+	} else {
+		if ($numpayments == 1) $s = '';
+		else $s = 's';
+		$title = "<h4>$numpayments payment$s for $date</h4>";
+		$paymentlist = formatpaymentlist($title, $payments);
+	}
+	$datesel = datesel($data['vid'],$date,'ll_paymentdates');
+	return <<<HTML
+$top
+$datesel <input type=submit name=form value="View payments">
+<p>
+$paymentlist
+$end
 HTML;
 }
 
@@ -729,10 +818,10 @@ function search_form($data) {
 <form action=admin.php method=get>
 <input name="search" value="$search">
 <input type=hidden name="vid" value="{$data['vid']}">
-<input type=submit name=form value="Search">
+<input type=submit name=form value="Search Boxes">
 <br>
 Boxes: &nbsp;
-<a href="admin.php?form=Search&search=add [0-9]* months&vid={$data['vid']}">Show unused</a> &nbsp;&nbsp;
+<a href="admin.php?form=Search Boxes&search=add [0-9]* months&vid={$data['vid']}">Show unused</a> &nbsp;&nbsp;
 <a href="admin.php?form=View your voicemail boxes&vid={$data['vid']}">Show all</a>
 </form>
 HTML;
@@ -760,7 +849,10 @@ HTML;
 	foreach ($boxes as $row) {
 		$box = $row['box'];
 		$paidto = preg_match('#(0000-00-00|^\s*$)#', $row['paidto']) ? $row['status'] : $row['paidto'];
-		$instr = "<a href=\"index.php?box=$box&seccode={$row['seccode']}\">instructions</a>";
+		$instr = <<<HTML
+<a href="index.php?box=$box&seccode={$row['seccode']}&llphone={$row['llphone']}"
+   target=_blank>instructions</a>
+HTML;
 		if ($permcheck['boxes']) {
 			$add = "$url$box&form=add\">add time</a>";
 			$sub = "$url$box&form=sub\">subtract time</a>";

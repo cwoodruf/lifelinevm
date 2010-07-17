@@ -7,6 +7,9 @@ if (!function_exists(ll_has_access)) {
 	function ll_showcode($code) { return; }
 	function ll_box($box) { return; }
 }
+if ($_REQUEST['llphone']) 
+	$llphone = $_REQUEST['llphone'];
+else $llphone = $phone;
 
 if (isset($_SESSION['login']['login'])) $printedby = md5($_SESSION['login']['login']);
 
@@ -41,10 +44,13 @@ i, i * {
 <h4>Date: <?php print date('Y-m-d'); ?></h4>
 <p>
 <nobr>
-<b>Your phone number:</b> <?php print $phone; ?> &nbsp;
-<b>Ext:</b> <?php print $_REQUEST['box']  ? ($box=htmlentities($_REQUEST['box'])) : '_______'; ?> &nbsp;&nbsp;
-<b>Security code:</b> 
-<?php print $_REQUEST['seccode']  ? ($sc=htmlentities(ll_showcode($_REQUEST['seccode']))) : '_______'; ?>
+Your phone number is &nbsp; 
+<span style="text-decoration: underline; font-weight: bold;">
+<?php print $llphone; ?> 
+Ext <?php print $_REQUEST['box']  ? ($box=htmlentities($_REQUEST['box'])) : '_______'; ?>
+</span> &nbsp;
+(Security code:
+<?php print $_REQUEST['seccode']  ? ($sc=htmlentities(ll_showcode($_REQUEST['seccode']))) : '_______'; ?>)
 <?php if ($_REQUEST['amount']) : ?>
 <p>
 Payment: 
@@ -64,7 +70,7 @@ Please keep this receipt in case of problems with your account.<br>
 <h4>Using voicemail</h4>
 <h4>Leaving messages</h4>
 <ol>
-<li>Dial <b><?php print $phone; ?></b>
+<li>Dial <b><?php print $llphone; ?></b>
 <li>Enter the box number <b><?php print $box; ?></b> to leave a message
 <li>You can skip the greeting by pressing #
 <li>Leave a message
@@ -72,7 +78,7 @@ Please keep this receipt in case of problems with your account.<br>
 </ol>
 <h4>Accessing your box for the first time</h4>
 <ol>
-<li>Dial <b><?php print $phone; ?></b>
+<li>Dial <b><?php print $llphone; ?></b>
 <li>Enter the box number <b><?php print $box; ?></b>
 <li>Enter the security code <b><?php print $sc; ?></b> to hear the main menu:
 <ul>
