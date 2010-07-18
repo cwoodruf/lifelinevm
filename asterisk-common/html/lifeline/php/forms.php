@@ -590,7 +590,9 @@ HTML;
 	foreach ($calls as $call) {
 		if ($call['action'] == 'll-flagmsg.pl') $calltype = 'message left';
 		else if ($call['action'] == 'll-login.pl') $calltype = "login: status {$call['status']}";
-		else $calltype = $call['action'];
+		else if ($call['action'] == 'll-saveseccode.pl') 
+			$calltype = "change security code";
+		else $calltype = $call['action']." ".$call['status'];
 		$vendlink = vendlink($call['vid']);
 		$callerid = htmlentities($call['callerid']);
 		$i++;
