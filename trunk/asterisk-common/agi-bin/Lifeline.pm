@@ -229,7 +229,7 @@ sub save_seccode {
 	$ll->{err} = "security code isn't a 4 digit number!" and return unless $seccode1 =~ /^\d{4}$/;
 	$ll->{err} = "security codes don't match!" and return if $seccode1 ne $seccode2;
 	my $upd = $ll->{db}->prepare("update boxes set seccode=md5(?) where box=?");
-	$upd->execute($seccode1,$ll->{box}) or ($ll->{err} = $upd->errstr and return 0);
+	$upd->execute($seccode1.$salt,$ll->{box}) or ($ll->{err} = $upd->errstr and return 0);
 	1;
 }
 
