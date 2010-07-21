@@ -325,7 +325,7 @@ function ll_logincount($vid) {
 function ll_find_boxes($vend,$search) {
 	$lldb = ll_connect();
 	# $where = " and status <> 'deleted' and (";
-	$where = " and (";
+	$where = " where (vid='$vend' or parent regexp '(^|:)$vend(:|$)') and (";
 	if (empty($search)) {
 		$where .= "1=1";
 	} else {
@@ -336,7 +336,7 @@ function ll_find_boxes($vend,$search) {
 		$where .= implode(' or ',$wheres);
 	}
 	$where .= ") order by box";
-	return ll_load_from_table('boxes','vid',$vend,true,$where);
+	return ll_load_from_table('ourboxes',null,null,true,$where);
 }
 
 function ll_check_months($vend,$months) {
@@ -870,7 +870,17 @@ function ll_load_from_table($table,$name,$key='',$return_all=true,$query_end='',
 		}
 		$what = implode(' and ', $whats);
 		$query = "select * from $table where $what $query_end";
-	} else $query = "select * from $table where $name='$key' $query_end";
+	} else if (empty($name)) {
+		$query = "select * from $table where $query_end";
+	} else {
+		$query = "select * from $table where $name='$key' $query_end";
+	}
+/*
+print $query."<br>\n";
+print "<pre>\n";
+print print_r($data);
+print "</pre>\n";
+*/
 	if (!$refresh and $seen[$query]) return $seen[$query];
 
 	$st = $lldb->query($query);
@@ -887,12 +897,6 @@ function ll_load_from_table($table,$name,$key='',$return_all=true,$query_end='',
 			}
 		}
 	}
-/*
-print $query."<br>\n";
-print "<pre>\n";
-print print_r($data);
-print "</pre>\n";
-*/
 	if (!is_array($data)) return false;
 	$seen[$query] = $data;
 	return $data;
@@ -903,7 +907,6 @@ function ll_pw_data($login) {
 	$query = "select users.vid,password,vendor,perms from users,vendors ".
                 "where users.vid=vendors.vid and vendors.status not in ('deleted') and vendors.vid <> 0 ".
                 "and login=".$lldb->quote($login);
-print "$query<br>\n";
         $st = $lldb->query($query);
         if ($st === false) {
                 die(ll_err($query));
