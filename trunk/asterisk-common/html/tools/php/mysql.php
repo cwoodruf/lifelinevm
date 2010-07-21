@@ -36,7 +36,13 @@ function ll_connect () {
 	try {
 		$lldb = new PDO("mysql:dbname=$ll_dbname;host=$ll_host",$ll_login,$ll_password);
 	} catch (Exception $e) {
-		die("ll_connect failed: ".$e->getMessage());
+		# if the login fails try localhost
+		try {
+			print "ll_connect error: using localhost!<br>\n";
+			$lldb = new PDO("mysql:dbname=$ll_dbname;host=localhost",$ll_login,$ll_password);
+		} catch (Exception $e) {
+			die("ll_connect failed: ".$e->getMessage());
+		}
 	}
 	return $lldb;
 }
@@ -894,10 +900,11 @@ print "</pre>\n";
 
 function ll_pw_data($login) {
         $lldb = ll_connect();
-        $st = $lldb->query("select users.vid,password,vendor,perms from users,vendors ".
-		"where users.vid=vendors.vid and vendors.status not in ('deleted') and vendors.vid <> 0 ".
-		"and login=".$lldb->quote($login)
-	);
+	$query = "select users.vid,password,vendor,perms from users,vendors ".
+                "where users.vid=vendors.vid and vendors.status not in ('deleted') and vendors.vid <> 0 ".
+                "and login=".$lldb->quote($login);
+print "$query<br>\n";
+        $st = $lldb->query($query);
         if ($st === false) {
                 die(ll_err($query));
         } else {
