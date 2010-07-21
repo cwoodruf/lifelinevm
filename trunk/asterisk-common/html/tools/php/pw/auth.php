@@ -20,7 +20,11 @@ function authenticate($app,$callback) {
 	$password = $_POST[password];
 	if ($password == '' or strlen($password) > 50) return;
 	$password = md5($password);
-	$ldata = $callback($login);
+	if (function_exists($callback)) {
+		$ldata = $callback($login);
+	} else {
+		return;
+	}
 	if ($ldata['password'] === $password or $ldata['alt_password'] === $password) {
 		$ldata = save_login($login,$app,$ldata);
 		return $ldata;
@@ -30,6 +34,7 @@ function authenticate($app,$callback) {
 
 function delete_login() {
 	unset($_SESSION['login']);
+	unset($_COOKIE['from']);
 }
 
 function save_login($this_login,$this_app,$ldata) {
