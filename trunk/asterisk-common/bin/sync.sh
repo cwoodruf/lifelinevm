@@ -4,7 +4,7 @@ if [ $HOSTNAME != aifl89.ath.cx ] ; then
 	/usr/bin/ssh asterisk@aifl.ath.cx '/usr/local/asterisk/bin/sync.sh'
 fi
 echo start rsync `/bin/date`
-/usr/bin/rsync --delete -rcvt asterisk@lifelinevm.net:/usr/local/asterisk/html/ /usr/local/asterisk/html
+/usr/bin/rsync --delete -rcvt --exclude='*.mysql.php' asterisk@lifelinevm.net:/usr/local/asterisk/html/ /usr/local/asterisk/html
 /usr/bin/rsync --delete -rcvt asterisk@lifelinevm.net:/usr/local/asterisk/paycode/ /usr/local/asterisk/paycode
 /usr/bin/rsync --delete -rcvt asterisk@lifelinevm.net:/usr/local/asterisk/agi-bin/ /usr/local/asterisk/agi-bin
 /usr/bin/rsync -rcvt asterisk@lifelinevm.net:/usr/local/asterisk/bin/ /usr/local/asterisk/bin
