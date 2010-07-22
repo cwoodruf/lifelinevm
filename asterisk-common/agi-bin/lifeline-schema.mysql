@@ -37,6 +37,7 @@ CREATE TABLE `boxes` (
   `created` timestamp NOT NULL default CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP,
   `modified` timestamp NOT NULL default '0000-00-00 00:00:00',
   `trans` varchar(32) default NULL,
+  `llphone` varchar(32) default NULL,
   PRIMARY KEY  (`box`)
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1;
 SET character_set_client = @saved_cs_client;
@@ -131,6 +132,33 @@ CREATE TABLE `numrange` (
   `i` int(11) default NULL
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1;
 SET character_set_client = @saved_cs_client;
+
+--
+-- Temporary table structure for view `ourboxes`
+--
+
+DROP TABLE IF EXISTS `ourboxes`;
+/*!50001 DROP VIEW IF EXISTS `ourboxes`*/;
+/*!50001 CREATE TABLE `ourboxes` (
+  `box` varchar(32),
+  `name` varchar(64),
+  `notes` text,
+  `seccode` varchar(32),
+  `email` varchar(64),
+  `paidto` date,
+  `inuse` int(11),
+  `new_msgs` int(11),
+  `status` varchar(32),
+  `vid` int(11),
+  `login` varchar(32),
+  `created` timestamp,
+  `modified` timestamp,
+  `trans` varchar(32),
+  `llphone` varchar(32),
+  `parent` text,
+  `vendor` varchar(128),
+  `months` int(11)
+) ENGINE=MyISAM */;
 
 --
 -- Table structure for table `paycode`
@@ -263,6 +291,7 @@ CREATE TABLE `vendors` (
   `credit_limit` float default NULL,
   `status` varchar(32) default '',
   `notes` text,
+  `llphone` varchar(32) default NULL,
   PRIMARY KEY  (`vid`)
 ) ENGINE=MyISAM AUTO_INCREMENT=6962 DEFAULT CHARSET=latin1;
 SET character_set_client = @saved_cs_client;
@@ -295,6 +324,16 @@ CREATE TABLE `vendors_20100615` (
   `notes` text
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1;
 SET character_set_client = @saved_cs_client;
+
+--
+-- Final view structure for view `ourboxes`
+--
+
+/*!50001 DROP TABLE `ourboxes`*/;
+/*!50001 DROP VIEW IF EXISTS `ourboxes`*/;
+/*!50001 CREATE ALGORITHM=UNDEFINED */
+/*!50013 DEFINER=`cal`@`localhost` SQL SECURITY DEFINER */
+/*!50001 VIEW `ourboxes` AS select `boxes`.`box` AS `box`,`boxes`.`name` AS `name`,`boxes`.`notes` AS `notes`,`boxes`.`seccode` AS `seccode`,`boxes`.`email` AS `email`,`boxes`.`paidto` AS `paidto`,`boxes`.`inuse` AS `inuse`,`boxes`.`new_msgs` AS `new_msgs`,`boxes`.`status` AS `status`,`boxes`.`vid` AS `vid`,`boxes`.`login` AS `login`,`boxes`.`created` AS `created`,`boxes`.`modified` AS `modified`,`boxes`.`trans` AS `trans`,`boxes`.`llphone` AS `llphone`,`vendors`.`parent` AS `parent`,`vendors`.`vendor` AS `vendor`,`vendors`.`months` AS `months` from (`boxes` join `vendors` on((`boxes`.`vid` = `vendors`.`vid`))) */;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
@@ -305,4 +344,4 @@ SET character_set_client = @saved_cs_client;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2010-07-17  2:20:35
+-- Dump completed on 2010-07-22 12:16:42
