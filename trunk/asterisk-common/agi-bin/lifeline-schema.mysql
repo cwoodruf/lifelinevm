@@ -38,6 +38,7 @@ CREATE TABLE `boxes` (
   `modified` timestamp NOT NULL default '0000-00-00 00:00:00',
   `trans` varchar(32) default NULL,
   `llphone` varchar(32) default NULL,
+  `announcement` int(11) default '1',
   PRIMARY KEY  (`box`)
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1;
 SET character_set_client = @saved_cs_client;
@@ -288,12 +289,12 @@ CREATE TABLE `vendors` (
   `all_months` int(11) default '0',
   `pst_number` varchar(128) default NULL,
   `gst_number` varchar(128) default NULL,
-  `credit_limit` float default NULL,
+  `credit_limit` float default '-1',
   `status` varchar(32) default '',
   `notes` text,
   `llphone` varchar(32) default NULL,
   PRIMARY KEY  (`vid`)
-) ENGINE=MyISAM AUTO_INCREMENT=6962 DEFAULT CHARSET=latin1;
+) ENGINE=MyISAM AUTO_INCREMENT=6963 DEFAULT CHARSET=latin1;
 SET character_set_client = @saved_cs_client;
 
 --
@@ -344,4 +345,4 @@ SET character_set_client = @saved_cs_client;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2010-07-22 12:16:42
+-- Dump completed on 2010-07-23 14:26:26
