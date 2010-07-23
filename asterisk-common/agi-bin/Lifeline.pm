@@ -103,7 +103,8 @@ sub init {
 	END { $ll->{db}->disconnect if defined $ll->{db} }
 
 	my $exists = $ll->{db}->selectrow_arrayref(
-		"select seccode,UNIX_TIMESTAMP(paidto),new_msgs,email,status,vid from boxes where box='$ll->{box}' ".
+		"select seccode,UNIX_TIMESTAMP(paidto),new_msgs,email,status,vid,announcement ".
+		"from boxes where box='$ll->{box}' ".
 		"and status not in ('deleted')"
 	);
 	if ('ARRAY' eq (ref $exists)) {
@@ -114,6 +115,7 @@ sub init {
 		$ll->{email} = $exists->[3];
 		$ll->{status} = $exists->[4];
 		$ll->{vid} = $exists->[5];
+		$ll->{announcement} = $exists->[6];
 		if ($ll->{paidto} == 0 and $ll->{status} =~ /add (\d\d?) month/) {
 			my $months = $1;
 			$ll->{paidto} = $ll->mkpaidto($months);
@@ -153,6 +155,7 @@ sub dialplan_export {
 	$ll->set('paidto',$ll->{paidto});
 	$ll->set('md5_seccode',$ll->{md5_seccode});
 	$ll->set('new_msgs',$ll->{new_msgs});
+	$ll->set('announcement',$ll->{announcement});
 	$ll;
 }
 
@@ -410,6 +413,25 @@ sub clean_up_msgs {
 		}
 	}
 }
+
+sub setflag {
+	my $ll = shift;
+	my %flags = (announcement => 1, new_msgs => 1);
+
+	my $box = shift;
+	return unless $box =~ /\w/;
+	$box = $ll->{db}->quote($box);
+
+	my $flag = shift;
+	return unless $flags{$flag}; 
+
+	my $value = shift;
+	my $true = $ll->{db}->quote($value);
+	my $query = "update boxes set $flag=$true where box=$box";
+
+	$ll->{db}->do($query);
+}
+
 
 sub play_msg_count {
 	my $ll = shift;
