@@ -385,7 +385,7 @@ $loginlink /
 </td>
 <td width=200>
 <nobr>
-<a href="admin.php?form=View your voicemail boxes&vid=$vid">$boxcount box$es</a>
+<a href="admin.php?form=View your voicemail boxes&vid=$vid&showkids=0">$boxcount box$es</a>
 (<a href="$make?action=transfer_box&from=$from&vid=$vid">transfer box</a>) $div
 </nobr>
 </td>

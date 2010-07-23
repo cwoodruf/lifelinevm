@@ -35,6 +35,7 @@ function authenticate($app,$callback) {
 function delete_login() {
 	unset($_SESSION['login']);
 	unset($_COOKIE['from']);
+	setcookie('from',null,mktime(0,0,0,1,1,1970));
 }
 
 function save_login($this_login,$this_app,$ldata) {

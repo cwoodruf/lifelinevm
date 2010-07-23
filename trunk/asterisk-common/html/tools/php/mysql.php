@@ -644,7 +644,8 @@ function ll_update_seccode($vend,$box,$seccode) {
 function ll_delete_box($vend,$box) {
 	ll_check_box($box);
 	$bdata = ll_load_from_table('boxes','box',$box,false);
-	if ($bdata['vid'] !== $vend['vid']) 
+	$bvend = ll_vendor($bdata['vid']);
+	if (!ll_has_access($vend,$bvend)) 
 		die("Box $box does not belong to vendor ".$vend['vendor']."! Please contact us.");
 	$lldb = ll_connect();
 
