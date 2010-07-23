@@ -1,5 +1,7 @@
 #!/bin/sh
 # these are especially loud prompts that should needed to be fixed
+cp ll-en-nomsgs.gsm /usr/local/asterisk/var/lib/asterisk/sounds
+cp ll-en-nomsgs.gsm ../../../../asterisk-common/sounds
 cp ll-en-recgrt.gsm /usr/local/asterisk/var/lib/asterisk/sounds
 cp ll-en-recgrt.gsm ../../../../asterisk-common/sounds 
 cp ll-en-greeting.gsm /usr/local/asterisk/var/lib/asterisk/sounds
