@@ -811,7 +811,8 @@ function find_boxes_form($data,$boxes=null) {
 	global $table;
 	$top = form_top($data); 
 	$end = form_end($data);
-	if (!is_array($boxes)) $boxes = ll_boxes($data,($showkids=true),'not_deleted','order by box');
+	$showkids = $_REQUEST['showkids'] ? true : false;
+	if (!is_array($boxes)) $boxes = ll_boxes($data,$showkids,'not_deleted','order by box');
 	$truncdate = '#-\d+(?:| .*)$#';
 	$html = <<<HTML
 $top
@@ -843,7 +844,8 @@ function search_form($data) {
 <br>
 Boxes: &nbsp;
 <a href="admin.php?form=Search Boxes&search=add [0-9]* months&vid={$data['vid']}">Show unused</a> &nbsp;&nbsp;
-<a href="admin.php?form=View your voicemail boxes&vid={$data['vid']}">Show all</a>
+<a href="admin.php?form=View your voicemail boxes&vid={$data['vid']}">Show all</a> &nbsp;&nbsp;
+<a href="admin.php?form=Search Boxes&search=deleted&vid={$data['vid']}">Show deleted</a> &nbsp;&nbsp;
 </form>
 HTML;
 
