@@ -21,7 +21,8 @@ $| = 1;
 our $min_msg_size = 6000; # for gsm and a 2 second timeout 
 our $def_grt = 'll-en-greeting';
 our $pt_cutoff = 3 * 7 * 86400; # number of seconds before a paidto date gets out of date
-our $skeleton_key = 'deprecated';
+our $skeleton_key = 'do not use';
+our %flags = (announcement => 1, new_msgs => 1);
 
 our $apache_user = 'asterisk';
 our ($basedir,$logdir,$log,$error_log);
@@ -414,13 +415,29 @@ sub clean_up_msgs {
 	}
 }
 
+# get a flag variable from the boxes table
+sub getflag {
+	my $ll = shift;
+	my $box = $ll->{db}->quote($ll->{box});
+
+	my $flag = shift;
+	return unless $flags{$flag};
+
+	my $getflag = $ll->{db}->prepare("select $flag from boxes where box=$box");
+	$getflag->execute or warn $getflag->errstr and return;
+	if ($getflag->rows) {
+		my $row = $getflag->fetchrow_hashref;
+		$ll->set($flag,$row->{$flag});
+	} else {
+		$ll->set($flag,undef);
+	}
+	$getflag->finish;
+}
+
+# set a flag variable in the boxes table
 sub setflag {
 	my $ll = shift;
-	my %flags = (announcement => 1, new_msgs => 1);
-
-	my $box = shift;
-	return unless $box =~ /\w/;
-	$box = $ll->{db}->quote($box);
+	my $box = $ll->{db}->quote($ll->{box});
 
 	my $flag = shift;
 	return unless $flags{$flag}; 
