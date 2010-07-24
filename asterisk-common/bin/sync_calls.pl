@@ -51,6 +51,7 @@ foreach (@Lifeline::DB::foreign) {
 	if (defined $lastsync) {
 		$getq .= " where call_time > '$lastsync'";
 	}
+print "$getq\n";
 	my $get = $dbh->prepare($getq);
 	$get->execute or die $get->errstr;
 	while (my $row = $get->fetchrow_hashref) {
