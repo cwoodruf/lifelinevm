@@ -12,10 +12,11 @@ function table_header($cp=5,$cs=0,$b=0,$w=400,$style='') {
 
 function head() {
 	global $form;
+	$title = empty($form) ? "main page" : $form;
 	return <<<HTML
 <html>
 <head>
-<title>Voicemail Admin: $form</title>
+<title>Voicemail Admin: $title</title>
 <link rel=stylesheet type=text/css href=/lifeline/css/admin.css>
 </head>
 <body bgcolor=lightyellow>
@@ -255,7 +256,7 @@ function create_new_box($data) {
 	global $ldata, $phone;
 	$vend = ll_vendor($data['vid']);
 	$trans = ll_valid_trans($_REQUEST['trans']);
-	ll_delete_trans($vend,$trans);
+	ll_delete_trans($vend,$trans,'new');
 
 	$boxes = $_REQUEST['boxes'];
 	if (!preg_match('#^\d\d?$#',$boxes) or $boxes <= 0) die("create_new_box: invalid number of boxes");
@@ -331,7 +332,7 @@ function show_boxes($data,$boxlist) {
 	
 	$html = <<<HTML
 $top
-<h4>Your new voice mail boxes</h4>
+<h4>Voice mail boxes</h4>
 <i>If you use <a href="http://mozilla.com">Firefox</a> 
 you may find <a href="http://dafizilla.sourceforge.net/table2clip/">Table2Clipboard</a>
 helpful for copying this information into a spreadsheet</i>
@@ -358,7 +359,15 @@ HTML;
 		$amount = $bdata['amount'] > 0 ? sprintf('%.2f',$bdata['amount']) : "";
 		$notes = $bdata['name'].'&nbsp;'.$bdata['email'].' '.$bdata['notes'];
 
-		$html .= "<tr><th>$box</th><th>$seccode</th><th>$months</th><th>$amount</th><th>$notes</th></tr>\n";
+		$html .= <<<HTML
+<tr>
+<th><a href="admin.php?form=Search Boxes&search=$box">$box</a></th>
+<th>$seccode</th>
+<th>$months</th>
+<th>$amount</th>
+<th>$notes</th>
+</tr>
+HTML;
 	}
 	$html .= "</table>\n$end";
 	return $html;
@@ -415,6 +424,7 @@ function update_box_form($data,$action="Add time to box") {
 	global $form;
 	global $table;
 	$form = $action;
+	$submittype = 'action';
 	$box = $_REQUEST['box'];
 	if (preg_match('#^\d+$#',$box)) $bdata = ll_box($box);
 	if (preg_match('#^\d#',$bdata['paidto'])) {
@@ -444,9 +454,10 @@ HTML;
 				if ($monthsleft <= 0) 
 					return "$top<h3>Box $box has less than one month left on its subscription.</h3>$end";
 			}
+			$trans = ll_generate_trans($vend,'boxes');
 		} else {
 			$months = 1;
-			$payment_form = payment_form($box)."<br>\n";
+			$submittype = 'form';
 		}
 		if (!$month_input and $vend['months'] > 0) {
 			if ($vend['months'] < MAXMONTHS) $maxmonths = $vend['months'];
@@ -455,7 +466,6 @@ HTML;
 Months: <input size=3 name=months value=$months> (up to $maxmonths months)
 HTML;
 		}
-		$trans = ll_generate_trans($vend,'boxes');
 	}
 	return <<<HTML
 $top
@@ -467,8 +477,7 @@ $month_input
 $edit_input
 </div>
 <br>
-$payment_form
-<input type=submit name=action value="$action" class=action>
+<input type=submit name=$submittype value="$action" class=action>
 $end
 HTML;
 }
@@ -700,30 +709,102 @@ Security code for box $box updated to $seccode.
 $end
 HTML;
 }
+function confirm_update_box_time($data,$months='') {
+	global $table,$ldata;
+
+	$box = $_REQUEST['box'];
+	if (empty($box)) die("need a box number!");
+
+	if ($months === '') $months = $_REQUEST['months'];
+	if (empty($months)) die("need a number of months!");
+
+	$vend = ll_vendor($data['vid']);
+	$vend = ll_vendor($data['vid'],true);
+
+	$bdata = ll_box($box);
+	if (empty($bdata)) die("box $box does not exist!");
+
+	$boxupdate = ll_check_time($vend,$box,$months);
+	$trans = ll_generate_trans($vend,'boxes');
+
+	$top = form_top($data); 
+	$end = form_end($data);
+	$payment_form = payment_form($box);
+	if ($bdata['vid'] != $vend['vid']) {
+		$original = 'Original ';
+		# if we are the parent don't do anything otherwise change the vendor id
+		if (!ll_isparent($vend['vid'], $bdata)) {
+			$newvendfield = <<<HTML
+<tr>
+<td><b>New Vendor:</b></td>
+<td>
+<u>{$vend['vendor']}</u>
+</td>
+</tr>
+HTML;
+		}
+	}
+
+	return <<<HTML
+$top
+<input type=hidden name=trans value="$trans">
+<table cellpadding=3 cellspacing=0 border=0>
+<tr><td><b>Box:</b></td><td><input type=hidden name=box value="$box"><b>$box</b></td></tr>
+<tr><td><b>Months:</b></td><td><input type=hidden name=months value="$months"><b>$months</b></td></tr>
+<tr><td><b>{$original}Vendor:</b></td><td>{$bdata['vendor']}</td></tr>
+$newvendfield
+<tr><td><b>Name:</b></td><td>{$bdata['name']}</td></tr>
+<tr><td><b>Email:</b></td><td>{$bdata['email']}</td></tr>
+<tr><td><b>Notes:</b></td><td>{$bdata['notes']}</td></tr>
+<tr><td><b>Paid to:</b></td><td>{$bdata['paidto']}</td></tr>
+<tr><td><b>Status:</b></td><td>{$bdata['status']}</td></tr>
+</table>
+$payment_form
+<br>
+<input type=submit name=action value="Really add time for this box?" class=action>
+$end
+HTML;
+}
 
 function update_box_time($data,$months='') {
 	global $table,$ldata;
 	$vend = ll_vendor($data['vid']);
-	ll_delete_trans($vend,$_REQUEST['trans']);
 	if ($months === '') $months = $_REQUEST['months'];
+
 	$box = $_REQUEST['box'];
-	$vend = ll_vendor($data['vid'],true);
-	$top = form_top($data); 
-	$end = form_end($data);
+	ll_delete_trans($vend,$_REQUEST['trans'],$box);
+
 	$bdata = ll_box($box);
+	if (empty($bdata)) die("box $box can't be updated because it doesn't exist!");
+
 	$amount = ll_update_payment($box,$data['vid'],$ldata['login'],$months,$_REQUEST['payment']);
 
-	if ($months != 0) {
-		$paidto = ll_add_time($vend,$box,$months);
+	if ($bdata['vid'] != $vend['vid']) {
+		# if we are the parent don't do anything otherwise change the vendor id
+		if (ll_isparent($vend['vid'], $bdata)) {
+			$vid = $bdata['vid'];
+		} else {
+			$vid = $vend['vid'];
+		}
 	} else {
-		$paidto = $bdata['paidto'].' '.$bdata['status'];
+		$vid = $vend['vid'];
+	}
+
+	if ($months != 0) {
+		$paidto = ll_add_time($vid,$box,$months);
+		$bdata = ll_box($box,true);
+		$vend = ll_vendor($data['vid'],true);
 	}
 		
+	$top = form_top($data); 
+	$end = form_end($data);
 	return <<<HTML
 $top
 $table
 <tr><td><b>Box:</b></td><td><a href="admin.php?form=Search Boxes&search=$box">$box</a></td></tr>
 <tr><td><b>Paid to:</b></td><td>$paidto</td></tr>
+<tr><td><b>Status:</b></td><td>{$bdata['status']}</td></tr>
+<tr><td><b>Vendor:</b></td><td>{$bdata['vendor']}</td></tr>
 <tr><td colspan=2 align=right>
 <a href="index.php?box=$box&seccode={$bdata['seccode']}&amount=$amount&llphone={$bdata['llphone']}" 
    target=_blank>receipt / instructions</a>
@@ -1183,7 +1264,11 @@ function view_transaction($ldata,$trans) {
 	$tdata = ll_load_from_table('transactions','trans',$trans,$false);
 	if (!ll_has_access($ldata,$tdata)) die("you do not have access to this transaction!");
 
-	if ($tdata['table_name'] == 'boxes') {
+	if ($tdata['box']) {
+		$boxes[] = ll_box($tdata['box']);
+		return show_boxes($ldata,$boxes);
+
+	} else if ($tdata['table_name'] == 'boxes') {
 		$boxes = ll_load_from_table('boxes','trans',$trans);
 		return show_boxes($ldata,$boxes);
 
