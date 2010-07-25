@@ -63,11 +63,12 @@ HTML;
 
 function form_end($data) {
 	global $adminfo;
-	$uptime = get_uptime();
+	$uptime = preg_replace('#,?\s*\d+ seconds.*#','',get_uptime());
 	return <<<HTML
 </form>
 <p>
 <span class="support">
+We are on twitter: <a class="support" href="http://twitter.com/lifelinevm">lifelinevm</a>
 The Lifeline voice mail system is powered by <a class="support" href="http://asterisk.org/">Asterisk</a>. 
 $uptime.
 $adminfo
