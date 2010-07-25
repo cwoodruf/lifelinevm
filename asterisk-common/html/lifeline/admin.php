@@ -30,6 +30,7 @@ if (!ll_has_access($ldata['vid'],$vdata)) {
 # something wonky happened as we can't find this vendor
 if ($vdata == null or !is_array($vdata)) {
 	delete_login();
+	die("missing vendor: aborting!");
 }
 
 $ldata = array_merge($ldata,$vdata);
