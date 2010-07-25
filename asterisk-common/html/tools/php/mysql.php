@@ -1,11 +1,7 @@
 <?php # mysql related php "middleware"
 # $Id: mysql.php,v 1.14 2008/10/26 04:59:15 root Exp root $
-require_once("$lib/.mysql.php");
-eval(file_get_contents("/usr/local/asterisk/agi-bin/Lifeline/salt"));
-define("DELBOXAFTER",90);
-define("DAY",86400);
-define("MINBOX",1000);
-define("MAXBOX",9999);
+require_once(DBLOGINFILE); 
+eval(file_get_contents(SALTFILE)); 
 
 ###############################################################################
 # lifeline section
@@ -59,7 +55,7 @@ function ll_vendor($vid,$refresh=false) {
 	global $vend;
 	if (!preg_match('#^\d+$#',$vid)) return;
 	if (isset($vend) and $vend['vid'] === $vid and !$refresh) return $vend;
-	$vend = ll_load_from_table('vendors','vid',$vid,false);
+	$vend = ll_load_from_table('vendors','vid',$vid,false,'',$refresh);
 	if ($vend === false) return false;
 	$vend['unpaid_months'] = ll_get_unpaid_months($vid);
 	return $vend;
@@ -138,7 +134,8 @@ function ll_vendors($vid) {
 	$lldb = ll_connect();
 	if (!preg_match('#^\d*#',$vid)) die("invalid vendor id!");
 	if ($vid > 0) {
-		$getvendors = " and (vid='$vid' or parent regexp '(^|:)$vid(:|$)') ";
+		$pat = ll_parentpat($vid);
+		$getvendors = " and (vid='$vid' or parent regexp '$pat') ";
 	}
 	$query = "select * from vendors where status not in ('deleted') $getvendors order by vendor";
 	$st = $lldb->query($query);
@@ -206,7 +203,7 @@ function ll_paycodeinfo($paycode) {
 }
 
 function ll_box($box,$refresh=false) {
-	if (ll_check_box($box,($die=false))) return ll_load_from_table('boxes','box',$box,false,'',$refresh);
+	if (ll_check_box($box,($die=false))) return ll_load_from_table('ourboxes','box',$box,false,'',$refresh);
 }
 
 function ll_calls($box,$limit=null) {
@@ -219,9 +216,10 @@ function ll_calls_by_date($vid,$date) {
 	$lldb = ll_connect();
 	if (!preg_match('#^\d+$#', $vid)) die("ll_calls_by_date: bad vendor id $vid!");
 	if (!preg_match('#^\d{4}-\d{2}-\d{2}$#', $date)) die("ll_calls_by_date: bad date $date!");
+	$pat = ll_parentpat($vid);
 	$query = "select calls.*,vendors.vendor,vendors.vid ".
 		"from calls join boxes on (calls.box=boxes.box) join vendors on (vendors.vid=boxes.vid) ".
-		"where (vendors.vid='$vid' or vendors.parent regexp '(^|:)$vid(:|$)') ".
+		"where (vendors.vid='$vid' or vendors.parent regexp '$pat') ".
 		"and call_time between '$date 00:00:00' and '$date 23:59:59' ".
 		"order by call_time desc";
 	$st = $lldb->query($query);
@@ -237,9 +235,10 @@ function ll_payments_by_date($vid,$date) {
 	$lldb = ll_connect();
 	if (!preg_match('#^\d+$#', $vid)) die("ll_payments_by_date: bad vendor id $vid!");
 	if (!preg_match('#^\d{4}-\d{2}-\d{2}$#', $date)) die("ll_payments_by_date: bad date $date!");
+	$pat = ll_parentpat($vid);
 	$query = "select payments.*,vendors.vendor,vendors.vid ".
 		"from payments join boxes on (payments.box=boxes.box) join vendors on (vendors.vid=boxes.vid) ".
-		"where (vendors.vid='$vid' or vendors.parent regexp '(^|:)$vid(:|$)') ".
+		"where (vendors.vid='$vid' or vendors.parent regexp '$pat') ".
 		"and paidon between '$date 00:00:00' and '$date 23:59:59' ".
 		"order by paidon desc";
 	$st = $lldb->query($query);
@@ -254,9 +253,10 @@ function ll_payments_by_date($vid,$date) {
 function ll_calldates($vid) {
 	$lldb = ll_connect();
 	if (!preg_match('#^\d+$#', $vid)) die("ll_calldates: bad vendor id $vid!");
+	$pat = ll_parentpat($vid);
 	$query = "select distinct date(call_time) as day ".
 		"from calls join boxes on (calls.box=boxes.box) join vendors on (vendors.vid=boxes.vid) ".
-		"where (vendors.vid='$vid' or vendors.parent regexp '(^|:)$vid(:|$)') ".
+		"where (vendors.vid='$vid' or vendors.parent regexp '$pat') ".
 		"order by day desc ";
 	$st = $lldb->query($query);
 	If ($st === false) die(ll_err());
@@ -270,9 +270,10 @@ function ll_calldates($vid) {
 function ll_paymentdates($vid) {
 	$lldb = ll_connect();
 	if (!preg_match('#^\d+$#', $vid)) die("ll_calldates: bad vendor id $vid!");
+	$pat = ll_parentpat($vid);
 	$query = "select distinct date(paidon) as day ".
 		"from payments join boxes on (payments.box=boxes.box) join vendors on (vendors.vid=boxes.vid) ".
-		"where (vendors.vid='$vid' or vendors.parent regexp '(^|:)$vid(:|$)') ".
+		"where (vendors.vid='$vid' or vendors.parent regexp '$pat') ".
 		"order by day desc ";
 	$st = $lldb->query($query);
 	If ($st === false) die(ll_err());
@@ -291,8 +292,9 @@ function ll_boxes($vend,$showkids=false,$status='not_deleted',$order = "order by
 	else $vid = $vend;
 	
 	if ($showkids) {
+		$path = ll_parentpat($vid);
 		$query = "select boxes.*,vendors.vendor from boxes join vendors on (boxes.vid=vendors.vid) ".
-			"where (boxes.vid=$vid or vendors.parent regexp '(^|:)$vid(:|$)') ".
+			"where (boxes.vid=$vid or vendors.parent regexp '$pat') ".
 			"$status $order";
 		$lldb = ll_connect();
 		$st = $lldb->query($query);
@@ -325,7 +327,8 @@ function ll_logincount($vid) {
 function ll_find_boxes($vend,$search) {
 	$lldb = ll_connect();
 	# $where = " and status <> 'deleted' and (";
-	$where = " where (vid='$vend' or parent regexp '(^|:)$vend(:|$)') and (";
+	$pat = ll_parentpat($vend);
+	$where = " where (vid='$vend' or parent regexp '$pat') and (";
 	if (empty($search)) {
 		$where .= "1=1";
 	} else {
@@ -527,6 +530,18 @@ function ll_showcode($seccode) {
 }
 
 function ll_add_time($vend,$box,$months) {
+	$udata = ll_check_time($vend,$box,$months);
+	if (!is_array($vend)) $vend = ll_vendor($vend);
+	if (ll_save_to_table('update','boxes',$udata,'box',$box)) {
+		ll_log($vend, array('oldpaidto'=>$bdata['paidto'],'newpaidto'=>$udata['paidto'],
+				'box'=>$box,'months'=>$months,'action'=>'add_time','login'=>$ldata['login']));
+		$vdata['months'] = $vend['months'] - $months;
+		if (ll_save_to_table('update','vendors',$vdata,'vid',$vend['vid'])) 
+			return $udata['paidto'];
+	}
+}
+
+function ll_check_time($vend,$box,$months) {
 	global $ldata;
 	global $pt_cutoff;
 	if (!is_array($vend)) $vend = ll_vendor($vend);
@@ -537,7 +552,7 @@ function ll_add_time($vend,$box,$months) {
 
 	ll_check_box($box);
 	ll_check_months($vend,$months);
-	$bdata = ll_load_from_table('boxes','box',$box,false);
+	$bdata = ll_box($box);
 
 	if ($bdata['status'] === 'deleted') $udata['status'] = ''; 
 	# if the box has never been used then there will be months in the status
@@ -549,36 +564,36 @@ function ll_add_time($vend,$box,$months) {
 
 	$udata['login'] = $ldata['login'];
 
-	if ($bdata['vid'] !== $vend['vid']) 
-		die("Box $box does not belong to vendor ".$vend['vendor']."! Please contact us.");
+	# if the box exists but has never been used
+	if (preg_match('#add (\d+) months#', $bdata['status'],$m)) {
+		$newmonths = $m[1] + $months;
+		if ($newmonths <= 0) die("invalid number of months: should be more than {$m[1]}!");
+		$udata['status'] = "add $newmonths months";
 
-	# if the box has no paidto date ...
-	if ($bdata['paidto'] == 0 and preg_match('#add (\d+) month#', $bdata['status'],$m)) {
-		$bdata['paidto'] = date('Y-m-d');
+	# if the box has no paidto date at all
+	} else if ($bdata['paidto'] == 0) {
+		if ($months < 0) die("invalid number of months: should be zero or more!");
+		$udata['paidto'] = date('Y-m-d',strtotime(date('Y-m-d')." +$months months"));
+		$udata['status'] = '';
+
+	# if the box has time
+	} else {
+		$op = preg_match('#^-#',$months) ? '' : '+';
+		# if you are subtracting time make sure box has enough time to subtract from
+		if ($op == '' and abs($months) > ll_months_left($bdata['paidto']))
+			die("Box $box does not have ".abs($months)." months left!");
+
+		$paidto = strtotime($bdata['paidto']);
+		if ($paidto < time() - $pt_cutoff) { $start = date('Y-m-d'); }
+		else $start = $bdata['paidto'];
+
+		$udata['paidto'] = date('Y-m-d',strtotime("$start $op$months months"));
+		$udata['status'] = '';
 	}
-
-	# if you are subtracting time make sure box has enough time to subtract from
-	if (preg_match('#^-#',$months) and abs($months) > ll_months_left($bdata['paidto']))
-		die("Box $box does not have ".abs($months)." months left!");
-
-	if (preg_match('#^0#',$bdata['paidto'])) $bdata['paidto'] = '';
-
-	$op = preg_match('#^-#',$months) ? '' : '+';
-	$paidto = strtotime($bdata['paidto']);
-
-	if ($paidto < time() - $pt_cutoff) { $start = date('Y-m-d'); }
-	else $start = $bdata['paidto'];
-
-	$udata['paidto'] = date('Y-m-d',strtotime("$start $op$months months"));
 	$udata['login'] = $ldata['login'];
+	$udata['vid'] = $vend['vid'];
 
-	if (ll_save_to_table('update','boxes',$udata,'box',$box)) {
-		ll_log($vend, array('oldpaidto'=>$bdata['paidto'],'newpaidto'=>$udata['paidto'],
-				'box'=>$box,'months'=>$months,'action'=>'add_time','login'=>$ldata['login']));
-		$vdata['months'] = $vend['months'] - $months;
-		if (ll_save_to_table('update','vendors',$vdata,'vid',$vend['vid'])) 
-			return $udata['paidto'];
-	}
+	return $udata;
 }
 /*
 mysql> desc payments;
@@ -707,7 +722,8 @@ function ll_check_invoice($ldata, $idata) {
 	# is this logged in user allowed to update this invoice?
 	$parent = $savedidata['vdata']['parent'];
 	$vid = $idata['vid'];
-	if (preg_match("#(^|:)($vid|$parent)(:|$)#", $ldata['vid'])) return true;
+	$pat = ll_parent_pat("($vid|$parent)");
+	if (preg_match("#$pat#", $ldata['vid'])) return true;
 	return false;
 }
 
@@ -755,6 +771,17 @@ function ll_valid_trans($trans) {
 	return preg_match('#^\d+~\d+\.\d+#',$trans) ? $trans : false;
 }
 
+function ll_parentpat($vid) {
+	return "(^|:)$vid(:|$)";
+}
+
+function ll_isparent($vid,$bdata) {
+	if (!is_array($bdata)) 
+		$bdata = ll_box($bdata);
+	$pat = ll_parentpat($vid);
+	return preg_match("#$pat#",$bdata['parent']);
+}
+
 function ll_has_access($ldata,$odata) {
 	if (is_array($ldata)) $myvid = $ldata['vid'];
 	else $myvid = $ldata;
@@ -772,11 +799,12 @@ function ll_has_access($ldata,$odata) {
 		$parent = $vend['parent'];
 	}
 	$allids = "$vid:$parent";
-	if (preg_match("#(^|:)$myvid(:|$)#",$allids)) return true;
+	$pat = ll_parentpat($myvid);
+	if (preg_match("#$pat#",$allids)) return true;
 	return false;
 }
 
-function ll_delete_trans($vend,$trans) {
+function ll_delete_trans($vend,$trans,$box=null) {
 	global $lldb;
 	$data = ll_load_from_table('transactions','trans',$trans,false);
 
@@ -786,7 +814,8 @@ function ll_delete_trans($vend,$trans) {
 	if ($data['status']) die("Transaction $translink is {$data['status']}.");
 	if ($data['vid'] != $vend['vid']) die("Transaction $translink invalid!");
 
-	$rows = $lldb->exec("update transactions set status='complete' where trans='$trans'");
+	if (!empty($box)) $setbox = ",box=".$lldb->quote($box);
+	$rows = $lldb->exec("update transactions set status='complete' $setbox where trans='$trans'");
 	if ($rows === false) die(ll_err());
 }
 
@@ -885,12 +914,6 @@ function ll_load_from_table($table,$name,$key='',$return_all=true,$query_end='',
 	} else {
 		$query = "select * from $table where $name='$key' $query_end";
 	}
-/*
-print $query."<br>\n";
-print "<pre>\n";
-print print_r($data);
-print "</pre>\n";
-*/
 	if (!$refresh and $seen[$query]) return $seen[$query];
 
 	$st = $lldb->query($query);
@@ -985,3 +1008,4 @@ function ll_err($query="") {
 	global $lldb;
 	return implode("<br>\n",$lldb->errorInfo())."<br>\n".$query;
 }
+

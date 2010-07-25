@@ -1,8 +1,32 @@
 <?php
-define("MAXBOXES",20); # normally would be 20
-define("MAXMONTHS",24); # normally would be 12
-# used in the ll_new_box function
-$phone = '604 248-4930'; # phone number for instructions
+
+# note that some of these global values are used by the 
+# html/tools/php/mysql.php and html/tools/php/pw/auth.php shared libraries
+
+define("MAXBOXES",20); 
+define("MAXMONTHS",24); 
+define('GETASTSTATUS', false);
+define("DELBOXAFTER",90);
+define("DAY",86400);
+define("MINBOX",1000);
+define("MAXBOX",9999);
+
+# where things are
+$lib = '/usr/local/asterisk/html/tools/php';
+define("DBLOGINFILE","$lib/.mysql.php");
+define("SALTFILE","/usr/local/asterisk/agi-bin/Lifeline/salt");
+$asterisk = '/usr/local/asterisk/sbin/asterisk';
+$asterisk_dir = "/usr/local/asterisk/var/lib/asterisk";
+$asterisk_sounds = "$asterisk_dir/sounds";
+$asterisk_lifeline = "/usr/local/asterisk/lifeline-msgs";
+$asterisk_rectype = "gsm"; # normal file recording extension
+$asterisk_deleted = "deleted"; # extension to use to "delete" files
+$lifeline_root = "/usr/local/asterisk/html/lifeline";
+
+# default phone number if the vendor doesn't have a phone associated with them
+$phone = '604 248-4930'; 
+
+# allowable range of boxes when we want to create a box
 function get_box_range() { 
 	# these ranges avoid new boxes from the DERA vm service
 	# we do this so both can be used at the same time without collisions
@@ -10,9 +34,8 @@ function get_box_range() {
 	return $ranges[mt_rand(0,1) > 0.5 ? 1 : 0]; 
 }
 
+# link to show for support email
 $adminfo = '<a class="support" href="mailto:vmailtechnicalsupport@gmail.com">Support</a>';
-$asterisk = '/usr/local/asterisk/sbin/asterisk';
-define('GETASTSTATUS', false);
 
 # default permissions list: there should be no other user permssions
 # these determine what you can create
@@ -25,14 +48,12 @@ $permhelp = array(
 	'vendors' => 'make new sub accounts',
 );
 
-$min_purchase = 4; # least number of months you can buy
-$def_credit_limit = -1; # credit for number of months: -1 = no credit limit
-$lib = '/usr/local/asterisk/html/tools/php';
-$pt_cutoff = 3 * 7 * 84600; # see Lifeline.pm - this should be same value
+# financial stuff
+# least number of months you can buy
+$min_purchase = 4; 
+# credit for number of months: -1 = no credit limit
+$def_credit_limit = -1; 
+# how long to keep a box alive if its not renewed 
+# see Lifeline.pm - this should be same value
+$pt_cutoff = 3 * 7 * 84600; 
 
-$asterisk_dir = "/usr/local/asterisk/var/lib/asterisk";
-$asterisk_sounds = "$asterisk_dir/sounds";
-$asterisk_lifeline = "/usr/local/asterisk/lifeline-msgs";
-$asterisk_rectype = "gsm"; # normal file recording extension
-$asterisk_deleted = "deleted"; # extension to use to "delete" files
-$lifeline_root = "/usr/local/asterisk/html/lifeline";
