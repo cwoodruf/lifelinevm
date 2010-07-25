@@ -97,10 +97,8 @@ if ($_REQUEST['listen']) {
 	header("location: make.php?from=admin");
 } else if ($action === 'Create boxes') {
 	print create_new_box($ldata);
-} else if ($action === 'Really add time for this box?') {
+} else if ($action === 'Really add time to box?' or $action === 'Really remove time from box?') {
 	print update_box_time($ldata);
-} else if ($action === 'Remove time from box') {
-	print delete_months($ldata);
 } else if ($action === 'Delete box') {
 	print confirm_delete_form($ldata);
 } else if ($action === 'Really delete box') {
@@ -128,7 +126,7 @@ if ($_REQUEST['listen']) {
 		print showcode($ldata, sprintf('%04d',$_REQUEST['box']), $_REQUEST['seccode'],'html');
 	} else if ($form === 'View transaction' or $form === 'transaction') {
 		print view_transaction($ldata,ll_valid_trans($_REQUEST['trans']));
-	} else if ($form === 'Add time to box') {
+	} else if ($form === 'Add time to box' or $form === 'Remove time from box') {
 		print confirm_update_box_time($ldata);
 	} else if ($form === 'Add time to an existing box' or $form === 'add') {
 		print update_box_form($ldata);
