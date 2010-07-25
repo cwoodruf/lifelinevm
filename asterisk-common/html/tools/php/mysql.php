@@ -329,11 +329,19 @@ function ll_find_boxes($vend,$search) {
 	if (empty($search)) {
 		$where .= "1=1";
 	} else {
+		if (preg_match('#^\s*-\s*(.*)#',$search,$m)) {
+			$search = $m[1];
+			$not = 'not';
+			$andor = 'and';
+		} else {
+			$not = '';
+			$andor = 'or';
+		}
 		foreach (array('box', 'name', 'email', 'paidto', 'notes', 'status') as $field) {
 			$value = $lldb->quote($search);
-			$wheres[] = "$field regexp ($value)";
+			$wheres[] = "$field $not regexp ($value)";
 		}
-		$where .= implode(' or ',$wheres);
+		$where .= implode(" $andor ",$wheres);
 	}
 	$where .= ") order by box";
 	return ll_load_from_table('ourboxes',null,null,true,$where);
@@ -661,8 +669,9 @@ function ll_delete_box($vend,$box) {
 		ll_log($vend, array('oldpaidto'=>$bdata['paidto'],
 				'box'=>$box,'months'=>(-1*$months),'action'=>'delete_box'));
 		if ($months > 0) {
-			$vdata['months'] = $vend['months'] + $months;
-			ll_save_to_table('update','vendors',$vdata,'vid',$vend['vid']);
+			$bvend['months'] = $bvend['months'] + $months;
+			unset($bvend['unpaid_months']);
+			ll_save_to_table('update','vendors',$bvend,'vid',$bvend['vid']);
 		}
 		return true;
 	}

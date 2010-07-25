@@ -16,8 +16,11 @@ echo sync-msgs: FROM remote backup TO main using ssh
 
 echo sync-msgs: CLEANUP
 /usr/local/asterisk/bin/cleanup.pl -v
-echo sync-msgs: syncronize the calls table with any new callerid data etc
-/usr/local/asterisk/bin/sync_calls.pl -v
+# don't need to do this with sync as normally all call data goes to the master db
+# also there is a problem where data is getting repeated because the florida server is 3 hours ahead and
+# mysql doesn't seem to keep the same time when doing slave updates 
+# echo sync-msgs: syncronize the calls table with any new callerid data etc
+# /usr/local/asterisk/bin/sync_calls.pl -v
 
 echo sync-msgs: FROM main TO local backup with delete
 /usr/bin/rsync -rcvt --delete --times $msgdir asterisk@192.168.1.44:$msgdir

@@ -24,20 +24,20 @@ SET @saved_cs_client     = @@character_set_client;
 SET character_set_client = utf8;
 CREATE TABLE `boxes` (
   `box` varchar(32) NOT NULL default '',
-  `name` varchar(64) default NULL,
-  `notes` text,
-  `seccode` varchar(32) default NULL,
-  `email` varchar(64) default NULL,
-  `paidto` date default NULL,
+  `name` varchar(64) NOT NULL default '',
+  `notes` varchar(255) NOT NULL default '',
+  `seccode` varchar(32) NOT NULL default '',
+  `email` varchar(64) NOT NULL default '',
+  `paidto` date NOT NULL,
   `inuse` int(11) default NULL,
   `new_msgs` int(11) default NULL,
-  `status` varchar(32) default '',
+  `status` varchar(32) NOT NULL default '',
   `vid` int(11) NOT NULL default '0',
-  `login` varchar(32) default NULL,
+  `login` varchar(64) NOT NULL default '',
   `created` timestamp NOT NULL default CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP,
   `modified` timestamp NOT NULL default '0000-00-00 00:00:00',
   `trans` varchar(32) default NULL,
-  `llphone` varchar(32) default NULL,
+  `llphone` varchar(32) NOT NULL default '',
   `announcement` int(11) default '1',
   PRIMARY KEY  (`box`)
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1;
@@ -143,7 +143,7 @@ DROP TABLE IF EXISTS `ourboxes`;
 /*!50001 CREATE TABLE `ourboxes` (
   `box` varchar(32),
   `name` varchar(64),
-  `notes` text,
+  `notes` varchar(255),
   `seccode` varchar(32),
   `email` varchar(64),
   `paidto` date,
@@ -151,7 +151,7 @@ DROP TABLE IF EXISTS `ourboxes`;
   `new_msgs` int(11),
   `status` varchar(32),
   `vid` int(11),
-  `login` varchar(32),
+  `login` varchar(64),
   `created` timestamp,
   `modified` timestamp,
   `trans` varchar(32),
@@ -345,4 +345,4 @@ SET character_set_client = @saved_cs_client;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2010-07-23 14:26:26
+-- Dump completed on 2010-07-25  6:54:43
