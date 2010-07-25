@@ -128,7 +128,7 @@ if ($_REQUEST['listen']) {
 		print showcode($ldata, sprintf('%04d',$_REQUEST['box']), $_REQUEST['seccode'],'html');
 	} else if ($form === 'View transaction' or $form === 'transaction') {
 		print view_transaction($ldata,ll_valid_trans($_REQUEST['trans']));
-	} else if ($form === 'Add time to box' or $form === 'add') {
+	} else if ($form === 'Add time to box') {
 		print confirm_update_box_time($ldata);
 	} else if ($form === 'Add time to an existing box' or $form === 'add') {
 		print update_box_form($ldata);
