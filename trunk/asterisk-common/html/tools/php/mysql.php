@@ -34,10 +34,10 @@ function ll_connect () {
 	} catch (Exception $e) {
 		# if the login fails try localhost
 		try {
-			print "ll_connect error: using localhost!<br>\n";
+			print "connect error: using localhost!<br>\n";
 			$lldb = new PDO("mysql:dbname=$ll_dbname;host=localhost",$ll_login,$ll_password);
 		} catch (Exception $e) {
-			die("ll_connect failed: ".$e->getMessage());
+			die("connect failed: ".$e->getMessage());
 		}
 	}
 	return $lldb;
@@ -91,7 +91,7 @@ function ll_vendor_from_id($id) {
 
 function ll_undelete_vendor(&$vdata) {
 	$vid = $vdata['vid'];
-	if (!preg_match('#^\d+$#',$vid)) die("ll_undelete_vendor: vid is not a number!");
+	if (!preg_match('#^\d+$#',$vid)) die("undelete_vendor: vid is not a number!");
 	$vdata['status'] = $vend['status'] = '';
 	ll_save_to_table('update','vendors',$vend,'vid',$vid);
 }
@@ -114,10 +114,10 @@ function ll_emailsignup_id($email, $vendor,$perms='boxes') {
 
 function ll_del_vendor($vid) {
 	$lldb = ll_connect();
-	if (!preg_match('#^\d+$#',$vid) or $vid <= 0) die("ll_del_vendor: bad vendor id $vid!");
+	if (!preg_match('#^\d+$#',$vid) or $vid <= 0) die("del_vendor: bad vendor id $vid!");
 	$result = $lldb->exec(
 		"update vendors set status='deleted' where vid='$vid'");
-	if ($result === false) die("ll_del_vendor: ".$lldb->errInfo());
+	if ($result === false) die("del_vendor: ".$lldb->errInfo());
 	return true;
 }
 
@@ -214,8 +214,8 @@ function ll_calls($box,$limit=null) {
 
 function ll_calls_by_date($vid,$date) {
 	$lldb = ll_connect();
-	if (!preg_match('#^\d+$#', $vid)) die("ll_calls_by_date: bad vendor id $vid!");
-	if (!preg_match('#^\d{4}-\d{2}-\d{2}$#', $date)) die("ll_calls_by_date: bad date $date!");
+	if (!preg_match('#^\d+$#', $vid)) die("calls_by_date: bad vendor id $vid!");
+	if (!preg_match('#^\d{4}-\d{2}-\d{2}$#', $date)) die("calls_by_date: bad date $date!");
 	$pat = ll_parentpat($vid);
 	$query = "select calls.*,vendors.vendor,vendors.vid ".
 		"from calls join boxes on (calls.box=boxes.box) join vendors on (vendors.vid=boxes.vid) ".
@@ -233,8 +233,8 @@ function ll_calls_by_date($vid,$date) {
 
 function ll_payments_by_date($vid,$date) {
 	$lldb = ll_connect();
-	if (!preg_match('#^\d+$#', $vid)) die("ll_payments_by_date: bad vendor id $vid!");
-	if (!preg_match('#^\d{4}-\d{2}-\d{2}$#', $date)) die("ll_payments_by_date: bad date $date!");
+	if (!preg_match('#^\d+$#', $vid)) die("payments_by_date: bad vendor id $vid!");
+	if (!preg_match('#^\d{4}-\d{2}-\d{2}$#', $date)) die("payments_by_date: bad date $date!");
 	$pat = ll_parentpat($vid);
 	$query = "select payments.*,vendors.vendor,vendors.vid ".
 		"from payments join boxes on (payments.box=boxes.box) join vendors on (vendors.vid=boxes.vid) ".
@@ -252,7 +252,7 @@ function ll_payments_by_date($vid,$date) {
 
 function ll_calldates($vid) {
 	$lldb = ll_connect();
-	if (!preg_match('#^\d+$#', $vid)) die("ll_calldates: bad vendor id $vid!");
+	if (!preg_match('#^\d+$#', $vid)) die("calldates: bad vendor id $vid!");
 	$pat = ll_parentpat($vid);
 	$query = "select distinct date(call_time) as day ".
 		"from calls join boxes on (calls.box=boxes.box) join vendors on (vendors.vid=boxes.vid) ".
@@ -269,7 +269,7 @@ function ll_calldates($vid) {
 
 function ll_paymentdates($vid) {
 	$lldb = ll_connect();
-	if (!preg_match('#^\d+$#', $vid)) die("ll_calldates: bad vendor id $vid!");
+	if (!preg_match('#^\d+$#', $vid)) die("calldates: bad vendor id $vid!");
 	$pat = ll_parentpat($vid);
 	$query = "select distinct date(paidon) as day ".
 		"from payments join boxes on (payments.box=boxes.box) join vendors on (vendors.vid=boxes.vid) ".
@@ -357,10 +357,10 @@ function ll_check_months($vend,$months) {
 		die("Months value $months exceeds maximum ".MAXMONTHS."!");
 	if (!isset($vend['months'])) {
 		if (!is_array($vend)) {
-			if (!preg_match('#^\d+$#',$vend)) die("ll_check_months: bad vendor id!");
+			if (!preg_match('#^\d+$#',$vend)) die("check_months: bad vendor id!");
 			$vend = ll_vendor($vend);
 		} else if (!preg_match('#^\d+$#',$vend['vid'])) {
-			die("ll_check_months: bad vendor id from array!");
+			die("check_months: bad vendor id from array!");
 		} else {
 			$vend = ll_vendor($vend['vid']);
 		}
@@ -438,7 +438,7 @@ function ll_new_box($trans,$vend,$months,$llphone,$min_box,$max_box,$activate=fa
 	static $available;
 
 	if (!preg_match('#^\d+$#',$min_box) or !preg_match('#^\d+$#',$max_box) or $max_box == $min_box) {
-		die("ll_new_box: bad box range $min_box, $max_box!");
+		die("new_box: bad box range $min_box, $max_box!");
 	}
 	if ($min_box > $max_box) list($max_box,$min_box) = array($min_box,$max_box);
 
@@ -546,23 +546,13 @@ function ll_check_time($vend,$box,$months) {
 	global $pt_cutoff;
 	if (!is_array($vend)) $vend = ll_vendor($vend);
 
-	if (!preg_match('#^\d+$#',$vend['vid'])) die("ll_add_time: bad vendor id!");
-	if (!preg_match('#^\d+$#',$box)) die("ll_add_time: bad box id!");
+	if (!preg_match('#^\d+$#',$vend['vid'])) die("check_time: bad vendor id!");
+	if (!preg_match('#^\d+$#',$box)) die("check_time: bad box id!");
 	if (!preg_match('#^-?\d\d?$#',$months)) die("invalid months value!");
 
 	ll_check_box($box);
 	ll_check_months($vend,$months);
 	$bdata = ll_box($box);
-
-	if ($bdata['status'] === 'deleted') $udata['status'] = ''; 
-	# if the box has never been used then there will be months in the status
-	# grab these and add them to whatever we want to add
-	if (preg_match('#add (\d+) months#', $bdata['status'], $m)) {
-		$bdata['status'] = '';
-		$months += $m[1]; 
-	}
-
-	$udata['login'] = $ldata['login'];
 
 	# if the box exists but has never been used
 	if (preg_match('#add (\d+) months#', $bdata['status'],$m)) {
@@ -590,6 +580,7 @@ function ll_check_time($vend,$box,$months) {
 		$udata['paidto'] = date('Y-m-d',strtotime("$start $op$months months"));
 		$udata['status'] = '';
 	}
+
 	$udata['login'] = $ldata['login'];
 	$udata['vid'] = $vend['vid'];
 
