@@ -370,6 +370,24 @@ function ll_check_months($vend,$months) {
 	return $months;
 }
 
+function ll_box_months_left($bdata) {
+	if (!is_array($bdata)) $bdata = ll_box($bdata);
+	$m = ll_months_left($bdata['paidto']); 
+	$n = ll_add_months($bdata['status']);
+	return $m + $n;
+}
+
+function ll_box_add_months($bdata) {
+	if (!is_array($bdata)) $bdata = ll_box($bdata);
+	return ll_add_months($bdata['status']);
+}
+
+function ll_add_months($status) {
+	if (preg_match('#add (\d+) months#', $status, $m)) 
+		return $m[1];
+	return 0;
+}
+
 function ll_months_left($date) {
         $months = round((strtotime($date) - time())/(31*86400));
         if ($months < 0) $months = 0;
@@ -555,9 +573,10 @@ function ll_check_time($vend,$box,$months) {
 	$bdata = ll_box($box);
 
 	# if the box exists but has never been used
-	if (preg_match('#add (\d+) months#', $bdata['status'],$m)) {
-		$newmonths = $m[1] + $months;
-		if ($newmonths <= 0) die("invalid number of months: should be more than {$m[1]}!");
+	if (($addmonths = ll_box_add_months($bdata)) > 0) {
+		$newmonths = $addmonths + $months;
+		# this can be zero or less as we can delete months from it
+		if ($newmonths < 0) die("invalid number of months: should be more than {$m[1]}!");
 		$udata['status'] = "add $newmonths months";
 
 	# if the box has no paidto date at all
@@ -570,7 +589,7 @@ function ll_check_time($vend,$box,$months) {
 	} else {
 		$op = preg_match('#^-#',$months) ? '' : '+';
 		# if you are subtracting time make sure box has enough time to subtract from
-		if ($op == '' and abs($months) > ll_months_left($bdata['paidto']))
+		if ($op == '' and abs($months) > ll_box_months_left($bdata))
 			die("Box $box does not have ".abs($months)." months left!");
 
 		$paidto = strtotime($bdata['paidto']);
@@ -606,11 +625,10 @@ function ll_update_payment($box,$vid,$login,$months,$payment,$howmany=1) {
 	if (!preg_match('#^\d+$#',$box)) return;
 
 	$lldb = ll_connect();
-	if (!preg_match('#^\d+$#',$months)) $months = 0;
+	if (!preg_match('#^-?\d+$#',$months)) $months = 0;
 	if (!preg_match('#^\d+$#',$howmany) or $howmany <= 0) $howmany = 1;
 
 	$paydata['box'] = $box;
-
 	$paydata['months'] = $months;
 
 	$paydata['paidon'] = trim($payment['paidon']);
@@ -620,19 +638,25 @@ function ll_update_payment($box,$vid,$login,$months,$payment,$howmany=1) {
 
 	$paydata['notes'] = $payment['notes'];
 	$paydata['login'] = $login;
+	$paydata['ip'] = $_SERVER['REMOTE_ADDR'];
 	$paydata['vid'] = (int) $vid;
 
 	$paydata['amount'] = sprintf('%.2f', $payment['amount']/$howmany);
 	$tax = get_salestax($paydata['paidon']);
 	$paydata['hst'] = sprintf('%.2f',$paydata['amount'] - $paydata['amount'] / (1 + $tax['rate']));
 	
-	if (ll_save_to_table('replace','payments',$paydata)) 
+	if (ll_replace_in_table('payments',$paydata,($literal=true))) 
 		return $paydata['amount'];	
 }
 
 function ll_get_payments($box,$vid) {
 	if (ll_check_box($box) and preg_match('#^\d+$#', $vid)) 
-		return ll_load_from_table('payments',array('box' => $box, 'vid' => $vid));
+		return ll_load_from_table('payments',
+				array('box' => $box, 'vid' => $vid),
+				($key = null),
+				($returnall = true),
+				'order by paidon desc'
+		);
 }
 
 function ll_update_personal($vend,$box,$personal) {
@@ -663,10 +687,9 @@ function ll_delete_box($vend,$box) {
 		die("Box $box does not belong to vendor ".$vend['vendor']."! Please contact us.");
 	$lldb = ll_connect();
 
-	$months = ll_months_left($bdata['paidto']);
+	$months = ll_box_months_left($bdata);
 	# if the box has never been used add on those as well
-	if (preg_match('#add (\d+) months#', $bdata['status'], $m))
-		$months += $m[1];
+	$months += ll_box_add_months($bdata);
 
 	# ddata is the container for updating the box information bdata is the original
 	$ddata['status'] = 'deleted';
@@ -851,6 +874,10 @@ function ll_generate_invoice($vend,$months,$trans) {
 	} else {
 		die("ERROR: unable to generate invoice!");
 	}
+}
+
+function ll_replace_in_table($table,$data,$literal=false) {
+	return ll_save_to_table('replace',$table,$data,$name,$key,$literal);
 }
 
 function ll_save_to_table($action,$table,$data,$name='',&$key='',$literal=false) {

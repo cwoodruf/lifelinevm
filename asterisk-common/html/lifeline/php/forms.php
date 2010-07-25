@@ -54,9 +54,9 @@ HTML;
 $head
 <center>
 <h4>Vendor: $vendor <span style="font-weight: normal;">$goback &nbsp;&nbsp; $logout</span></h4>
+$status<p>
 $search_form
 <h3>$form</h3>
-$status<p>
 <form action="{$_SERVER['PHP_SELF']}" name="topform" id="topform" method="$method" $formjs>
 HTML;
 }
@@ -444,32 +444,32 @@ function update_box_form($data,$action="Add time to box") {
 		$edit_input = mk_personal_input($bdata);
 	} else if (preg_match('#\btime\b#',$action)) {
 		if ($action === 'Remove time from box') {
-			if ($bdata['paidto'] == 0 and preg_match('#add (\d+) month#',$bdata['status'],$m)) {
-				$month_input = <<<HTML
- Delete box and revert time back. &nbsp;&nbsp;
-<input type=hidden name=months value={$m[1]}>
-HTML;
-			} else {
-				$monthsleft = ll_months_left($bdata['paidto']);
-				if ($monthsleft <= 0) 
-					return "$top<h3>Box $box has less than one month left on its subscription.</h3>$end";
-			}
-			$trans = ll_generate_trans($vend,'boxes');
+			$remove = 1;
+			$monthsleft = ll_box_months_left($bdata);
+			if ($monthsleft <= 0) 
+				return "$top<h3>Box $box has less than one month left on its subscription.</h3>$end";
+			$submittype = 'form';
+			$nextsubmit = 'Really remove time from box?';
+			$maxmonths = $monthsleft;
 		} else {
+			$remove = 0;
 			$months = 1;
 			$submittype = 'form';
+			$nextsubmit = 'Really add time to box?';
+			if ($vend['months'] > 0) {
+				if ($vend['months'] < MAXMONTHS) $maxmonths = $vend['months'];
+				else $maxmonths = MAXMONTHS;
+			}
 		}
-		if (!$month_input and $vend['months'] > 0) {
-			if ($vend['months'] < MAXMONTHS) $maxmonths = $vend['months'];
-			else $maxmonths = MAXMONTHS;
-			$month_input = <<<HTML
+		$month_input = <<<HTML
 Months: <input size=3 name=months value=$months> (up to $maxmonths months)
 HTML;
-		}
 	}
 	return <<<HTML
 $top
 <input type=hidden name=trans value="$trans">
+<input type=hidden name=nextsubmit value="$nextsubmit">
+<input type=hidden name=remove value="$remove">
 <div style="width: 740px; background: cornsilk; border: 1px black solid; padding: 3px;">
 Box: <input $is_hidden name=box size=7 value="$box"><b>$box</b> $status &nbsp;&nbsp;
 $seccode_input
@@ -717,6 +717,7 @@ function confirm_update_box_time($data,$months='') {
 
 	if ($months === '') $months = $_REQUEST['months'];
 	if (empty($months)) die("need a number of months!");
+	$months = $_REQUEST['remove'] ? -1 * abs($months) : abs($months);
 
 	$vend = ll_vendor($data['vid']);
 	$vend = ll_vendor($data['vid'],true);
@@ -745,6 +746,7 @@ HTML;
 		}
 	}
 
+	$nextsubmit = htmlentities($_REQUEST['nextsubmit']);
 	return <<<HTML
 $top
 <input type=hidden name=trans value="$trans">
@@ -761,7 +763,7 @@ $newvendfield
 </table>
 $payment_form
 <br>
-<input type=submit name=action value="Really add time for this box?" class=action>
+<input type=submit name=action value="$nextsubmit" class=action>
 $end
 HTML;
 }
