@@ -351,7 +351,7 @@ function ll_find_boxes($vend,$search) {
 }
 
 function ll_check_months($vend,$months) {
-	if (!preg_match('#^(?:-|)\d+$#',$months))
+	if (!preg_match('#^-?\d+$#',$months))
 		die("Invalid months value $months!");
 	if (is_numeric(MAXMONTHS) and abs($months) > MAXMONTHS) 
 		die("Months value $months exceeds maximum ".MAXMONTHS."!");
@@ -509,9 +509,10 @@ function ll_new_box($trans,$vend,$months,$llphone,$min_box,$max_box,$activate=fa
 	}
 
 	$qllphone = $lldb->quote($llphone);
-	$query = "replace into boxes (box,seccode,vid,llphone,paidto,login,modified,created,status,trans) ".
+	$query = "replace into boxes (box,seccode,vid,llphone,".
+		        "paidto,login,modified,created,status,trans,canremove) ".
 		"values ('$box',md5('$seccode$salt'),'$vend[vid]',$qllphone,".
-		"'$paidto','$ldata[login]',now(),now(),'$add','$trans')";
+		        "'$paidto','$ldata[login]',now(),now(),'$add','$trans','$months')";
 
 	$result = $lldb->exec($query);
 	if ($result === false) die(ll_err());
@@ -569,8 +570,13 @@ function ll_check_time($vend,$box,$months) {
 	if (!preg_match('#^-?\d\d?$#',$months)) die("invalid months value!");
 
 	ll_check_box($box);
-	ll_check_months($vend,$months);
 	$bdata = ll_box($box);
+	if ($months > 0) {
+		ll_check_months($vend,$months);
+	} else {
+		if (abs($months) > $bdata['canremove']) 
+			die("Error: you can only remove {$bdata['canremove']} months!");
+	}
 
 	# if the box exists but has never been used
 	if (($addmonths = ll_box_add_months($bdata)) > 0) {
@@ -602,6 +608,15 @@ function ll_check_time($vend,$box,$months) {
 
 	$udata['login'] = $ldata['login'];
 	$udata['vid'] = $vend['vid'];
+
+	# canremove determines how many months you can realistically delete
+	# this is only really significant if the box has moved to another vendor 
+	# with time on it from the previous vendor basically its a high water mark
+	if (!ll_isparent($vend['vid'],$bdata)) {
+		$udata['canremove'] = $months;
+	} else {
+		$udata['canremove'] = $bdata['canremove'] + $months;
+	}
 
 	return $udata;
 }
@@ -792,8 +807,12 @@ function ll_parentpat($vid) {
 function ll_isparent($vid,$bdata) {
 	if (!is_array($bdata)) 
 		$bdata = ll_box($bdata);
+	if (!isset($bdata['box'])) die("isparent: no vendor id for box!");
+	if (!isset($bdata['parent'])) 
+		$bdata = ll_box($bdata['box']);
 	$pat = ll_parentpat($vid);
-	return preg_match("#$pat#",$bdata['parent']);
+	$parents = $bdata['parent'].':'.$bdata['vid'];
+	return preg_match("#$pat#",$parents);
 }
 
 function ll_has_access($ldata,$odata) {

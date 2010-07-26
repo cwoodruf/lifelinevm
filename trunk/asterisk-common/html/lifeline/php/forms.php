@@ -447,6 +447,7 @@ function update_box_form($data,$action="Add time to box") {
 		if ($action === 'Remove time from box') {
 			$remove = 1;
 			$monthsleft = ll_box_months_left($bdata);
+			if ($bdata['canremove'] < $monthsleft) $monthsleft = $bdata['canremove'];
 			if ($monthsleft <= 0) 
 				return "$top<h3>Box $box has less than one month left on its subscription.</h3>$end";
 			$submittype = 'form';
@@ -787,6 +788,9 @@ function update_box_time($data,$months='') {
 		if (ll_isparent($vend['vid'], $bdata)) {
 			$vid = $bdata['vid'];
 		} else {
+			# only allow adding time when we don't own the box
+			if ($months < 0) 
+				die("Months should be greater than zero not $months!");
 			$vid = $vend['vid'];
 		}
 	} else {
@@ -808,6 +812,7 @@ $table
 <tr><td><b>Paid to:</b></td><td>$paidto</td></tr>
 <tr><td><b>Status:</b></td><td>{$bdata['status']}</td></tr>
 <tr><td><b>Vendor:</b></td><td>{$bdata['vendor']}</td></tr>
+<tr><td><b>Amount paid:</b></td><td>$amount</td></tr>
 <tr><td colspan=2 align=right>
 <a href="index.php?box=$box&seccode={$bdata['seccode']}&amount=$amount&llphone={$bdata['llphone']}" 
    target=_blank>receipt / instructions</a>
