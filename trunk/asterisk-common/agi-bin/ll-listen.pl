@@ -94,6 +94,7 @@ sub play {
 	my $deleted = "$msg->{msg}.deleted.$ll->{rectype}";
 	# note, any message file could disappear mid-play for any reason
 	# this is just an attempt at being polite in a multiuser environment
+	$a->exec('WAIT',1);
 	if (-f $mfile) { 
 		# everything is ok
 		if (defined $cb) {
