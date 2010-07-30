@@ -57,7 +57,7 @@ my @interesting = qw/
 /;
 
 my $ins = $ldb->prepare(
-	"replace into boxes (box,seccode,vid,name,notes,status,paidto,phone) ".
+	"replace into boxes (box,seccode,vid,name,notes,status,paidto,llphone) ".
 	"values (?,md5(?),?,?,?,?,?,?) "
 );
 

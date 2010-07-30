@@ -431,15 +431,24 @@ HTML;
 	if (!isset($vend['vid'])) $cl = $def_credit_limit;
 	else $cl = $vend['credit_limit'];
 
-	if ($ldata['vid'] == 0) {
+	if ($ldata['vid'] == ROOTVID) {
+		if ($vend['parent'] == "") $parent = ROOTVID;
+		else $parent = $vend['parent'];
 		$parent = <<<HTML
-<tr><td> parent </td><td><input name="vend[parent]" size=60 value="{$vend['parent']}"></td></tr>
+<tr><td> parent </td><td><input name="vend[parent]" size=60 value="$parent"></td></tr>
 HTML;
 		$creditlimit = <<<HTML
 <tr><td> credit limit </td><td><input name="vend[credit_limit]" value="$cl"> <i>-1 = unlimited</i></td></tr>
 HTML;
+		if ($vend['rate'] == "") $rate = DEFRATE;
+		else $rate = $vend['rate'];
 		$rateform = <<<HTML
-<tr><td> rate </td><td> <input name="vend[rate]" value="{$vend['rate']}"></td></tr> 
+<tr><td> rate </td><td> <input name="vend[rate]" value="$rate"></td></tr> 
+HTML;
+		if ($vend['llphone'] == "") $llphone = DEFPHONE;
+		else $llphone = $vend['llphone'];
+		$llphoneform = <<<HTML
+<tr><td> incoming phone </td><td> <input name="vend[llphone]" value="$llphone"></td></tr> 
 HTML;
 	} else {
 		if ($vend['parent'] != '') {
@@ -472,6 +481,7 @@ HTML;
 <input type=hidden name="vid" value="$vid">
 <input type=hidden name="vend[vid]" value="$vid">
 <table cellpadding=5 cellspacing=0 border=0>
+$llphoneform
 <tr><td> vendor </td><td><input name="vend[vendor]" size=60 value="$vendor"></td></tr>
 <tr><td> notes </td><td><input name="vend[notes]" size=60 value="{$vend['notes']}"></td></tr>
 <tr><td> created </td><td> {$vend['created']} </td></tr>
@@ -516,7 +526,15 @@ function update_vendor($dbaction,$vend=null) {
 			$update[$name] = $value;
 		}
 	}
-	if ($update['credit_limit'] == '') $unpdate['credit_limit'] = null;
+	if ($update['parent']) $parent = ll_vendor($update['parent']);
+	if (empty($update['llphone'])) {
+		if ($parent['llphone']) $update['llphone'] = $parent['llphone'];
+		else $update['llphone'] = DEFPHONE;
+	}
+	if (empty($update['rate'])) {
+		if ($parent['rate']) $update['rate'] = $parent['rate'];
+		else $update['rate'] = DEFRATE;
+	}
 	if (count($update)) {
 		if ($dbaction === 'update') ll_save_to_table('update','vendors',$update,'vid',$vid,true);
 		else if ($dbaction === 'insert') ll_save_to_table('insert','vendors',$update,null,$vid,true);

@@ -3,6 +3,8 @@
 # note that some of these global values are used by the 
 # html/tools/php/mysql.php and html/tools/php/pw/auth.php shared libraries
 
+# vendor id for setting rate etc for a vendor
+define("ROOTVID",6962);
 define("MAXBOXES",20); 
 define("MAXMONTHS",24); 
 define('GETASTSTATUS', false);
@@ -10,6 +12,11 @@ define("DELBOXAFTER",90);
 define("DAY",86400);
 define("MINBOX",1000);
 define("MAXBOX",9999);
+define("DEFRATE",2.5);
+
+# default phone number if the vendor doesn't have a phone associated with them
+define("DEFPHONE","604 248-4930");
+$phone = DEFPHONE;
 
 # where things are
 $lib = '/usr/local/asterisk/html/tools/php';
@@ -22,9 +29,6 @@ $asterisk_lifeline = "/usr/local/asterisk/lifeline-msgs";
 $asterisk_rectype = "gsm"; # normal file recording extension
 $asterisk_deleted = "deleted"; # extension to use to "delete" files
 $lifeline_root = "/usr/local/asterisk/html/lifeline";
-
-# default phone number if the vendor doesn't have a phone associated with them
-$phone = '604 248-4930'; 
 
 # allowable range of boxes when we want to create a box
 function get_box_range() { 
