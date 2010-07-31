@@ -88,11 +88,11 @@ function credit_left($vid) {
 }
 
 function main_form($data) {
-	global $ldata;
-	global $min_purchase;
+	global $ldata, $permcheck, $min_purchase;
+
 	$top = form_top($data,false); 
 	$end = form_end($data);
-	if (preg_match('#invoices#',$data['perms'])) {
+	if ($permcheck['invoices']) {
 		$vend = ll_vendor($ldata['vid']);
 		$credit = credit_left($ldata['vid']);
 		if ($vend['credit_limit'] >= 0) {
@@ -129,12 +129,18 @@ HTML;
 <p>
 HTML;
 	}
+	if ($ldata['months'] > 0) {
+		$addtime_buttons = <<<HTML
+<input type=submit name=form value="Create a new voicemail box"> <p>
+<input type=submit name=form value="Add time to an existing box"> <p>
+HTML;
+	}
+
 	if (preg_match('#logins#',$data['perms'])) 
 		$users = '<input type=submit name=action value="Manage account and users"> <p>';
 	return <<<HTML
 $top
-<input type=submit name=form value="Create a new voicemail box"> <p>
-<input type=submit name=form value="Add time to an existing box"> <p>
+$addtime_buttons
 <input type=submit name=form value="View payments"> 
 <input type=submit name=form value="View call events">
 <p>
@@ -145,18 +151,22 @@ HTML;
 }
 
 function vend_status_str($vend) {
-	global $min_purchase;
+	global $min_purchase, $permcheck;
 	if ($vend['months'] == 1) {
 		$months = "1 month";
 	} else if ($vend['months'] == 0) {
 		$months = "no";
+		if ($permcheck['invoices']) {
+			$purchaselink = "<a href=\"admin.php?form=Purchase time\">Purchase time.</a>";
+		}
 	} else {
 		$months = $vend['months']." months";
 	}
 	if ($vend['actual_months'] == 1) $acts = '';
 	else $acts = 's';
 	$status = <<<HTML
-{$vend['vendor']} has $months voice mail available. <a href="admin.php?form=Purchase time">Purchase time.</a>
+{$vend['vendor']} has $months voice mail available. 
+$purchaselink
 <br>
 HTML;
 	return $status;

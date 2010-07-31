@@ -66,6 +66,9 @@ Please keep this receipt in case of problems with your account.<br>
 </div>
 <div style="font-size: x-small; float: right;"><?php print $printedby; ?></div>
 <?php endif; ?>
+<div style="padding-top: 8px;">
+<i><b>Rates:</b> $3.00 per month, $10 for four months, $25 per year.</i>
+</div>
 
 <h4>Using voicemail</h4>
 <h4>Leaving messages</h4>
@@ -84,9 +87,9 @@ Please keep this receipt in case of problems with your account.<br>
 <ul>
 <li>Press 1 from the main menu to listen to messages
 <li>Press 2 from the main menu to listen to your greeting
-<li>Press 3 from the main menu to record your greeting
+<li><b>Press 3 from the main menu to record your greeting</b>
 <li>Press 4 from the main menu to get your subscription date
-<li>Press # from the main menu to change your security code
+<li><b>Press # from the main menu to change your security code</b>
 <li>Press * from the main menu to go back to the start<br>
 <i>You can go back to the start up to 10 times in one call.</i>
 </ul>
