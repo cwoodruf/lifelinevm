@@ -156,8 +156,7 @@ function vend_status_str($vend) {
 	if ($vend['actual_months'] == 1) $acts = '';
 	else $acts = 's';
 	$status = <<<HTML
-{$vend['vendor']} has $months <b>FREE trial</b> available 
-(Actual credit on system {$vend['actual_months']} month$acts)
+{$vend['vendor']} has $months voice mail available 
 <br>
 HTML;
 	return $status;
