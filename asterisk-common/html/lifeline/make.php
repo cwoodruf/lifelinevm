@@ -491,14 +491,12 @@ $parent
 <tr><td> contact </td><td><input name="vend[contact]" size=60 value="{$vend['contact']}"></td></tr>
 <tr><td> email </td><td><input name="vend[email]" size=60 value="{$vend['email']}"></td></tr>
 <tr><td> fax </td><td><input name="vend[fax]" size=60 value="{$vend['fax']}"></td></tr>
-<tr><td> gstexempt </td><td> 
+<tr><td> gst exempt </td><td> 
 	<input type=radio name=gstexempt value=0 $hasgst> No 
 	<input type=radio name=gstexempt value=1 $nogst> Yes</td></tr>
 $rateform
 <tr><td> months </td><td> {$vend['months']} </td></tr>
-<tr><td> all_months </td><td> {$vend['all_months']} </td></tr>
-<tr><td> pst_number </td><td><input name="vend[pst_number]" size=60 value="{$vend['pst_number']}"></td></tr>
-<tr><td> gst_number </td><td><input name="vend[gst_number]" size=60 value="{$vend['gst_number']}"></td></tr>
+<tr><td> gst number </td><td><input name="vend[gst_number]" size=60 value="{$vend['gst_number']}"></td></tr>
 $creditlimit
 <tr><td> status </td><td> {$vend['status']} </td></tr>
 </table>
