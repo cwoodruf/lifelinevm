@@ -341,7 +341,7 @@ HTML;
 		$logincount = ll_logincount($vid);
 		if (
 			($ldata['perms'] == 's' or strpos($ldata['perms'],'vendors') !== false)
-			# and $owed == 0 and $vend['months'] == 0 and $boxcount == 0) 
+			and $vid != $ldata['vid'] # don't delete yourself!
 			and $owed == 0 and $boxcount == 0) 
 		{
 			$del_vendor = "<a href=\"$make?action=del_vendor&vid=$vid\">delete</a>";
