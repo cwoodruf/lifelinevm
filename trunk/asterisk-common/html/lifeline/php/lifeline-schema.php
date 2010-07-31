@@ -79,4 +79,5 @@ $schema['vendors'] = array(
   'credit_limit' => array( 'datatype' => "float default NULL" ),
   'status' => array( 'datatype' => "varchar(32) default ''" ),
   'notes' => array( 'datatype' => "text" ),
+  'llphone' => array( 'datatype' => 'varchar(32)' ),
 );

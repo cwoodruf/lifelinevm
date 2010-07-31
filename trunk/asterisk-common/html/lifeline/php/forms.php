@@ -156,7 +156,7 @@ function vend_status_str($vend) {
 	if ($vend['actual_months'] == 1) $acts = '';
 	else $acts = 's';
 	$status = <<<HTML
-{$vend['vendor']} has $months voice mail available 
+{$vend['vendor']} has $months voice mail available. <a href="admin.php?form=Purchase time">Purchase time.</a>
 <br>
 HTML;
 	return $status;
@@ -1019,12 +1019,14 @@ function purchase_time_form($data) {
 	$top = form_top($data); 
 	$end = form_end($data);
 	if (credit_left($ldata['vid']) > 0) {
+		$rate = sprintf('$%.2f',$ldata['rate']);
 		return <<<HTML
 $top
 <blockquote>
 <i>You can use any time you purchase to either create new voice mailboxes or to extend existing boxes.</i>
 </blockquote>
 Months: &nbsp;&nbsp; <input size=10 name=months value=$min_purchase> &nbsp;&nbsp;
+Rate: &nbsp;&nbsp; $rate &nbsp;&nbsp;
 <input type=submit name=action value="Purchase time" class=action>
 $end
 HTML;
