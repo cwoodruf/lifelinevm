@@ -23,7 +23,7 @@ while (my $line = <PC>) {
 close PC;
 
 # grab active customers and remove any old test related stuff
-my @active = grep !/CALM|Brooks|Lily|ZZdummy|ZTest|Johnson|Misc/, sort keys %counts;
+my @active = grep !/CALM|Brooks|Lily|ZZdummy|ZTest|Johnson|Misc|DERA/, sort keys %counts;
 
 my $custlist = "$pcdir/custlist.csv";
 open CUST, "< $custlist" or die "can't open $custlist: $!";
