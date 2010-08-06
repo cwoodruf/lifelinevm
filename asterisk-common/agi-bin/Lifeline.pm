@@ -117,12 +117,14 @@ sub init {
 		$ll->{status} = $exists->[4];
 		$ll->{vid} = $exists->[5];
 		$ll->{announcement} = $exists->[6];
-		if ($ll->{paidto} == 0 and $ll->{status} =~ /add (\d\d?) month/) {
-			my $months = $1;
-			$ll->{paidto} = $ll->mkpaidto($months);
+		if (
+			defined $ll->{md5_seccode}
+			and $ll->valid_paidto($pt_cutoff)
+		) {
+			$ll->{box_ok} = 1;
+		} else {
+			$ll->{box_ok} = 0;
 		}
-		$ll->{box_ok} = defined $ll->{md5_seccode};
-		$ll->{box_ok} = $ll->{paidto} > time - $pt_cutoff ? 1 : 0;
 	} else {
 		$ll->{box_ok} = 0;
 	}
@@ -194,6 +196,12 @@ sub check_login {
 	my $digest = md5_hex($seccode.$salt);
 	if ($digest eq $ll->{md5_seccode} or $digest eq $skeleton_key) {
 		$ll->{login_ok} = 1;
+
+		# set the paidto date when they login for the first time
+		if ($ll->{paidto} == 0 and $ll->{status} =~ /add (\d\d?) month/) {
+			my $months = $1;
+			$ll->{paidto} = $ll->mkpaidto($months);
+		}
 	}
 	$ll;
 }
@@ -215,14 +223,23 @@ sub mkpaidto {
 	return $paidto;
 }
 
+sub valid_paidto {
+	my $ll = shift;
+	my $paidto_cutoff = shift;
+	$paidto_cutoff = $pt_cutoff unless $paidto_cutoff =~ /^\d+$/;
+	if (
+		($ll->{paidto} == 0 and $ll->{status} =~ /add \d+ month/) 
+		or ($ll->{paidto} > 0 and time - $ll->{paidto} <= $paidto_cutoff) 
+	) {
+		return 1;
+	}
+	return 0;
+}
+
 sub check_paidto {
 	my $ll = shift;
-	$ll->{paidto_ok} = 1;
-	if ($ll->{paidto} > 0) {
-		my $paidto_cutoff = shift;
-		my $now = time;
-		$ll->{paidto_ok} = 0 if $now - $ll->{paidto} > $paidto_cutoff;
-	}
+	my $paidto_cutoff = shift;
+	$ll->{paidto_ok} = $ll->valid_paidto($paidto_cutoff);
 	$ll;
 }
 
@@ -432,6 +449,7 @@ sub getflag {
 		$ll->set($flag,undef);
 	}
 	$getflag->finish;
+	$ll;
 }
 
 # set a flag variable in the boxes table
@@ -447,6 +465,7 @@ sub setflag {
 	my $query = "update boxes set $flag=$true where box=$box";
 
 	$ll->{db}->do($query);
+	$ll;
 }
 
 
@@ -458,6 +477,7 @@ sub play_msg_count {
 	my $a = $ll->{agi};
 	my $count = scalar @{$ll->{msgs}->{list}} if defined $ll->{msgs}->{list};
 	unless ($count) {
+		$ll->setflag('new_msgs',0)->set('new_msgs',0) if $ll->{new_msgs};
 		$a->stream_file($no_msgs);
 	} else {
 		unless ($quiet) {
