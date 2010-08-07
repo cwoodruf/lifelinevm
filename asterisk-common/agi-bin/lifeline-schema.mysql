@@ -299,7 +299,7 @@ CREATE TABLE `vendors` (
   `notes` text,
   `llphone` varchar(32) default NULL,
   PRIMARY KEY  (`vid`)
-) ENGINE=MyISAM AUTO_INCREMENT=6963 DEFAULT CHARSET=latin1;
+) ENGINE=MyISAM AUTO_INCREMENT=6967 DEFAULT CHARSET=latin1;
 SET character_set_client = @saved_cs_client;
 
 --
@@ -350,4 +350,4 @@ SET character_set_client = @saved_cs_client;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2010-07-27  8:08:29
+-- Dump completed on 2010-08-07 15:42:40

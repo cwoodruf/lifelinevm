@@ -259,7 +259,6 @@ function payment_form($box) {
 </table>
 
 HTML;
-
 }
 
 function create_new_box($data) {
@@ -419,6 +418,7 @@ $table
 <tr><td><b>Amount:</b></td><td>{$amount}</td></tr>
 <tr><td><b>Notes:</b></td><td>{$personal['notes']}</td></tr>
 <tr><td colspan=2 align=right>
+<b>PRINT THIS:</b>
 <a href="index.php?box=$box&seccode={$bdata['seccode']}&amount=$amount&llphone={$bdata['llphone']}" 
    target=_blank>receipt / instructions</a>
 </td></tr>
@@ -727,7 +727,7 @@ function confirm_update_box_time($data,$months='') {
 	if (empty($box)) die("need a box number!");
 
 	if ($months === '') $months = $_REQUEST['months'];
-	if (empty($months)) die("need a number of months!");
+	if (empty($months)) $months = 0;
 	$months = $_REQUEST['remove'] ? -1 * abs($months) : abs($months);
 
 	$vend = ll_vendor($data['vid']);
@@ -823,6 +823,7 @@ $table
 <tr><td><b>Vendor:</b></td><td>{$bdata['vendor']}</td></tr>
 <tr><td><b>Amount paid:</b></td><td>$amount</td></tr>
 <tr><td colspan=2 align=right>
+<b>PRINT THIS:</b>
 <a href="index.php?box=$box&seccode={$bdata['seccode']}&amount=$amount&llphone={$bdata['llphone']}" 
    target=_blank>receipt / instructions</a>
 </td></tr>
