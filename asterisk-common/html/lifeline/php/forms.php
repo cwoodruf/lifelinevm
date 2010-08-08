@@ -437,12 +437,26 @@ function update_box_form($data,$action="Add time to box") {
 	$submittype = 'action';
 	$box = $_REQUEST['box'];
 	if (preg_match('#^\d+$#',$box)) $bdata = ll_box($box);
-	if (preg_match('#^\d#',$bdata['paidto'])) {
+	if (preg_match('#^2\d\d\d#',$bdata['paidto'])) {
 		$paidto = preg_replace('# .*#','',$bdata['paidto']);
 		$status = "(Paid to $paidto";
 		if ($bdata['status']) $status .= ", status {$bdata['status']}";
 		$status .= ")";
-	} 
+	} else if (preg_match('#add (\d+) month#', $bdata['status'], $m)) {
+		$today = date('Y-m-d');
+		$months = $m[1];
+		$s = $months == 1 ? '': 's';
+		$status = <<<HTML
+<div style="margin-top: 10px; width: 80%; padding: 3px; border: 1px black solid">
+<b>Set start date</b> (YYYY-MM-DD)
+<input name=startdate size=10 maxsize=10> 
+<a href="javascript:void(0);" onclick="topform.startdate.value='$today'; return false;">
+click here to use today's date</a> 
+<br>
+<i>Subscription date will be set to $months month$s from this date.</i> 
+</div>
+HTML;
+	}
 	if ($box != '') {
 		$is_hidden = 'type=hidden';
 	}
@@ -806,7 +820,7 @@ function update_box_time($data,$months='') {
 		$vid = $vend['vid'];
 	}
 
-	if ($months != 0) {
+	if (is_numeric($months)) {
 		$paidto = ll_add_time($vid,$box,$months);
 		$bdata = ll_box($box,true);
 		$vend = ll_vendor($data['vid'],true);
@@ -840,6 +854,10 @@ function update_personal($data) {
 	if (!preg_match('#^\d+$#',$box)) 
 		die("update_personal: box should be a number not $box!");
 	ll_update_personal($vend,$box,$_REQUEST['personal']);
+	if (preg_match('#^\s*(2\d\d\d-\d\d-\d\d)#',$_REQUEST['startdate'],$m)) {
+		$startdate = $m[1];
+		ll_set_paidto($box,$startdate);
+	}
 	$bdata = ll_box($box,($refresh=true));
 	return <<<HTML
 $top
@@ -848,6 +866,13 @@ $table
 <tr><td><b>Name:</b></td><td>{$bdata['name']}</td></tr>
 <tr><td><b>Email:</b></td><td>{$bdata['email']}</td></tr>
 <tr><td><b>Notes:</b></td><td>{$bdata['notes']}</td></tr>
+<tr><td><b>Status:</b></td><td>{$bdata['status']}</td></tr>
+<tr><td><b>Paid to:</b></td><td>{$bdata['paidto']}</td></tr>
+<tr><td colspan=2 align=right>
+<b>PRINT THIS:</b>
+<a href="index.php?box=$box&seccode={$bdata['seccode']}&llphone={$bdata['llphone']}" 
+   target=_blank>instructions</a>
+</td></tr>
 </table>
 $end
 

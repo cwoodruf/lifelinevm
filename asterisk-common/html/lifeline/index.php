@@ -13,7 +13,7 @@ else $llphone = $phone;
 
 if (isset($_SESSION['login']['login'])) $printedby = md5($_SESSION['login']['login']);
 
-if (!ll_has_access($_SESSION['login']['vid'],ll_box($_REQUEST['box']))) {
+if (!ll_has_access($_SESSION['login']['vid'],($bdata=ll_box($_REQUEST['box'])))) {
 	unset($_REQUEST);
 }
 if ($_REQUEST['amount']) {
@@ -65,6 +65,16 @@ This is your receipt and proof of purchase.<br>
 Please keep this receipt in case of problems with your account.<br>
 </div>
 <div style="font-size: x-small; float: right;"><?php print $printedby; ?></div>
+<?php endif; ?>
+<?php if ($bdata['paidto'] > 0) : ?>
+<div>
+<i>Paid to: <?php print $bdata['paidto']; ?></i>
+</div>
+<?php endif; ?>
+<?php if ($bdata['status']) : ?>
+<div>
+<i>Status: <?php print $bdata['status']; ?></i>
+</div>
 <?php endif; ?>
 <div style="padding-top: 8px;">
 <i><b>Rates:</b> $3.00 per month, $10 for four months, $25 per year. <br>
