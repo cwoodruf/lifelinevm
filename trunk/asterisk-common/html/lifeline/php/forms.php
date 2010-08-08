@@ -1018,6 +1018,8 @@ HTML;
 		else $namebr = '';
 		if (strlen($row['notes']) > 20) $notesbr = '<br>';
 		else $notesbr = '';
+		if (strlen($row['login']) > 32 and $notestbr == '') $loginbr = '<br>';
+		else $loginbr = '';
 
 		$html .= <<<HTML
 <tr valign=top>
@@ -1028,7 +1030,9 @@ HTML;
 $namebr
 <b>email:</b> {$row['email']} &nbsp; 
 $notesbr
-<b>notes:</b> {$row['notes']} 
+<b>notes:</b> {$row['notes']} &nbsp;
+$notesbr$loginbr
+<b>last edit:</b> {$row['login']}
 </td>
 </tr>
 <tr bgcolor=lightgray>
