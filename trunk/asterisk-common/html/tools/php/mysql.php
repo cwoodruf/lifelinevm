@@ -522,6 +522,23 @@ function ll_new_box($trans,$vend,$months,$llphone,$min_box,$max_box,$activate=fa
 		return array($box,$seccode,$paidto);
 }
 
+function ll_set_paidto($box,$startdate) {
+	$bdata = ll_box($box);
+	if (!is_array($bdata)) die("ll_set_paidto: no data for box $box!");
+	if ($bdata['paidto'] > 0) return;
+	if (!preg_match('#^\d\d\d\d-\d\d-\d\d$#',$startdate)) die("ll_set_paidto: invalid start date!");
+	if (preg_match('#add (\d+) month#', $bdata['status'], $m)) {
+		$months = $m[1];
+		$timestr = "$startdate +$months months";
+		$paidto = date('Y-m-d',strtotime($timestr));
+		if (preg_match('#^2\d\d\d-\d\d-\d\d$#', $paidto)) {
+			$update['status'] = '';
+			$update['paidto'] = $paidto;
+			ll_save_to_table('update','boxes',$update,'box',$box);
+		}
+	}
+}
+
 function ll_showcode($seccode) {
 	global $salt;
 
