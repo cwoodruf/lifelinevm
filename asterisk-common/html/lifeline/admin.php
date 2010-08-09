@@ -62,23 +62,24 @@ foreach ($myperms as $p) {
 }
 if (!$permcheck['edit']) die("you do not have sufficient access to use this site!");
 
-$form = $_REQUEST['form'];
+$form = $_REQUEST['form'] ? $_REQUEST['form'] : $_REQUEST['action'];
 # for people who can only view / edit box info
 if ($ldata['perms'] == 'edit') {
 	unset($_REQUEST['listen']);
-	$action = '';
 	$allowed_forms = array(
 		'chsc' => true,
 		'edit' => true,
 		'View your voicemail boxes' => true,
 		'View payments' => true,
 		'View call events' => true,
+		'Update name, email etc.' => true,
 		'find_boxes' => true,
 		'Search Boxes' => true,
 		'showcode' => true,
 		'Call Activity' => true,
 	);
 	if (!$allowed_forms[$form]) {
+		$action = '';
 		$_REQUEST['search'] = 'add [0-9]* month';
 		$form = 'Search Boxes';
 	}

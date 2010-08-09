@@ -557,7 +557,7 @@ function datesel($vid,$selected,$callback) {
 function paymentlist($box,$vid) {
 	$payments = ll_get_payments($box,$vid);
 	if (!count($payments)) return;
-	$title = "<h4>Payments for box $box</h4>";
+	$title = "<h4>Payments or changes for box $box</h4>";
 	return formatpaymentlist($title, $payments);
 }
 
@@ -577,9 +577,9 @@ function formatpaymentlist($title,$payments) {
 $title
 <table cellpadding=5 cellspacing=0 border=1>
 <tr>
-<th>#</tH><th>Box</th><th>Vendor Id</th><th>Paid On</th>
+<th>#</tH><th>Box</th><th>Vendor Id</th><th>Date</th>
 <th>Amount with tax</th><th>Tax</th><th>Months</th>
-<th>Received by</th><th>Notes</th>
+<th>Login</th><th>Notes</th>
 </tr>
 
 HTML;
@@ -847,17 +847,26 @@ HTML;
 }
 
 function update_personal($data) {
-	global $table, $vend;
+	global $table, $vend,$ldata;
 	$top = form_top($data);
 	$end = form_end($data);
 	$box = $_REQUEST['box'];
 	if (!preg_match('#^\d+$#',$box)) 
 		die("update_personal: box should be a number not $box!");
+
 	ll_update_personal($vend,$box,$_REQUEST['personal']);
 	if (preg_match('#^\s*(2\d\d\d-\d\d-\d\d)#',$_REQUEST['startdate'],$m)) {
 		$startdate = $m[1];
 		ll_set_paidto($box,$startdate);
+		$notes = "Start date added";
+	} else {
+		$notes = "Edited peronal data";
 	}
+
+	$amount = ll_update_payment($box,$data['vid'],$ldata['login'],($months=0),
+		array('paidon' => date('Y-m-d H:i:s'),'amount' => 0, 'notes' => $notes)
+	);
+
 	$bdata = ll_box($box,($refresh=true));
 	return <<<HTML
 $top
