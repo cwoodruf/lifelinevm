@@ -750,12 +750,15 @@ function ll_invoices($all=false,$vend=null) {
 	$lldb = ll_connect();
 	$fields = "invoice,vendor,date(invoices.created) as created,gst,".
 		"total,date(paidon) as paidon,invoices.vid as vid,parent,invoices.notes as notes ";
-	$orderby = "order by invoice desc";
+	$orderby = "order by invoices.created desc";
 	if ($all) $query = "select $fields from invoices,vendors ".
 		"where vendors.vid=invoices.vid ";
 	else $query = "select $fields from invoices,vendors ".
 		"where vendors.vid=invoices.vid and paidon is null ";
-	if (isset($vend)) $query .= "and invoices.vid='".$vend['vid']."' ";
+	if (isset($vend)) {
+		$regex = ll_parentpat($vend['vid']);
+		$query .= "and (invoices.vid='".$vend['vid']."' or vendors.parent regexp '$regex') ";
+	}
 	$query .= $orderby;
 	$st = $lldb->query($query);
 	if ($st === false) die(ll_err());
@@ -768,7 +771,7 @@ function ll_check_invoice($ldata, $idata) {
 	# is this logged in user allowed to update this invoice?
 	$parent = $savedidata['vdata']['parent'];
 	$vid = $idata['vid'];
-	$pat = ll_parent_pat("($vid|$parent)");
+	$pat = ll_parentpat("($vid|$parent)");
 	if (preg_match("#$pat#", $ldata['vid'])) return true;
 	return false;
 }
