@@ -525,7 +525,7 @@ function ll_new_box($trans,$vend,$months,$llphone,$min_box,$max_box,$activate=fa
 function ll_set_paidto($box,$startdate) {
 	$bdata = ll_box($box);
 	if (!is_array($bdata)) die("ll_set_paidto: no data for box $box!");
-	if ($bdata['paidto'] > 0) return;
+	if ($bdata['paidto'] > 0) die("this box has already been claimed by {$bdata['login']}!");
 	if (!preg_match('#^\d\d\d\d-\d\d-\d\d$#',$startdate)) die("ll_set_paidto: invalid start date!");
 	if (preg_match('#add (\d+) month#', $bdata['status'], $m)) {
 		$months = $m[1];
