@@ -78,7 +78,10 @@ if ($ldata['perms'] == 'edit') {
 		'showcode' => true,
 		'Call Activity' => true,
 	);
-	if (!$allowed_forms[$form]) $form = 'find_boxes';
+	if (!$allowed_forms[$form]) {
+		$_REQUEST['search'] = 'add [0-9]* month';
+		$form = 'Search Boxes';
+	}
 }
 
 if (preg_match('#^\d+$#', $_REQUEST['vid'])) {
