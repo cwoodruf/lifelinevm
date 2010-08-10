@@ -14,7 +14,9 @@ my $auth = "client_account_id=$client_account_id&auth_token=$auth_token";
 
 my $day = shift;
 $day = `/bin/date +\%Y-\%m-01` unless $day =~ /^\d\d\d\d-\d\d-\d\d/;
-my $url = "$baseurl?$auth&request_type=get_calls&date_from=$day";
+my $endday = shift;
+my $date_to = "&date_to=$endday" if $endday =~ /^\d\d\d\d-\d\d-\d\d/;
+my $url = "$baseurl?$auth&request_type=get_calls&date_from=$day$date_to";
 print "$url\n" if $opt{v};
 my $xml = get($url);
 
