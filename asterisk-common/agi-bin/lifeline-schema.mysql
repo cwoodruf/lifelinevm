@@ -266,6 +266,7 @@ CREATE TABLE `users` (
   `created` timestamp NOT NULL default CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP,
   `vid` int(11) default NULL,
   `perms` varchar(128) default NULL,
+  `notes` varchar(255) default NULL,
   UNIQUE KEY `users_vendor_login` (`login`)
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1;
 SET character_set_client = @saved_cs_client;
@@ -383,4 +384,4 @@ SET character_set_client = @saved_cs_client;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2010-08-09 15:56:17
+-- Dump completed on 2010-08-10 23:43:43
