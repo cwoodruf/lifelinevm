@@ -165,6 +165,7 @@ if ($_REQUEST['listen']) {
 	} else if ($form === 'Purchase time') {
 		print purchase_time_form($ldata);
 	} else {
+		$form = "Voicemail Admin";
 		print main_form($ldata);
 	}
 }
