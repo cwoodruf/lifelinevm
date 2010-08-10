@@ -624,6 +624,7 @@ $vendor
 
 HTML;
 	}
+	$notes = htmlentities($user['notes']);
 	print <<<HTML
 $loginbuttons
 <br>
@@ -640,6 +641,7 @@ $passwordentry
 	</nobr>
 	&nbsp;&nbsp;
 </i></nobr></td></tr>
+<tr><td>Notes:</td><td><input name=notes size=40 value="$notes"></td></tr>
 <tr><td colspan=2 align=center><input type=submit name=action value="$action user"></td></tr>
 </table>
 HTML;
@@ -663,10 +665,11 @@ function add_user($vend) {
 	}
 	if (is_array($permlist)) $permstr = implode(':',array_keys($permlist));
 
-	ll_add_user($vend,$login,$password,$permstr);
+	$notes = $_REQUEST['notes'];
+	ll_add_user($vend,$login,$password,$permstr,$notes);
 	print <<<HTML
-<h3>Updated user $login 
-(Vendor <a href="make.php?action=show_logins&from=$from&vid=$vid">$vendor</a>)
+<h3>Updated user <a href="make.php?action=modify_user&from=$from&vid=$vid&login=$login">$login</a>. 
+<a href="make.php?action=show_logins&from=$from&vid=$vid">Logins for $vendor</a>
 </h3>
 HTML;
 
