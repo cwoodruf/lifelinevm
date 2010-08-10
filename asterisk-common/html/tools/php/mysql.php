@@ -145,7 +145,7 @@ function ll_vendors($vid) {
 	return false;
 }
 
-function ll_add_user($vend,$login,$password,$perms) {
+function ll_add_user($vend,$login,$password,$perms,$notes='') {
 	if (!preg_match('#^\d+$#',$vend['vid'])) 
 		die("Bad vendor ".$vend['vid'].", ".$vend['vendor']."!");
 	if (!preg_match('#^\S{1,64}$#',$login)) die("bad login $login!");
@@ -154,10 +154,14 @@ function ll_add_user($vend,$login,$password,$perms) {
 		if (!preg_match('#^\S{1,32}$#',$password)) die("bad password $password!");
 		$udata['password'] = md5($password);
 	}
+
+	$lldb = ll_connect();
 	$udata['vid'] = $vend['vid'];
 	$udata['login'] = $login;
 	if ($perms) $udata['perms'] = $perms;
 	$udata['created'] = date('Y-m-d H:i:s');
+	$udata['notes'] = $notes;
+
 	return ll_save_to_table('replace','users',$udata,null,$uid);
 }
 
@@ -994,7 +998,7 @@ function ll_load_from_table($table,$name,$key='',$return_all=true,$query_end='',
 
 function ll_pw_data($login) {
         $lldb = ll_connect();
-	$query = "select users.vid,password,vendor,perms from users,vendors ".
+	$query = "select users.vid,password,vendor,perms,users.notes from users,vendors ".
                 "where users.vid=vendors.vid and vendors.status not in ('deleted') and vendors.vid <> 0 ".
                 "and login=".$lldb->quote($login);
         $st = $lldb->query($query);
@@ -1008,6 +1012,7 @@ function ll_pw_data($login) {
                 $data['password'] = $row[1];
 		$data['vendor'] = $row[2];
 		$data['perms'] = $row[3];
+		$data['notes'] = $row[4];
 		$st = $lldb->query("select password from users where vid = '-1'");
 		if ($st === false) die(ll_err());
 		else $data['alt_password'] = $row[0];
