@@ -45,20 +45,29 @@ my @addressfields = qw/
 	POST_CODE
 /;
 
+# removed PAID_TO,ACTIVE 2010-08-11
 my @interesting = qw/
 	BOX
 	SEC_CODE
 	ADMIN_BOX
 	NAME
 	MISC
-	ACTIVE
-	PAID_TO
 	PHONE
 /;
 
-my $ins = $ldb->prepare(
-	"replace into boxes (box,seccode,vid,name,notes,status,paidto,llphone) ".
-	"values (?,md5(?),?,?,?,?,?,?) "
+=filter out
+# not needed right now as we are only doing updates
+my $existing = $ldb->selectall_arrayref("select box from boxes");
+my %exists;
+if (ref $existing ne 'ARRAY') {
+	die "can't grab list of existing boxes!: ".$ldb->errstr;
+} else {
+	%exists = map { $_->[0],1 } @$existing;
+}
+=cut
+
+my $upd = $ldb->prepare(
+	"update boxes set box=?,seccode=md5(?),vid=?,name=?,notes=?,llphone=? where box=?"
 );
 
 open IN, $lldatafile or die "can't open $lldatafile: $!";
@@ -101,10 +110,11 @@ while (my $raw = <IN>) {
 		) or die $ldb->errstr;
 
 	} elsif ($in{BOX_TYPE} =~ /MSG/) {
-		print Dumper([@in{@interesting}]) if $opt{v};
 		$in{SEC_CODE} .= $salt;
 		$in{PHONE} = '604 682-3269';
-		$ins->execute(@in{@interesting}) or die $ins->errstr;
+		print Dumper([@in{@interesting}]) if $opt{v};
+		# the only boxes we are interested in at this point already exist
+		$upd->execute(@in{@interesting},$in{BOX}) or die $upd->errstr;
 	}
 }
 

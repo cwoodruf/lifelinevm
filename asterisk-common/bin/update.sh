@@ -1,7 +1,7 @@
 #!/bin/sh
 cd /usr/local/asterisk
 /usr/bin/scp --preserve callbackpack10@callbackpack.com:~/paycode/*.csv /usr/local/asterisk/paycode
-/usr/local/asterisk/bin/paycode-sync.pl
+# /usr/local/asterisk/bin/paycode-sync.pl
 
 # now getting an rsync connection directly to here
 # /usr/bin/rsync -rctvz --delete cal@aifl.ath.cx:~/Lifeline/ /usr/local/asterisk/Lifeline
