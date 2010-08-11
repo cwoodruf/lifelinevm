@@ -280,7 +280,7 @@ function create_new_box($data) {
 	$netmonths = $vend['months'];
 	$vid = $vend['vid'];
 
-	$llphone = $_REQUEST['llphone'];
+	$llphone = $_REQUEST['personal']['llphone'];
 	if (empty($llphone)) $llphone = $phone;
 
 	list($min_box,$max_box) = get_box_range(); # pick a random box range 
