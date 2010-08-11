@@ -507,16 +507,38 @@ $end
 HTML;
 }
 
-function mk_personal_input($bdata=array(),$vend=array()) {
-	global $table,$phone;
+function mk_personal_input($bdata=array(),$vend=null) {
+	global $ldata,$table,$phone,$ll_host;
+	if (!is_array($vend) and $bdata['vid']) $vend = ll_vendor($bdata['vid']);
 	if (empty($bdata['notes'])) $bdata['notes'] = $vend['vendor'].' '.$vend['paycode'];
-	if (empty($bdata['llphone'])) $bdata['llphone'] = $vend['llphone'];
-	if (empty($bdata['llphone'])) $bdata['llphone'] = $phone;
+	$myphone = $bdata['phone'];
+	if (empty($myphone)) $myphone = $vend['llphone'];
+	if (empty($myphone)) $myphone = $phone;
+	$phones = explode(':',$myphone);
+	if (count($phones) > 1) {
+		rsort($phones);
+		$vanpat = '#vancouver|burnaby|surrey|langely|coquitlam|maple\s*ridge|richmond#';
+		$tollfreepat = '#^\s*(1\s*|)8\d\d#';
+		$phonesel = "<select name=\"personal[llphone]\">";
+		$islocal = preg_match($vanpat, $ldata['login']);
+		foreach ($phones as $ph) {
+			if (!$islocal and preg_match($tollfreepat, $ph)) {
+				$selected = 'selected';
+			} else if ($islocal and !preg_match($tollfreepat,$ph)) {
+				$selected = 'selected';
+			} else {
+				$selected = '';
+			}
+			$phonesel .= "<option $selected>$ph\n";
+		}
+		$phonesel .= "</select>\n";
+	} else {
+		$phonesel = "<input phone=\"personal[llphone]\" value=\"$myphone\">";
+	}
 	return <<<HTML
 <p>
 $table
-<tr><td>Phone:</td><td>{$bdata['llphone']}
-       <input type=hidden phone="personal[llphone]" value="{$bdata['llphone']}"></td></tr>
+<tr><td>Phone:</td><td>$phonesel</td></tr>
 <tr><td>Name:</td><td><input size=32 name="personal[name]" value="{$bdata['name']}"></td></tr>
 <tr><td>Email:</td><td><input size=40 name="personal[email]" value="{$bdata['email']}"></td></tr>
 <tr><td>Notes:</td><td><input size=64 name="personal[notes]" value="{$bdata['notes']}"></td></tr>
