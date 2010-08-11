@@ -533,7 +533,7 @@ function mk_personal_input($bdata=array(),$vend=null) {
 		}
 		$phonesel .= "</select>\n";
 	} else {
-		$phonesel = "<input phone=\"personal[llphone]\" value=\"$myphone\">";
+		$phonesel = "$myphone <input type=hidden name=\"personal[llphone]\" value=\"$myphone\">";
 	}
 	return <<<HTML
 <p>
