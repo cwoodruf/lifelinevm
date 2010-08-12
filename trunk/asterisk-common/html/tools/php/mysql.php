@@ -687,8 +687,8 @@ function ll_update_payment($box,$vid,$login,$months,$payment,$howmany=1) {
 
 function ll_get_payments($box,$vid) {
 	if (ll_check_box($box) and preg_match('#^\d+$#', $vid)) 
-		return ll_load_from_table('payments',
-				array('box' => $box, 'vid' => $vid),
+		return ll_load_from_table('ourpayments',
+				array('box' => $box),
 				($key = null),
 				($returnall = true),
 				'order by paidon desc'

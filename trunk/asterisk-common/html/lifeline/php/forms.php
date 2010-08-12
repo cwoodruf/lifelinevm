@@ -516,7 +516,7 @@ function mk_personal_input($bdata=array(),$vend=null) {
 	if (empty($myphone)) $myphone = $phone;
 	$phones = explode(':',$myphone);
 	if (count($phones) > 1) {
-		rsort($phones);
+		# this is mainly for jobwave / triumph	
 		$vanpat = '#vancouver|burnaby|surrey|langely|coquitlam|maple\s*ridge|richmond#';
 		$tollfreepat = '#^\s*(1\s*|)8\d\d#';
 		$phonesel = "<select name=\"personal[llphone]\">";
@@ -601,7 +601,7 @@ $title
 <tr>
 <th>#</tH><th>Box</th><th>Vendor Id</th><th>Date</th>
 <th>Amount with tax</th><th>Tax</th><th>Months</th>
-<th>Login</th><th>Notes</th>
+<th>Vendor</th><th>Login</th><th>Notes</th>
 </tr>
 
 HTML;
@@ -619,6 +619,7 @@ HTML;
 <td align=right>$amount</td>
 <td align=right>$hst</td>
 <td align=right>{$p['months']} &nbsp;</td>
+<td>{$p['vendor']} &nbsp;</td>
 <td>{$p['login']} &nbsp;</td>
 <td>{$p['notes']} &nbsp;</td>
 </tr>
