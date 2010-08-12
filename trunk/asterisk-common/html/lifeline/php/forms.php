@@ -586,7 +586,7 @@ function paymentlist($box,$vid) {
 function vendlink($vid) {
 	global $permcheck;
 	if ($permcheck['vendors']) {
-		$vendlink = "<a href=\"make.php?findvid=$vid\">$vid</a>";
+		$vendlink = "<a href=\"make.php?from=admin&findvid=$vid\">$vid</a>";
 	} else {
 		$vendlink = $vid;
 	}
