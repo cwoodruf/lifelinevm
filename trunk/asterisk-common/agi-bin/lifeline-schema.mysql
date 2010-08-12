@@ -165,6 +165,26 @@ DROP TABLE IF EXISTS `ourboxes`;
 ) ENGINE=MyISAM */;
 
 --
+-- Temporary table structure for view `ourpayments`
+--
+
+DROP TABLE IF EXISTS `ourpayments`;
+/*!50001 DROP VIEW IF EXISTS `ourpayments`*/;
+/*!50001 CREATE TABLE `ourpayments` (
+  `box` varchar(32),
+  `vid` int(11),
+  `paidon` datetime,
+  `amount` float,
+  `hst` float,
+  `months` int(11),
+  `login` varchar(32),
+  `notes` text,
+  `ip` varchar(32),
+  `parent` text,
+  `vendor` varchar(128)
+) ENGINE=MyISAM */;
+
+--
 -- Table structure for table `paycode`
 --
 
@@ -374,6 +394,16 @@ SET character_set_client = @saved_cs_client;
 /*!50001 CREATE ALGORITHM=UNDEFINED */
 /*!50013 DEFINER=`cal`@`localhost` SQL SECURITY DEFINER */
 /*!50001 VIEW `ourboxes` AS select `boxes`.`box` AS `box`,`boxes`.`name` AS `name`,`boxes`.`notes` AS `notes`,`boxes`.`seccode` AS `seccode`,`boxes`.`email` AS `email`,`boxes`.`paidto` AS `paidto`,`boxes`.`inuse` AS `inuse`,`boxes`.`new_msgs` AS `new_msgs`,`boxes`.`status` AS `status`,`boxes`.`vid` AS `vid`,`boxes`.`login` AS `login`,`boxes`.`created` AS `created`,`boxes`.`modified` AS `modified`,`boxes`.`trans` AS `trans`,`boxes`.`llphone` AS `llphone`,`boxes`.`announcement` AS `announcement`,`boxes`.`canremove` AS `canremove`,`vendors`.`parent` AS `parent`,`vendors`.`vendor` AS `vendor`,`vendors`.`months` AS `months` from (`boxes` join `vendors` on((`boxes`.`vid` = `vendors`.`vid`))) */;
+
+--
+-- Final view structure for view `ourpayments`
+--
+
+/*!50001 DROP TABLE `ourpayments`*/;
+/*!50001 DROP VIEW IF EXISTS `ourpayments`*/;
+/*!50001 CREATE ALGORITHM=UNDEFINED */
+/*!50013 DEFINER=`cal`@`localhost` SQL SECURITY DEFINER */
+/*!50001 VIEW `ourpayments` AS select `payments`.`box` AS `box`,`payments`.`vid` AS `vid`,`payments`.`paidon` AS `paidon`,`payments`.`amount` AS `amount`,`payments`.`hst` AS `hst`,`payments`.`months` AS `months`,`payments`.`login` AS `login`,`payments`.`notes` AS `notes`,`payments`.`ip` AS `ip`,`vendors`.`parent` AS `parent`,`vendors`.`vendor` AS `vendor` from (`payments` join `vendors` on((`payments`.`vid` = `vendors`.`vid`))) */;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
@@ -384,4 +414,4 @@ SET character_set_client = @saved_cs_client;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2010-08-12  4:04:06
+-- Dump completed on 2010-08-12 15:00:14
