@@ -599,7 +599,7 @@ function formatpaymentlist($title,$payments) {
 $title
 <table cellpadding=5 cellspacing=0 border=1>
 <tr>
-<th>#</tH><th>Box</th><th>Vendor Id</th><th>Date</th>
+<th>#</tH><th>Box</th><th>Date</th>
 <th>Amount with tax</th><th>Tax</th><th>Months</th>
 <th>Vendor</th><th>Login</th><th>Notes</th>
 </tr>
@@ -614,7 +614,6 @@ HTML;
 <tr>
 <td>$item</td>
 <td><a href="admin.php?form=Search Boxes&search={$p['box']}">{$p['box']}</a></td>
-<td>$vendlink</td>
 <td>{$p['paidon']}</td>
 <td align=right>$amount</td>
 <td align=right>$hst</td>
