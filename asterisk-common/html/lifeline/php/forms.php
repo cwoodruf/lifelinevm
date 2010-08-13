@@ -882,7 +882,7 @@ function update_personal($data) {
 		ll_set_paidto($box,$startdate);
 		$notes = "Start date added";
 	} else {
-		$notes = "Edited peronal data";
+		$notes = "Edited personal data";
 	}
 
 	$amount = ll_update_payment($box,$data['vid'],$ldata['login'],($months=0),
@@ -945,11 +945,11 @@ function find_payments_form($data) {
 	$top = form_top($data);
 	$end = form_end($data);
 	if ($numpayments == 0) {
-		$paymentlist = "<h4>No payments for $date</h4>";
+		$paymentlist = "<h4>No changes for $date</h4>";
 	} else {
 		if ($numpayments == 1) $s = '';
 		else $s = 's';
-		$title = "<h4>$numpayments payment$s for $date</h4>";
+		$title = "<h4>$numpayments change$s for $date</h4>";
 		$paymentlist = formatpaymentlist($title, $payments);
 	}
 	$datesel = datesel($data['vid'],$date,'ll_paymentdates');
