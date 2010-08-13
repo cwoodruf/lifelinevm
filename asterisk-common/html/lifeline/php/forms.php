@@ -600,7 +600,7 @@ $title
 <table cellpadding=5 cellspacing=0 border=1>
 <tr>
 <th>#</tH><th>Box</th><th>Date</th>
-<th>Amount with tax</th><th>Tax</th><th>Months</th>
+<th>Amount</th><th>Tax</th><th>Months</th>
 <th>Vendor</th><th>Login</th><th>Notes</th>
 </tr>
 
@@ -611,12 +611,12 @@ HTML;
 		$hst = sprintf('$ %.2f', $p['hst']);
 		$vendlink = vendlink($p['vid']);
 		$html .= <<<HTML
-<tr>
+<tr valign=top>
 <td>$item</td>
 <td><a href="admin.php?form=Search Boxes&search={$p['box']}">{$p['box']}</a></td>
-<td>{$p['paidon']}</td>
-<td align=right>$amount</td>
-<td align=right>$hst</td>
+<td><nobr>{$p['paidon']}</nobr></td>
+<td align=right><nobr>$amount</nobr></td>
+<td align=right><nobr>$hst</nobr></td>
 <td align=right>{$p['months']} &nbsp;</td>
 <td>{$p['vendor']} &nbsp;</td>
 <td>{$p['login']} &nbsp;</td>

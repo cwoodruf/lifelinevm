@@ -344,7 +344,7 @@ function ll_find_boxes($vend,$search) {
 			$not = '';
 			$andor = 'or';
 		}
-		foreach (array('box', 'name', 'email', 'paidto', 'notes', 'status') as $field) {
+		foreach (array('box', 'name', 'email', 'paidto', 'notes', 'status', 'login') as $field) {
 			$value = $lldb->quote($search);
 			$wheres[] = "$field $not regexp ($value)";
 		}
