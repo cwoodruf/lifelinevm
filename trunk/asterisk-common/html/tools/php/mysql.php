@@ -18,6 +18,7 @@ $personal_fields = array(
 	'name' => 'Name',
 	'email' => 'Email',
 	'notes' => 'Notes',
+	'llphone' => 'Phone',
 );
 
 function ll_connect () {
