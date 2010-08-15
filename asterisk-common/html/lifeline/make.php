@@ -284,11 +284,11 @@ function get_transferdata() {
 	if (!$newvendor) die("selected new vendor could not be found!");
 	if ($newvendor['status'] == 'deleted') die("new vendor $newvid deleted!");
 
-	if ($currvendor['parent'] != $newvendor['parent'] 
-		and !ll_has_access($currvendor['vid'],$newvendor) 
-		and !ll_has_access($newvendor['vid'],$currvendor)
-	) 
-		die("{$newvendor['vendor']} is not part of the same group as {$currvendor['vendor']}.");
+	if (
+		$currvendor['parent'] != $newvendor['parent'] 
+			and !ll_has_access($currvendor['vid'],$newvendor) 
+			and !ll_has_access($newvendor['vid'],$currvendor)
+	) die("{$newvendor['vendor']} is not part of the same group as {$currvendor['vendor']}.");
 
 	return array($box, $currvendor, $newvendor);
 }
@@ -320,13 +320,15 @@ function list_vendors($vid=null) {
 	if ($vendors === false) return;
 	$make = "/lifeline/make.php";
 	$div = ''; # "&nbsp;-&nbsp;";
+	$color = 'cornsilk';
 	print <<<HTML
-<table cellpadding=5 cellspacing=0 border=0 width=1200>
-<tr><th>id</th><th>vendor</th><th>invoiced</th><th>owing</th><th>months</th><th>tools</th></tr>
+<table cellpadding=3 cellspacing=0 border=0 width=1100>
+<tr bgcolor="$color"><th>id</th><th>vendor</th><th>invoiced</th><th>owing</th><th>months</th><th>tools</th></tr>
 HTML;
 	$owing = ll_get_owing();
 	$invoiced = ll_get_invoiced();
 	foreach ($vendors as $vend) {
+		$color = ++$row % 2 ? 'white' : 'lavender';
 		$vendor = $vend['vendor'];
 		$vid = $vend['vid'];
 
@@ -364,15 +366,15 @@ HTML;
 		$squashedphone = preg_replace('#.*?((?:\d\D*){10}).*#',"$1",$vend['phone']);
 		$squashedphone = preg_replace('#\D#','',$squashedphone);
 		print <<<HTML
-<tr>
-<td>$vid</td>
+<tr valign=top bgcolor="$color">
+<td rowspan=2>$vid</td>
 <td>$vendor</td>
 <td align=right><a href="admin.php?vid=$vid&form=Show all invoices">$invstr</a></td>
 <td align=right><a href="admin.php?vid=$vid&form=Show unpaid invoices">$owed</a></td>
 <td align=right>$vend[months]</td>
 <td>
-<table cellspacing=0 cellpadding=2 border=0 style="border: none">
-<tr>
+<table cellspacing=0 cellpadding=0 border=0 style="border: none">
+<tr bgcolor="$color">
 <td width=100>
 $loginlink / 
 <a href="$make?action=edit&from=$from&vid=$vid">edit</a> $div
@@ -396,8 +398,11 @@ $del_vendor
 </table>
 </td>
 </tr>
-<tr bgcolor=lightgray><td colspan=6>
-<b>Contact:</b> <a href="sip:1$squashedphone@192.168.1.44">{$vend['phone']}</a> &nbsp;&nbsp; {$vend['contact']} {$vend['email']} &nbsp;&nbsp; {$vend['notes']}
+<tr bgcolor="$color" valign=top><td colspan=5>
+<div style="margin-bottom: 10px;">
+<b>Contact:</b> <a href="sip:1$squashedphone@192.168.1.44">{$vend['phone']}</a> &nbsp;&nbsp; 
+                {$vend['contact']} {$vend['email']} &nbsp;&nbsp; {$vend['notes']}
+</div>
 </td></tr>
 HTML;
 	}
