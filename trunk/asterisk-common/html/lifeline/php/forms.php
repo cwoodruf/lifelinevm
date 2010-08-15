@@ -511,7 +511,7 @@ function mk_personal_input($bdata=array(),$vend=null) {
 	global $ldata,$table,$phone,$ll_host;
 	if (!is_array($vend) and $bdata['vid']) $vend = ll_vendor($bdata['vid']);
 	if (empty($bdata['notes'])) $bdata['notes'] = $vend['vendor'].' '.$vend['paycode'];
-	$myphone = $bdata['phone'];
+	$myphone = $bdata['llphone'];
 	if (empty($myphone)) $myphone = $vend['llphone'];
 	if (empty($myphone)) $myphone = $phone;
 	$phones = explode(':',$myphone);
