@@ -1090,8 +1090,9 @@ function purchase_time_form($data) {
 
 	$top = form_top($data); 
 	$end = form_end($data);
-	if (credit_left($ldata['vid']) > 0) {
-		$rate = sprintf('$%.2f',$ldata['rate']);
+	if (credit_left($data['vid']) > 0) {
+		$vend = ll_vendor($data['vid']);
+		$rate = sprintf('$%.2f',$vend['rate']);
 		return <<<HTML
 $top
 <blockquote>
