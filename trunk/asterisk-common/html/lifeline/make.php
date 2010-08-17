@@ -534,7 +534,7 @@ function update_vendor($dbaction,$vend=null) {
 		if ($parent['llphone']) $update['llphone'] = $parent['llphone'];
 		else $update['llphone'] = DEFPHONE;
 	}
-	if (empty($update['rate'])) {
+	if ($update['rate'] == '') {
 		if ($parent['rate']) $update['rate'] = $parent['rate'];
 		else $update['rate'] = DEFRATE;
 	}
