@@ -144,7 +144,7 @@ else if ($action === 'Show logins' or $action === 'show_logins') show_logins($ve
 else if ($sdata['vid'] === 0 and $action === 'View invoices') invoices_form();
 else if ($sdata['vid'] === 0 and $action === 'View paid invoices') invoices_form('paid');
 else if ($sdata['vid'] === 0 and $action === 'Indicate invoice paid') pay_invoices();
-else if ($action === 'Update vendor') update_vendor('update',$vend);
+else if ($action === 'Update vendor') update_vendor('update');
 else if ($action === 'Create vendor') update_vendor('insert');
 else if ($action === 'transfer_box') transfer_box_form();
 else if ($action === 'Confirm box transfer') transfer_box_confirm();
@@ -508,17 +508,13 @@ $creditlimit
 HTML;
 }
 
-function update_vendor($dbaction,$vend=null) {
+function update_vendor($dbaction) {
 	global $from, $schema, $action;
 
 	$newvend = $_REQUEST['vend'];
-	if (isset($vend)) {
-		$vid = $vend['vid'];
-		$vendor = $vend['vendor'];
-	} else {
-		$vid = $newvend['vid'];
-		$vendor = $newvend['vendor'];
-	}
+	$vid = $newvend['vid'];
+	$vendor = $newvend['vendor'];
+
 	foreach ($newvend as $name => $value) {
 		if (!isset($schema['vendors'][$name])) continue;
 		if ($name === 'vid' and $dbaction === 'insert') continue;
