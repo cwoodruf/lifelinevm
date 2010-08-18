@@ -25,7 +25,7 @@ my $restart = 0;
 my $count = 0;
 foreach my $reg (split "\n", $sipregs) {
 	my @everything = my ($host, $user, $refresh, $state,@time)  = split /\s+/, $reg;
-	next if $host eq 'Host';
+	next if $host =~ /^(?:Host|Unable)$/;
 	if ($state ne $notfailed) {
 		print STDERR "bad sip registration for $user\@$host: $state (@time)\n";
 		$restart = 1;
@@ -38,7 +38,7 @@ if ($restart) {
 	print "doing: $cmd\n" if $opt{v};
 	system $cmd and warn "problem restarting asterisk: $!";
 } elsif ($count == 0) {
-	print "doing: $asterisk" if $opt{v};
+	print "doing: $asterisk\n" if $opt{v};
 	system $asterisk and warn "can't start asterisk: $!";
 } else {
 	print "not doing anything\n" if $opt{v};
