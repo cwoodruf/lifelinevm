@@ -1178,9 +1178,13 @@ function list_invoices($data,$showall=false) {
 	$owing = sprintf('$%.2f',ll_get_owing($data));
 	$invoiced = sprintf('$%.2f',ll_get_invoiced($data));
 	$vendor = $vend['vendor'];
+	$squashedphone = squashedphone($vend['phone']);
 	$html = <<<HTML
 $top
 <h3>Invoices for $vendor ($owing owing)</h3>
+<b>Contact:</b> <a href="sip:1$squashedphone@192.168.1.44">{$vend['phone']}</a> &nbsp;&nbsp;
+                {$vend['contact']} {$vend['email']} &nbsp;&nbsp; {$vend['notes']}
+<p>
 $table
 <tr><th>invoice</th><th>vendor</th><th>created</th><th>tax</th><th>total</th><th>paid</th></tr>
 HTML;

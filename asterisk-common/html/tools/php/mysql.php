@@ -21,6 +21,12 @@ $personal_fields = array(
 	'llphone' => 'Phone',
 );
 
+function squashedphone($phone) {
+	$squashedphone = preg_replace('#.*?((?:\d\D*){10}).*#',"$1",$phone);
+	$squashedphone = preg_replace('#\D#','',$squashedphone);
+	return $squashedphone;
+}
+
 function ll_connect () {
 	global $lldb;
 	global $ll_login;
