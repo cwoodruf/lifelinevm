@@ -363,8 +363,7 @@ HTML;
 		} else {
 			$loginlink = "<span class=\"inactivelink\">log in</span>";
 		}
-		$squashedphone = preg_replace('#.*?((?:\d\D*){10}).*#',"$1",$vend['phone']);
-		$squashedphone = preg_replace('#\D#','',$squashedphone);
+		$squashedphone = squashedphone($vend['phone']);
 		print <<<HTML
 <tr valign=top bgcolor="$color">
 <td rowspan=2>$vid</td>
