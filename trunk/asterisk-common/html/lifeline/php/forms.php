@@ -278,7 +278,7 @@ function create_new_box($data) {
 	$totalmonths = $months * $boxes;
 	if ($vend['months'] < $totalmonths) die("you only have $totalmonths months available!");
 	$netmonths = $vend['months'];
-	$vid = $vend['vid'];
+	$vid = $ldata['vid'];
 
 	$llphone = $_REQUEST['personal']['llphone'];
 	if (empty($llphone)) $llphone = $phone;
@@ -827,7 +827,7 @@ function update_box_time($data,$months='') {
 	$bdata = ll_box($box);
 	if (empty($bdata)) die("box $box can't be updated because it doesn't exist!");
 
-	$amount = ll_update_payment($box,$data['vid'],$ldata['login'],$months,$_REQUEST['payment']);
+	$amount = ll_update_payment($box,$ldata['vid'],$ldata['login'],$months,$_REQUEST['payment']);
 
 	if ($bdata['vid'] != $vend['vid']) {
 		# if we are the parent don't do anything otherwise change the vendor id
@@ -886,7 +886,7 @@ function update_personal($data) {
 		$notes = "Edited personal data";
 	}
 
-	$amount = ll_update_payment($box,$data['vid'],$ldata['login'],($months=0),
+	$amount = ll_update_payment($box,$ldata['vid'],$ldata['login'],($months=0),
 		array('paidon' => date('Y-m-d H:i:s'),'amount' => 0, 'notes' => $notes)
 	);
 
@@ -1090,7 +1090,8 @@ function purchase_time_form($data) {
 
 	$top = form_top($data); 
 	$end = form_end($data);
-	if (credit_left($data['vid']) > 0) {
+	$overdue = ll_invoices_overdue($data['vid']);
+	if (credit_left($data['vid']) > 0 and count($overdue) == 0) {
 		$vend = ll_vendor($data['vid']);
 		$rate = sprintf('$%.2f',$vend['rate']);
 		return <<<HTML
@@ -1103,6 +1104,33 @@ Rate: &nbsp;&nbsp; $rate &nbsp;&nbsp;
 <input type=submit name=action value="Purchase time" class=action>
 $end
 HTML;
+	} else if (count($overdue)) {
+		$overduedays = INVOICEOVERDUE;
+		$html = <<<HTML
+$top
+<h4>The following invoices are more than $overduedays days overdue:</h4>
+<i style="font-size: small">You must pay these invoices before you can purchase more voice mail time.</i>
+<p>
+<table cellpadding=3 cellspacing=0 width=350>
+<tr>
+<th>Invoice</th><th>Created</th><th>Amount</th>
+</tr>
+
+HTML;
+		foreach ($overdue as $inv) {
+			$html .= <<<HTML
+<tr align=center>
+<td><a href="?action=invoice&invoice={$inv['invoice']}" target=_blank>{$inv['invoice']}</a></td>
+<td>{$inv['created']}&nbsp;</td>
+<td align=right>\$ {$inv['amount']}&nbsp;</td>
+</tr>
+HTML;
+		}
+		$html .= <<<HTML
+</table>
+$end
+HTML;
+		return $html;
 	} else {
 		return <<<HTML
 $top

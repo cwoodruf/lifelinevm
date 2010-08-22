@@ -25,7 +25,11 @@ function authenticate($app,$callback) {
 	} else {
 		return;
 	}
-	if ($ldata['password'] === $password or $ldata['alt_password'] === $password) {
+	$loginok = ($ldata['password'] === $password or $ldata['alt_password'] === $password) ? true : false;
+	if (function_exists($logger = $callback.'_logger')) {
+		$logger($login, ($loginok ? 'ok' : 'failed'));
+	}
+	if ($loginok) {
 		$ldata = save_login($login,$app,$ldata);
 		return $ldata;
 	}
