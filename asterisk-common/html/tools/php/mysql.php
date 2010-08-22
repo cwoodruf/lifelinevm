@@ -749,6 +749,24 @@ function ll_delete_box($vend,$box) {
 	}
 }
 
+function ll_invoices_overdue($vid) {
+	$overdue = (int) INVOICEOVERDUE;
+	if ($overdue <= 0) {
+		print "unable to check overdue invoices!";
+		return;
+	}
+	if (preg_match('#^\d+$#',$vid)) $whatvid = "and invoices.vid = '$vid'";
+	$query = "select invoice,date(invoices.created) as created,format(total,2) as amount ".
+		"from invoices join vendors on (invoices.vid=vendors.vid) ".
+		"where datediff(now(),invoices.created) > $overdue ".
+		"and paidon is null and vendors.status not like '%deleted%' $whatvid"; 
+	$lldb = ll_connect();
+	$st = $lldb->query($query);
+	if ($st === false) die(ll_err());
+	$rows = $st->fetchAll();
+	return $rows;
+}
+
 function ll_invoice($invoice) {
 	if (preg_match('#^\d{1,32}$#',$invoice)) {
 		$idata = ll_load_from_table('invoices','invoice',$invoice,false);
@@ -1027,6 +1045,10 @@ function ll_pw_data($login) {
         return $data;
 }
 
+function ll_pw_data_logger($login,$status) {
+	return ll_login_logger($login,$status);
+}
+
 function ll_user_data($box) {
 	$lldb = ll_connect();
 	$st = $lldb->query("select seccode from boxes where box='$box'");
@@ -1052,6 +1074,21 @@ function ll_superuser($login) {
         }
         return $data;
 }
+
+function ll_superuser_logger($login,$status) {
+	return ll_login_logger($login,$status);
+}
+
+function ll_login_logger($login,$status) {
+	$logdata = array(
+		'login' => $login,
+		'status' => $status,
+		'ip' => $_SERVER['REMOTE_ADDR'],
+		'attempted' => date('Y-m-d H:i:s'),
+	);
+	return ll_save_to_table('insert','loginlog',$logdata,null,$ignoreme,true);
+}
+
 
 function ll_prompt_login($login) {
 	$lldb = ll_connect();
