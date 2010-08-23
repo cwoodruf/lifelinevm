@@ -759,7 +759,7 @@ function ll_invoices_overdue($vid) {
 	$query = "select invoice,date(invoices.created) as created,format(total,2) as amount ".
 		"from invoices join vendors on (invoices.vid=vendors.vid) ".
 		"where datediff(now(),invoices.created) > $overdue ".
-		"and paidon is null and vendors.status not like '%deleted%' $whatvid"; 
+		"and paidon is null $whatvid"; 
 	$lldb = ll_connect();
 	$st = $lldb->query($query);
 	if ($st === false) die(ll_err());
