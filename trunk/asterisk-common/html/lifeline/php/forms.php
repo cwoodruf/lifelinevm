@@ -50,10 +50,11 @@ HTML;
 	}
 	$head = head();
 	$search_form = search_form($data);
+	$docs = "<a href=\"docs\">Documentation</a>";
 	return <<<HTML
 $head
 <center>
-<h4>Vendor: $vendor <span style="font-weight: normal;">$goback &nbsp;&nbsp; $logout</span></h4>
+<h4>Vendor: $vendor <span style="font-weight: normal;">$goback &nbsp;&nbsp; $logout &nbsp;&nbsp; $docs</span></h4>
 $status<p>
 $search_form
 <h3>$form</h3>
