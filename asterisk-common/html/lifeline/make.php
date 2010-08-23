@@ -17,6 +17,8 @@ $_SESSION['from'] = $from =
 # log in and check differently depending on where we came from
 # this is more of a courtesy than a security check
 # your login credentials really determine what you can do
+$docs = "<a href=\"docs\">Documentation</a>";
+
 if ($_REQUEST['login'] != 'superuser' and $from == 'admin') {
 	$ldata = login_response($_SERVER['PHP_SELF'],"/lifeline/admin.php",'ll_pw_auth');
 	if ($ldata['perms'] != 's') {
@@ -77,7 +79,7 @@ print <<<HTML
 </head>
 <body bgcolor=lightyellow>
 <center>
-$goback
+$goback &nbsp;&nbsp; $docs
 <h3>$seller admin</h3>
 $emaillistlink
 <p>
