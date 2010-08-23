@@ -749,14 +749,23 @@ function ll_delete_box($vend,$box) {
 	}
 }
 
-function ll_invoices_overdue($vid) {
+function ll_invoices_overdue($vid,&$block) {
 	$overdue = (int) INVOICEOVERDUE;
 	if ($overdue <= 0) {
 		print "unable to check overdue invoices!";
 		return;
 	}
-	if (preg_match('#^\d+$#',$vid)) $whatvid = "and invoices.vid = '$vid'";
-	$query = "select invoice,date(invoices.created) as created,format(total,2) as amount ".
+	if (!preg_match('#^\d+$#',$vid)) die("ll_invoices_overdue: invalid vid!");
+	
+	$vend = ll_vendor($vid);
+	$vids[] = $vid;
+	foreach (explode(':',$vend['parent']) as $parent) {
+		if ($parent == ROOTVID) continue;
+		$vids[] = $parent;
+	}
+	$whatvid = "and invoices.vid in (".implode(",",$vids).") ";
+	$query = "select invoice,date(invoices.created) as created,format(total,2) as amount, ".
+		"datediff(now(),invoices.created) as age ".
 		"from invoices join vendors on (invoices.vid=vendors.vid) ".
 		"where datediff(now(),invoices.created) > $overdue ".
 		"and paidon is null $whatvid"; 
@@ -764,6 +773,13 @@ function ll_invoices_overdue($vid) {
 	$st = $lldb->query($query);
 	if ($st === false) die(ll_err());
 	$rows = $st->fetchAll();
+	$block = false;
+	foreach ($rows as $inv) {
+		if ($inv['age'] > INVOICEBLOCKED) {
+			$block = true;
+			break;
+		}
+	}
 	return $rows;
 }
 
