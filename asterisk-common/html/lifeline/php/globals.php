@@ -13,7 +13,8 @@ define("DAY",86400);
 define("MINBOX",1000);
 define("MAXBOX",9999);
 define("DEFRATE",2.5);
-define("INVOICEOVERDUE", 120);
+define("INVOICEOVERDUE", 90);
+define("INVOICEBLOCKED", INVOICEOVERDUE + 30);
 
 # default phone number if the vendor doesn't have a phone associated with them
 define("DEFPHONE","604 248-4930");

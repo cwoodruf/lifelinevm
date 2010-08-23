@@ -2,8 +2,6 @@
 require_once("$lib/asterisk.php");
 require_once("php/lifeline-schema.php");
 $back = "<a href=/lifeline/admin.php>Back to admin</a>";
-if ($permcheck['logins'])
-	$manage = "<a href=\"admin.php?action=Manage account and users\">Manage account and users</a>";
 $table = table_header();
 
 function table_header($cp=5,$cs=0,$b=0,$w=400,$style='') {
@@ -89,7 +87,7 @@ function credit_left($vid) {
 }
 
 function main_form($data) {
-	global $ldata, $permcheck, $min_purchase;
+	global $ldata, $permcheck, $min_purchase, $overdue, $overdueblock;
 
 	$top = form_top($data,false); 
 	$end = form_end($data);
@@ -106,7 +104,7 @@ function main_form($data) {
 				$remaining = "You can purchase $credit month$s more voicemail.";
 			}
 		}
-		if ($credit >= $min_purchase) {
+		if ($credit >= $min_purchase and count($overdue) == 0) {
 			$purchase = <<<HTML
 <input type=submit name=form value="Purchase time">
 <br>
@@ -114,8 +112,11 @@ $limit
 $remaining
 HTML;
 		} else {
+			if (count($overdue)) $payinvoices = overdueinvoices($overdue);
+			else $payinvoices = 
+				"<em>Please pay outstanding invoices before purchasing more voice mail.</em>";
 			$purchase = <<<HTML
-<em>Please pay any outstanding invoices before buying more voicemail.</em>
+$payinvoices
 <br>
 $limit
 $remaining
@@ -130,7 +131,7 @@ HTML;
 <p>
 HTML;
 	}
-	if ($ldata['months'] > 0) {
+	if (!$overdueblock and $ldata['months'] > 0) {
 		$addtime_buttons = <<<HTML
 <input type=submit name=form value="Create a new voicemail box"> <p>
 <input type=submit name=form value="Add time to an existing box"> <p>
@@ -152,7 +153,10 @@ HTML;
 }
 
 function vend_status_str($vend) {
-	global $min_purchase, $permcheck;
+	global $min_purchase, $permcheck, $overdue, $overdueblock;
+	if ($overdueblock) {
+		return "<b>You must pay overdue invoices before you can create new voice mail boxes.</b>";
+	}
 	if ($vend['months'] == 1) {
 		$months = "1 month";
 	} else if ($vend['months'] == 0) {
@@ -162,6 +166,9 @@ function vend_status_str($vend) {
 		}
 	} else {
 		$months = $vend['months']." months";
+	}
+	if (count($overdue)) {
+		$purchaselink = "Some invoices overdue.";
 	}
 	if ($vend['actual_months'] == 1) $acts = '';
 	else $acts = 's';
@@ -1087,11 +1094,10 @@ HTML;
 }
 
 function purchase_time_form($data) {
-	global $table, $ldata, $min_purchase;
+	global $table, $ldata, $min_purchase, $overdue;
 
 	$top = form_top($data); 
 	$end = form_end($data);
-	$overdue = ll_invoices_overdue($data['vid']);
 	if (credit_left($data['vid']) > 0 and count($overdue) == 0) {
 		$vend = ll_vendor($data['vid']);
 		$rate = sprintf('$%.2f',$vend['rate']);
@@ -1106,32 +1112,8 @@ Rate: &nbsp;&nbsp; $rate &nbsp;&nbsp;
 $end
 HTML;
 	} else if (count($overdue)) {
-		$overduedays = INVOICEOVERDUE;
-		$html = <<<HTML
-$top
-<h4>The following invoices are more than $overduedays days overdue:</h4>
-<i style="font-size: small">You must pay these invoices before you can purchase more voice mail time.</i>
-<p>
-<table cellpadding=3 cellspacing=0 width=350>
-<tr>
-<th>Invoice</th><th>Created</th><th>Amount</th>
-</tr>
-
-HTML;
-		foreach ($overdue as $inv) {
-			$html .= <<<HTML
-<tr align=center>
-<td><a href="?action=invoice&invoice={$inv['invoice']}" target=_blank>{$inv['invoice']}</a></td>
-<td>{$inv['created']}&nbsp;</td>
-<td align=right>\$ {$inv['amount']}&nbsp;</td>
-</tr>
-HTML;
-		}
-		$html .= <<<HTML
-</table>
-$end
-HTML;
-		return $html;
+		$html = overdueinvoices($overdue);
+		return "$top$html$end";
 	} else {
 		return <<<HTML
 $top
@@ -1140,6 +1122,37 @@ $top
 $end
 HTML;
 	}
+}
+
+function overdueinvoices($overdue) {
+	$overduedays = INVOICEOVERDUE;
+	$html = <<<HTML
+<h4>The following invoices are more than $overduedays days overdue:</h4>
+<i style="font-size: small">You must pay these invoices before you can purchase more voice mail time.</i>
+<p>
+<table cellpadding=3 cellspacing=0 width=350>
+<tr>
+<th>Invoice</th>
+<th>Created</th>
+<th>Age</th>
+<th>Amount</th>
+</tr>
+
+HTML;
+	foreach ($overdue as $inv) {
+		$html .= <<<HTML
+<tr align=center>
+<td><a href="?action=invoice&invoice={$inv['invoice']}" target=_blank>{$inv['invoice']}</a></td>
+<td>{$inv['created']}&nbsp;</td>
+<td>{$inv['age']} days</td>
+<td align=right>\$ {$inv['amount']}&nbsp;</td>
+</tr>
+HTML;
+	}
+	$html .= <<<HTML
+</table>
+HTML;
+	return $html;
 }
 
 function confirm_purchase_form($data) {

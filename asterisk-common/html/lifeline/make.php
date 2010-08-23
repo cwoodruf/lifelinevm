@@ -5,7 +5,11 @@ require_once("$lib/pw/auth.php");
 require_once("php/forms.php");
 
 $action = $_REQUEST['action'];
-if ($action === 'logout') delete_login();
+if ($action === 'logout') {
+	delete_login();
+	header('location: /lifeline/admin.php');
+	exit;
+}
 $login = $_REQUEST['login'];
 if (!preg_match('#^[\w\.\@-]*$#',$login)) die("bad login value $login for adding or updating user!");
 

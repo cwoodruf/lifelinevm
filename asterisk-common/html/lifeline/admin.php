@@ -17,6 +17,13 @@ if (preg_match('#^\d+$#',$_REQUEST['switch_vendor'])) {
 		$ldata['vid'] = $_SESSION['login']['vid'] = $switchto;
 	}
 }
+
+# check for overdue invoices early 
+# this check absolutely prevent someone from buying voice mail if they have sub vendors
+if ($ldata['vid'] > 0) {
+	$overdue = ll_invoices_overdue($ldata['vid'],$overdueblock);
+}
+
 $vdata = ll_vendor($ldata['vid']);
 if ($vdata['status'] == 'deleted') {
 	die("Error: {$vdata['vendor']} was deleted!");
@@ -24,7 +31,8 @@ if ($vdata['status'] == 'deleted') {
 
 # last minute sanity check
 if (!ll_has_access($ldata['vid'],$vdata)) {
-	die("Error: you cannot log in to {$vdata['vendor']}!");
+	header('location: /lifeline/admin.php');
+	exit;
 }
 
 # something wonky happened as we can't find this vendor
