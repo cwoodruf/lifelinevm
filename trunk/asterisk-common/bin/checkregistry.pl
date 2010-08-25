@@ -8,7 +8,8 @@ getopts('v', \%opt);
 
 my $asterisk = '/usr/local/asterisk/sbin/asterisk ';
 my $showcmd = " -rx 'sip show registry'";
-my $restartcmd = " -rx 'restart when convenient'";
+#my $restartcmd = " -rx 'restart when convenient'";
+my $restartcmd = " -rx 'sip reload'";
 
 my $notfailed = 'Registered';
 my $sipregs = `$asterisk $showcmd`;
