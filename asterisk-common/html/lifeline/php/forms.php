@@ -104,26 +104,27 @@ function main_form($data) {
 				$remaining = "You can purchase $credit month$s more voicemail.";
 			}
 		}
-		if ($credit >= $min_purchase and count($overdue) == 0) {
-			$purchase = <<<HTML
+		if ($vend['acctype'] == 'purchase') {
+			if ($credit >= $min_purchase and count($overdue) == 0) {
+				$purchase = <<<HTML
 <input type=submit name=form value="Purchase time">
 <br>
 $limit
 $remaining
 HTML;
-		} else {
-			if (count($overdue)) $payinvoices = overdueinvoices($overdue);
-			else $payinvoices = 
-				"<em>Please pay outstanding invoices before purchasing more voice mail.</em>";
-			$purchase = <<<HTML
+			} else {
+				if (count($overdue)) $payinvoices = overdueinvoices($overdue);
+				else $payinvoices = 
+					"<em>Please pay outstanding invoices before purchasing voice mail.</em>";
+				$purchase = <<<HTML
 $payinvoices
 <br>
 $limit
 $remaining
 HTML;
+			}
 		}
 		$purchase .= <<<HTML
-<br>
 <nobr>
 <input type=submit name=form value="Show all invoices"> 
 <input type=submit name=form value="Show unpaid invoices">
@@ -157,13 +158,18 @@ function vend_status_str($vend) {
 	if ($overdueblock) {
 		return "<b>You must pay overdue invoices before you can create new voice mail boxes.</b>";
 	}
+
+	if ($vend['months'] == 0 and $vend['acctype'] == 'login') 
+		return;
+
 	if ($vend['months'] == 1) {
 		$months = "1 month";
 	} else if ($vend['months'] == 0) {
 		$months = "no";
-		if ($permcheck['invoices']) {
+		if ($permcheck['invoices'] and $vend['acctype'] == 'purchase') {
 			$purchaselink = "<a href=\"admin.php?form=Purchase time\">Purchase time.</a>";
 		}
+		
 	} else {
 		$months = $vend['months']." months";
 	}
@@ -172,6 +178,7 @@ function vend_status_str($vend) {
 	}
 	if ($vend['actual_months'] == 1) $acts = '';
 	else $acts = 's';
+
 	$status = <<<HTML
 {$vend['vendor']} has $months voice mail available. 
 $purchaselink
