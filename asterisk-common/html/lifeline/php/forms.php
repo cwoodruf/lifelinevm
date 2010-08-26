@@ -47,7 +47,7 @@ HTML;
 		$logout .= "</nobr>\n";
 	}
 	$head = head();
-	$search_form = search_form($data);
+	if ($_SERVER['PHP_SELF'] == '/lifeline/admin.php') $search_form = search_form($data);
 	$docs = "<a href=\"docs\">Documentation</a>";
 	return <<<HTML
 $head
