@@ -99,7 +99,7 @@ function main_form($data) {
 			if ($credit != 1) $s = 's';
 			if ($credit < 0) {
 				$remaining = "You are over your credit limit by ".
-						(abs($credit))." month$s.<br>";
+						(abs($credit))." month$s";
 			} else {
 				$remaining = "You can purchase $credit month$s more voicemail.";
 			}
@@ -111,6 +111,7 @@ function main_form($data) {
 <br>
 $limit
 $remaining
+<br>
 HTML;
 			} else {
 				if (count($overdue)) $payinvoices = overdueinvoices($overdue);
