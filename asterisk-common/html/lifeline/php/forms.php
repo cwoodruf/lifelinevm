@@ -468,7 +468,8 @@ function update_box_form($data,$action="Add time to box") {
 <a href="javascript:void(0);" onclick="topform.startdate.value='$today'; return false;">
 click here to use today's date</a> 
 <br>
-<i>Subscription date will be set to $months month$s from this date.</i> 
+<i>Subscription date will be set to $months month$s from this date.<br> 
+   Dates must be no later than 2 weeks from today.</i> 
 </div>
 HTML;
 	}
@@ -895,6 +896,9 @@ function update_personal($data) {
 	ll_update_personal($vend,$box,$_REQUEST['personal']);
 	if (preg_match('#^\s*(2\d\d\d-\d\d-\d\d)#',$_REQUEST['startdate'],$m)) {
 		$startdate = $m[1];
+		$onemonth = date('Y-m-d',strtotime('+2 weeks'));
+		if ($onemonth < $startdate) 
+			die("start date $startdate can't be more than $onemonth.");
 		ll_set_paidto($box,$startdate);
 		$notes = "Start date added";
 	} else {
