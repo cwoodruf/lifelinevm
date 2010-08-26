@@ -9,8 +9,10 @@ $ldata = login_response('redirect.php',$_SERVER['PHP_SELF'],'ll_pw_data');
 $vdata = ll_vendor($ldata['vid']);
 
 # temporarily become another vendor
-if (preg_match('#^\d+$#',$_REQUEST['switch_vendor'])) {
-	$switchto = $_REQUEST['switch_vendor'];
+$switchto = $_REQUEST['switch_vendor'];
+# check to see if the request is sane at all
+if (preg_match('#^\d+$#',$switchto) and $switchto != $ldata['vid']) {
+	# check to see if we are allowed to be this vendor
 	if ($switchto == $ldata['initial_vid'] or ll_has_access($ldata,ll_vendor($switchto))) {
 		$ldata['orig_vid'] = $_SESSION['login']['orig_vid'] = $ldata['vid'];
 		$ldata['orig_vendor'] = $_SESSION['login']['orig_vendor'] = $vdata['vendor'];
