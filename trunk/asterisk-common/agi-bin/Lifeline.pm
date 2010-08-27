@@ -327,7 +327,7 @@ sub load_msgs {
 	my $count = 0;
 	# using glob because readdir wasn't returning an ordered list
 	# using reverse to get newest messages first
-	foreach (reverse glob("$ll->{msgdir}/[0-9]*.[0-9].$ll->{rectype}")) {
+	foreach (reverse glob("$ll->{msgdir}/[0-9]*.*[0-9].$ll->{rectype}")) {
 		s/\.$ll->{rectype}$//;
 		$ll->{msgs}->{list}->[$count]->{msg} = $_;
 		$ll->{msgs}->{list}->[$count]->{deleted} = 0;
