@@ -296,8 +296,10 @@ function ll_paymentdates($vid) {
 }
 
 function ll_boxes($vend,$showkids=false,$status='not_deleted',$order = "order by paidto desc") {
-	if ($status == 'deleted') $status = " and boxes.status in ('deleted')";
-	else if ($status == 'not_deleted') $status = " and boxes.status not in ('deleted')";
+	if ($status == 'deleted') 
+		$status = " and (boxes.status in ('deleted') or paidto < current_date()) ";
+	else if ($status == 'not_deleted') 
+		$status = " and boxes.status not in ('deleted') and paidto >= current_date() ";
 
 	if (is_array($vend)) $vid = $vend['vid'];
 	else $vid = $vend;
@@ -317,7 +319,8 @@ function ll_boxes($vend,$showkids=false,$status='not_deleted',$order = "order by
 
 function ll_activeboxcount($vid) {
 	if (!preg_match('#^\d+$#',$vid)) die("bad vid in ll_activeboxcount!");
-	$query = "select count(*) from boxes where status not like '%deleted%' and vid='$vid'";
+	$query = "select count(*) from boxes ".
+		"where status not like '%deleted%' and paidto >= current_date() and vid='$vid'";
 	$lldb = ll_connect();
 	$st = $lldb->query($query);
 	if ($st == false) die(ll_err());
