@@ -531,11 +531,11 @@ function mk_personal_input($bdata=array(),$vend=null) {
 	$myphone = $bdata['llphone'];
 	if (empty($myphone)) $myphone = $vend['llphone'];
 	if (empty($myphone)) $myphone = $phone;
-	$phones = explode(':',$myphone);
+	$phones = explode(':',$vend['llphone']);
 	if (count($phones) > 1) {
 		# this is mainly for jobwave / triumph	
 		$vanpat = '#vancouver|burnaby|surrey|langely|coquitlam|maple\s*ridge|richmond#';
-		$tollfreepat = '#^\s*(1\s*|)8\d\d#';
+		$tollfreepat = '#^\s*(1\D*|)8\d\d#';
 		$phonesel = "<select name=\"personal[llphone]\">";
 		$islocal = preg_match($vanpat, $ldata['login']);
 		foreach ($phones as $ph) {
