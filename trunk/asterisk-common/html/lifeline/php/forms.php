@@ -31,7 +31,7 @@ function form_top($data,$show_goback=true,$show_status=true,$method='get',$formj
 	$time = date('r',$data['time']);
 	$vend = ll_vendor($data['vid']);
 	if ($show_status) $status = vend_status_str($vend);
-	$goback = $show_goback ? "$manage - $back" : '';
+	$goback = $show_goback ? "&nbsp;&nbsp; $back" : '';
 	if ($ldata) {
 		$logout = <<<HTML
 <nobr>
@@ -1224,24 +1224,22 @@ function list_invoices($data,$showall=false) {
 	global $ldata;
 	if ($data['vid'] != $ldata['vid'] and $data['parent'] != $ldata['vid']) 
 		die("Error: you are trying to view someone else's invoices.");
-	$table = table_header(3,0,0,800);
+	$table = table_header(3,0,0,850);
 	$top = form_top($data); 
 	$end = form_end($data);
 	$vend = ll_vendor($data['vid']);
 	$invoices = ll_invoices($showall,$vend);
-	$owing = sprintf('$%.2f',ll_get_owing($data));
+	$owing = ll_get_owing($data);
+	$owing = $owing > 0 ? sprintf('(%.2f owing)', $owing) : '';
 	$invoiced = sprintf('$%.2f',ll_get_invoiced($data));
 	$vendor = $vend['vendor'];
 	$squashedphone = squashedphone($vend['phone']);
 	$invtype = $showall ? 'All' : 'Unpaid';
 	$html = <<<HTML
 $top
-<h3>$invtype nvoices for $vendor ($owing owing)</h3>
+<h3>$invtype invoices for $vendor $owing</h3>
 <a href="admin.php?form=Show+all+invoices">Show all</a> &nbsp;&nbsp;
 <a href="admin.php?form=Show+unpaid+invoices">Show unpaid</a>
-<p>
-<b>Contact:</b> <a href="sip:1$squashedphone@192.168.1.44">{$vend['phone']}</a> &nbsp;&nbsp;
-                {$vend['contact']} {$vend['email']} &nbsp;&nbsp; {$vend['notes']}
 <p>
 $table
 <tr><th>invoice</th><th>vendor</th><th>created</th><th>tax</th><th>total</th><th>paid</th></tr>
@@ -1251,9 +1249,7 @@ HTML;
                 $html .= "<tr valign=top>\n";
 		$in = $invoice['invoice'];
 		# if you are logged in as the parent then you can edit the invoice
-		if ($invoice['parent'] == $ldata['vid']) 
-			$editinv = "<td align=right><a href=\"admin.php?form=Edit invoice&invoice=$in\">edit</a>";
-		else $editinv = '';
+		$editinv = "<td align=right><a href=\"admin.php?form=Edit invoice&invoice=$in\">edit</a>";
                 foreach (array('invoice','vendor','created','gst','total','paidon') as $field) {
 			$value = htmlentities($invoice[$field]);
                         if (is_numeric($field)) continue;
@@ -1267,7 +1263,7 @@ HTML;
 				$html .= "<td align=right>$value $editinv</td>";
 			} else if ($field === 'vendor') {
 				$html .= <<<HTML
-<td align=right><a href="make.php?from=admin&vid={$invoice['vid']}&action=edit">$value</a>&nbsp;
+<td align=right><a href="make.php?from=admin&vid={$invoice['vid']}&action=edit">$value ({$invoice['vid']})</a></td>
 HTML;
 			} else $html .= "<td align=right>$value &nbsp;</td>";
                 }
