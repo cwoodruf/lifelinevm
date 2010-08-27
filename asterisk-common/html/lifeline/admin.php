@@ -171,7 +171,7 @@ if ($_REQUEST['listen']) {
 		if (ll_check_invoice($ldata,$_REQUEST) and ll_save_invoice($_REQUEST,$ldata)) 
 			$form = 'Invoice saved';
 		else $form = 'Error saving invoice!';
-		print list_invoices($vdata,true);
+		print list_invoices($ldata,false);
 	} else if ($form === 'Purchase time') {
 		print purchase_time_form($ldata);
 	} else {
