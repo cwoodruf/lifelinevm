@@ -799,7 +799,7 @@ function ll_invoices($all=false,$vend=null) {
 	if ($all) $query = "select $fields from invoices,vendors ".
 		"where vendors.vid=invoices.vid ";
 	else $query = "select $fields from invoices,vendors ".
-		"where vendors.vid=invoices.vid and paidon is null ";
+		"where vendors.vid=invoices.vid and (paidon is null or paidon = 0)";
 	if (isset($vend)) {
 		$regex = ll_parentpat($vend['vid']);
 		$query .= "and (invoices.vid='".$vend['vid']."' or vendors.parent regexp '$regex') ";

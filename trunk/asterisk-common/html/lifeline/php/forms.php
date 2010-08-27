@@ -1233,9 +1233,13 @@ function list_invoices($data,$showall=false) {
 	$invoiced = sprintf('$%.2f',ll_get_invoiced($data));
 	$vendor = $vend['vendor'];
 	$squashedphone = squashedphone($vend['phone']);
+	$invtype = $showall ? 'All' : 'Unpaid';
 	$html = <<<HTML
 $top
-<h3>Invoices for $vendor ($owing owing)</h3>
+<h3>$invtype nvoices for $vendor ($owing owing)</h3>
+<a href="admin.php?form=Show+all+invoices">Show all</a> &nbsp;&nbsp;
+<a href="admin.php?form=Show+unpaid+invoices">Show unpaid</a>
+<p>
 <b>Contact:</b> <a href="sip:1$squashedphone@192.168.1.44">{$vend['phone']}</a> &nbsp;&nbsp;
                 {$vend['contact']} {$vend['email']} &nbsp;&nbsp; {$vend['notes']}
 <p>
@@ -1261,6 +1265,10 @@ HTML;
 				$html .= "<td align=right>".(sprintf('$%.2f',$value))." &nbsp;</td>";
 			} else if ($field === 'paidon') {
 				$html .= "<td align=right>$value $editinv</td>";
+			} else if ($field === 'vendor') {
+				$html .= <<<HTML
+<td align=right><a href="make.php?from=admin&vid={$invoice['vid']}&action=edit">$value</a>&nbsp;
+HTML;
 			} else $html .= "<td align=right>$value &nbsp;</td>";
                 }
                 $html .= "</tr>\n";
