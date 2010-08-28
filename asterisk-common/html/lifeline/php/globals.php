@@ -13,6 +13,7 @@ define("DAY",86400);
 define("MINBOX",1000);
 define("MAXBOX",9999);
 define("DEFRATE",2.5);
+define("DEFPRICES","1=3.00;2=6.00;3=9.00;4=10.00;5=12.50;6=15.00;7=17.00;8=19.00;9=21.00;10=23.00;11=25.00;12=25.00");
 define("INVOICEOVERDUE", 90);
 define("INVOICEBLOCKED", INVOICEOVERDUE + 30);
 
@@ -34,6 +35,7 @@ $lifeline_root = "/usr/local/asterisk/html/lifeline";
 
 # allowable range of boxes when we want to create a box
 function get_box_range() { 
+	return array(2000,9999);
 	# these ranges avoid new boxes from the DERA vm service
 	# we do this so both can be used at the same time without collisions
 	$ranges = array(array(6001,6999),array(9001,9999));

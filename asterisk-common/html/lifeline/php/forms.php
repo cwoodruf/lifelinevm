@@ -9,13 +9,36 @@ function table_header($cp=5,$cs=0,$b=0,$w=400,$style='') {
 }
 
 function head() {
-	global $form;
+	global $form,$ldata;
 	$title = empty($form) ? "main page" : $form;
+	if ($ldata['retail_prices'] and $form == 'Create a new voicemail box') {
+		$pairs = explode(';',$ldata['retail_prices']);
+		foreach ($pairs as $pair) {
+			list($months,$amount) = explode('=',$pair);
+			$retail_prices[$months] = $amount;
+			$prices .= "retail_prices[$months] = '$amount';\n";
+		}
+		$retail_script = <<<JS
+<script type=text/javascript>
+var retail_prices = new Array();
+$prices
+function get_retail_price(months) {
+	if (months <= 0) {
+		alert('Invalid number of months! Should be 1 or more.');
+		return '0.00';
+	}
+	if (retail_prices[months]) return retail_prices[months];
+	return '0.00';
+}
+</script>
+JS;
+	}
 	return <<<HTML
 <html>
 <head>
 <title>Voicemail Admin: $title</title>
 <link rel=stylesheet type=text/css href=/lifeline/css/admin.css>
+$retail_script
 </head>
 <body bgcolor=lightyellow>
 HTML;
@@ -218,12 +241,15 @@ HTML;
 	$end = form_end($data);
 	$trans = ll_generate_trans($vend,'boxes');
 	$personal = mk_personal_input(null,$vend);
-	$payment_form = payment_form($box);
+	$payment_form = payment_form($box,defpayment($vend,$months));
 	return <<<HTML
 $top
 <input type=hidden name=trans value="$trans">
 $boxeswidget
-Valid for &nbsp; <input size=3 name=months value="$months"> &nbsp; months (up to $maxmonths months). &nbsp;&nbsp; 
+Valid for &nbsp; 
+<input size=3 name=months value="$months"
+ onchange="getElementById('payment_amount').value=get_retail_price(this.value);"
+> &nbsp; months (up to $maxmonths months). &nbsp;&nbsp; 
 $personal
 $payment_form
 <br>
@@ -247,7 +273,7 @@ mysql> desc payments;
 | notes  | text        | YES  |     | NULL    |       | 
 +--------+-------------+------+-----+---------+-------+
 */
-function payment_form($box) {
+function payment_form($box,$defpayment=0.0) {
 	global $ldata,$vend;
 	if (!preg_match('#^\d+$#',$box)) $box = "";
 
@@ -258,7 +284,7 @@ function payment_form($box) {
 	if (!preg_match('#^\d{4}-\d{2}-\d{2}#',$now)) $now = date('Y-m-d H:i:s');
 
 	$amount = $payment['amount'];
-	if (!is_numeric($amount) or $amount < 0) $amount = sprintf('%.2f', 0);
+	if (!is_numeric($amount)) $amount = sprintf('%.2f', $defpayment);
 
 	$notes = htmlentities($payment['notes']);
 
@@ -270,7 +296,7 @@ function payment_form($box) {
 <tr><td>Paid On</td><td><input size=20 name="payment[paidon]" value="$now"></td></tr>
 <tr><td>Amount Paid</td>
 <td>
-<input size=10 name="payment[amount]" value="$amount"></td></tr>
+<input size=10 id=payment_amount name="payment[amount]" value="$amount"></td></tr>
 <tr><td>Notes</td><td><input size=40 name="payment[notes]" value="$notes"></td></tr>
 </table>
 
@@ -427,7 +453,7 @@ function new_box_instructions($data,$box,$seccode,$amount,$personal) {
 	return <<<HTML
 $top
 $table
-<tr><td><b>Box:</b></td><td>$box</td></tr>
+<tr><td><b>Box:</b></td><td><a href="?form=Search+Boxes&search=$box">$box</a></td></tr>
 <tr><td><b>Status:</b></td><td>{$bdata['status']} $paidto</td></tr>
 <tr><td><b>Name:</b></td><td>{$personal['name']}</td></tr>
 <tr><td><b>Email:</b></td><td>{$personal['email']}</td></tr>
@@ -453,12 +479,16 @@ function update_box_form($data,$action="Add time to box") {
 	$submittype = 'action';
 	$box = $_REQUEST['box'];
 	if (preg_match('#^\d+$#',$box)) $bdata = ll_box($box);
+
+	# set status string
 	if (preg_match('#^2\d\d\d#',$bdata['paidto'])) {
 		$paidto = preg_replace('# .*#','',$bdata['paidto']);
 		$status = "(Paid to $paidto";
 		if ($bdata['status']) $status .= ", status {$bdata['status']}";
 		$status .= ")";
-	} else if (preg_match('#add (\d+) month#', $bdata['status'], $m)) {
+	} else if ( preg_match('#add (\d+) month#', $bdata['status'], $m) 
+			and  $action === 'Update name, email etc.'
+	) {
 		$today = date('Y-m-d');
 		$months = $m[1];
 		$s = $months == 1 ? '': 's';
@@ -473,7 +503,10 @@ click here to use today's date</a>
    Dates must be no later than 2 weeks from today.</i> 
 </div>
 HTML;
+	} else {
+		$status = "({$bdata['status']})";
 	}
+
 	if ($box != '') {
 		$is_hidden = 'type=hidden';
 	}
@@ -696,7 +729,7 @@ HTML;
 HTML;
 	}
 	$callhtml .= "</table>\n";
-	$summary = "Summary: <table cellpadding=3 cellspacing=0 border=0>\n<tr>\n";
+	$summary = "Summary: <table cellpadding=5 cellspacing=0 border=0>\n<tr>\n";
 	foreach ($sums as $ctype => $count) {
 		$summary .= "<td><b>$ctype</b> $count&nbsp;</td>\n";
 	}
@@ -724,17 +757,30 @@ HTML;
 }
 
 function delete_box($data) {
-	global $_REQUEST;
+	global $ldata;
 	$box = $_REQUEST['box'];
 	$vend = ll_vendor($data['vid'],true);
-	ll_delete_box($vend,$box);
+	$months = ll_delete_box($vend,$box);
+	$s = $months == 1 ? '' : 's';
+	# make an audit trail record of the box
+	$amount = ll_update_payment(
+			$box,
+			$data['vid'],
+			$ldata['login'],
+			-1 * $months,
+			array(
+				'paidon' => date('Y-m-d H:i:s'),
+				'amount' => 0,
+				'notes' => 'deleted',
+			)
+	);
 	cleanup_files($box);
 	$vend = ll_vendor($data['vid'],true);
 	$top = form_top($data); 
 	$end = form_end($data);
 	return <<<HTML
 $top
-Box $box now deleted.
+Box $box now deleted. $months month$s returned to {$vend['vendor']}.
 $end
 HTML;
 }
@@ -743,22 +789,27 @@ function cleanup_files($box) {
 	global $asterisk_lifeline;
 	global $asterisk_rectype;
 	global $asterisk_deleted;
-	$dir = "$asterisk_lifeline/$box/messages";
-	if (($dh = @opendir($dir)) === false) return;
+	$dir = "$asterisk_lifeline/$box";
 	$greeting = "$dir/greeting.$asterisk_rectype";
 	$deleted = "$dir/greeting.$asterisk_deleted.$asterisk_rectype";
 	if (is_file($greeting)) {
 		@unlink($deleted);
 		rename($greeting,$deleted);
 	}
+	$messages = "$dir/messages";
+	if (($dh = @opendir($messages)) === false) die("can't open $messages!"); # return;
 	while (($item = readdir($dh)) !== false) {
-		$name = "$dir/$item";
+		$name = "$messages/$item";
 		if (!is_file($name)) continue;
+		if (preg_match("#\.$asterisk_deleted\.#",$name)) {
+			continue;
+		}
 		if (!preg_match("#(.*)\.($asterisk_rectype)$#",$name,$m)) continue;
 		$deleted = $m[1].".$asterisk_deleted.".$m[2];
 		@unlink($deleted);
 		rename($name,$deleted);
 	}
+	closedir($dh);
 }
 
 function confirm_update_seccode($data) {
@@ -793,6 +844,7 @@ Security code for box $box updated to $seccode.
 $end
 HTML;
 }
+
 function confirm_update_box_time($data,$months='') {
 	global $table,$ldata;
 
@@ -814,7 +866,7 @@ function confirm_update_box_time($data,$months='') {
 
 	$top = form_top($data); 
 	$end = form_end($data);
-	$payment_form = payment_form($box);
+	$payment_form = payment_form($box,defpayment($vend,$months));
 	if ($bdata['vid'] != $vend['vid']) {
 		$original = 'Original ';
 		# if we are the parent don't do anything otherwise change the vendor id
@@ -850,6 +902,14 @@ $payment_form
 <input type=submit name=action value="$nextsubmit" class=action>
 $end
 HTML;
+}
+
+function defpayment($vend,$months) {
+	if (empty($vend['retail_prices'])) return 0.0;
+	if (preg_match("#(?:^|;)$months=([^;]+)#",$vend['retail_prices'],$m)) {
+		return sprintf('%.2f', $m[1]);
+	}
+	return 0.0;
 }
 
 function update_box_time($data,$months='') {
@@ -1032,8 +1092,8 @@ function search_form($data) {
 	$search = htmlentities($_REQUEST['search']);
 	if (!$search and $_REQUEST['box']) $search = htmlentities($_REQUEST['box']);
 	return <<<HTML
-<form action=admin.php method=get>
-<input name="search" value="$search">
+<form name=searchform action=admin.php method=get>
+<input name="search" value="$search" size=33 style="margin-left: -5px;">
 <input type=hidden name="vid" value="{$data['vid']}">
 <input type=submit name=form value="Search Boxes">
 <br>

@@ -148,7 +148,9 @@ if ($_REQUEST['listen']) {
 	} else if ($form === 'sub') {
 		print update_box_form($ldata,'Remove time from box');
 	} else if ($form === 'del') {
-		print update_box_form($ldata,'Delete box');
+		# print update_box_form($ldata,'Delete box');
+		$form = "Confirm voice mail box delete";
+		print confirm_delete_form($ldata);	
 	} else if ($form === 'chsc') {
 		print update_box_form($ldata,'Change security code');
 	} else if ($form === 'edit') {

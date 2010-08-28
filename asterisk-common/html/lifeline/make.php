@@ -92,7 +92,7 @@ HTML;
 
 if ($sdata['vid'] == 0) {
 	print <<<HTML
-<form action=/lifeline/make.php method=get>
+<form name=main_form action=/lifeline/make.php method=get>
 $seller 
 <input type=submit name=action value="Create new vendor"> &nbsp;&nbsp;
 <input type=hidden name=parent value="$defparent">
@@ -104,7 +104,7 @@ $seller
 HTML;
 } else if ($permcheck['logins'] or $permcheck['vendors']) {
 	print <<<HTML
-<form action=/lifeline/make.php method=get>
+<form name=update_form action=/lifeline/make.php method=get>
 $seller 
 <input type=hidden name=from value="$from">
 <input type=submit name=action value="Update info"> &nbsp;&nbsp;
@@ -130,7 +130,7 @@ HTML;
 
 print <<<HTML
 <br>
-<form action=/lifeline/make.php method=post>
+<form name=edit_form action=/lifeline/make.php method=post>
 <input type=hidden name=from value="$from">
 
 HTML;
@@ -147,14 +147,14 @@ else if ($action === 'Really delete user') del_user($vend);
 else if ($action === 'del_vendor') del_vendor_form($vend);
 else if ($action === 'Really delete vendor') del_vendor($vend);
 else if ($action === 'Show logins' or $action === 'show_logins') show_logins($vend);
-else if ($sdata['vid'] === 0 and $action === 'View invoices') invoices_form();
-else if ($sdata['vid'] === 0 and $action === 'View paid invoices') invoices_form('paid');
-else if ($sdata['vid'] === 0 and $action === 'Indicate invoice paid') pay_invoices();
 else if ($action === 'Update vendor') update_vendor('update');
 else if ($action === 'Create vendor') update_vendor('insert');
 else if ($action === 'transfer_box') transfer_box_form();
-else if ($action === 'Confirm box transfer') transfer_box_confirm();
-else if ($action === 'Really transfer box') transfer_box();
+else if ($action === 'Confirm box transfer') transfer_confirm('box');
+else if ($action === 'Really transfer box') transfer('box');
+else if ($action === 'transfer_months') transfer_months_form();
+else if ($action === 'Confirm months transfer') transfer_confirm('months');
+else if ($action === 'Really transfer months') transfer('months');
 else if (
 	(isset($vid) and $sdata['vid'] === 0) or 
 	$action === 'edit' or 
@@ -171,12 +171,37 @@ HTML;
 # end output
 
 #================================== functions ================================#
+function transfer_months_form() {
+	global $ldata, $permcheck;
+	if (!$permcheck['boxes']) 
+		die("you do not have permission to transfer a box!");
+	$vendorsel = vendorsel(ll_vendors($ldata['vid']));
+	$currvendor = currvendor();
+	$maxmonths = $currvendor['months'];
+	$html = <<<HTML
+<h3>Transfer time from this vendor to another</h3>
+<table cellpadding=5 cellspacing=0>
+<tr>
+<td>
+Transfer months: <input name=months value="" size=10> (up to $maxmonths)
+<p>
+Current vendor: <b>{$currvendor['vendor']}</b>
+<input type=hidden name="currvid" value="{$currvendor['vid']}">
+<p>
+$vendorsel
+<p>
+<center><input type=submit name=action value="Confirm months transfer"></center>
+</td>
+</tr>
+</table>
+HTML;
+	print $html;
+}
+
 function transfer_box_form() {
 	global $ldata, $permcheck;
-	if ($ldata['vid'] != 0) {
-		if (!$permcheck['boxes']) 
-			die("you do not have permission to transfer a box!");
-	}
+	if (!$permcheck['boxes']) 
+		die("you do not have permission to transfer a box!");
 
 	$vid = $_REQUEST['vid'];
 	if (!preg_match('#^\d+$#',$vid)) die("vendor id should be a number!");
@@ -195,8 +220,8 @@ function transfer_box_form() {
 	$vendors = ll_vendors($ldata['vid']);
 
 	print <<<HTML
-<h3>Transfer a box from one vendor to another</h3>
-<table cellpadding=3 cellspacing=0>
+<h3>Transfer a box from this vendor to another</h3>
+<table cellpadding=5 cellspacing=0>
 <tr>
 <td>
 Select a Box: <input name=box size=5> $boxsel
@@ -204,17 +229,9 @@ Select a Box: <input name=box size=5> $boxsel
 Current vendor: <b>{$currvendor['vendor']}</b>
 <input type=hidden name="currvid" value="{$currvendor['vid']}">
 <p>
-New vendor: <select name="newvid">
-<p>
-
 HTML;
-	foreach ($vendors as $vendor) {
-		if ($vendor['vid'] == $vid) $checked = 'selected';
-		else $checked = '';
-		print "<option value=\"{$vendor['vid']}\" $checked>{$vendor['vendor']}</option>\n";
-	}
+	print vendorsel($vendors);
 	print <<<HTML
-</select>
 <p>
 <center><input type=submit name=action value="Confirm box transfer"></center>
 </td>
@@ -225,53 +242,103 @@ HTML;
 
 }
 
-function transfer_box_confirm() {
-	global $ldata, $permcheck;
+function vendorsel($vendors) {
+	$html = <<<HTML
+New vendor: <select name="newvid">
+HTML;
+	foreach ($vendors as $vendor) {
+		if ($vendor['vid'] == $vid) $checked = 'selected';
+		else $checked = '';
+		$html .= "<option value=\"{$vendor['vid']}\" $checked>{$vendor['vendor']}</option>\n";
+	}
+	$html .= "</select>\n";
+	return $html;
+}
 
-	list($box,$currvendor,$newvendor) = get_transferdata();
-	if ($ldata['vid'] != 0) {
-		if (!$permcheck['boxes'])
-			die("You do not have permission to transfer!");
+function currvendor() {
+	$vid = $_REQUEST['vid'];
+	if (!preg_match('#^\d+$#',$vid)) die("vendor id should be a number!");
+	$currvendor = ll_vendor($vid);
+	if (!$currvendor) die("vendor $vid does not exist!");
+	return $currvendor;
+}
+
+function transfer_confirm($what) {
+	global $ldata, $permcheck;
+	if (!$permcheck['boxes'])
+		die("You do not have permission to transfer!");
+	list($box,$months,$currvendor,$newvendor) = get_transferdata();
+
+	if ($what == 'months') {
+		if ((int) $months <= 0) die("invalid number of months!");
+
+		$s = $months == 1 ? '' : 's';
+		$ttitle = "$months month$s";
+		$value = $months;
+
+	} else if ($what == 'box') {
+		if (!preg_match('#^\d+$#',$box)) die("invalid box!");
+
+		$ttitle = "box $box";
+		$value = $box;
 	}
 
 	print <<<HTML
 <input type=hidden name=currvid value={$currvendor['vid']}>
 <input type=hidden name=newvid value={$newvendor['vid']}>
-<input type=hidden name=box value=$box>
-<h3>Transfer box $box from 
+<input type=hidden name="$what" value="$value">
+<h3>Transfer $ttitle from 
     {$currvendor['vendor']} ({$currvendor['vid']})
 to {$newvendor['vendor']} ({$newvendor['vid']})?
 <p>
-<input type=submit name=action value="Really transfer box">
+<input type=submit name=action value="Really transfer $what">
 
 HTML;
 
 }
 
-function transfer_box() {
+function transfer($what) {
 	global $ldata, $permcheck;
 
-	list($box,$currvendor,$newvendor) = get_transferdata();
-	if ($ldata['vid'] != 0) {
-		if (!$permcheck['boxes']) 
-			die("you do not have permission to transfer a box!");
+	if (!$permcheck['boxes']) 
+		die("you do not have permission to transfer a box!");
+
+	list($box,$months,$currvendor,$newvendor) = get_transferdata();
+
+	if ($what == 'months') {
+		if ($months <= 0) die("invalid number of months!");
+		$s = $months == 1 ? '' : 's';
+		$ttitle = "$months month$s";
+		$value = $months;
+	} else if ($what == 'box') {
+		if (!preg_match('#^\d+$#',$box)) die("invalid box!");
+		$ttitle = "box $box";
+		$value = $box;
 	}
 
-	if (ll_transferbox($box,$currvendor,$newvendor))  $result = "transferred";
-	else $result = "not tranferred (error)";
+	if (ll_transfer($what,$value,$currvendor,$newvendor))  {
+		if ($what == 'months') {
+			ll_logmonthstransfer($currvendor['vid'],$newvendor['vid'],$months,$ldata['login']);
+		}
+		$result = "transferred";
+	} else $result = "not tranferred (error)";
 
 	print <<<HTML
-<h3>Box $box $result from {$currvendor['vendor']} to {$newvendor['vendor']}</h3>
+<h3>$ttitle $result from {$currvendor['vendor']} to {$newvendor['vendor']}</h3>
 
 HTML;
 }
 
 function get_transferdata() {
-	$box = $_REQUEST['box'];
-	if (empty($box)) $box = $_REQUEST['boxsel'];
-	if (!preg_match('#^\d+$#', $box)) die("box $box should be a number!");
-	$bdata = ll_box($box);
-	if (!$bdata) die("box $box does not exist!");
+	if ($_REQUEST['box']) {
+		$box = $_REQUEST['box'];
+		if (empty($box)) $box = $_REQUEST['boxsel'];
+		if (!preg_match('#^\d+$#', $box)) die("box $box should be a number!");
+		$bdata = ll_box($box);
+		if (!$bdata) die("box $box does not exist!");
+	} else if ($_REQUEST['months']) {
+		$months = (int) $_REQUEST['months'];
+	}
 
 	$currvid = $_REQUEST['currvid'];
 	if (!preg_match('#^\d+$#',$currvid)) die("old vendor id should be a number!");
@@ -284,7 +351,10 @@ function get_transferdata() {
 	$currvendor = ll_vendor($currvid);
 	if (!$currvendor) die("selected current vendor could not be found!");
 	if ($currvendor['status'] == 'deleted') die("current vendor $currvid deleted!");
-	if ($bdata['vid'] != $currvendor['vid']) die("box $box does not belong to vendor $currvid!");
+	if ($box and $bdata['vid'] != $currvendor['vid']) 
+		die("box $box does not belong to vendor $currvid!");
+	if ($months and $currvendor['months'] < $months) 
+		die("vendor $currvid does not have enough time to transfer $months months");
 
 	$newvendor = ll_vendor($newvid);
 	if (!$newvendor) die("selected new vendor could not be found!");
@@ -296,7 +366,7 @@ function get_transferdata() {
 			and !ll_has_access($newvendor['vid'],$currvendor)
 	) die("{$newvendor['vendor']} is not part of the same group as {$currvendor['vendor']}.");
 
-	return array($box, $currvendor, $newvendor);
+	return array($box, $months, $currvendor, $newvendor);
 }
 
 function show_emails() {
@@ -329,7 +399,7 @@ function list_vendors($vid=null) {
 	$color = 'cornsilk';
 	print <<<HTML
 <table cellpadding=3 cellspacing=0 border=0 width=1100>
-<tr bgcolor="$color"><th>id</th><th>vendor</th><th>invoiced</th><th>owing</th><th>months</th><th>tools</th></tr>
+<tr bgcolor="$color"><th>id</th><th>vendor</th><th>months</th><th>invoiced</th><th>owing</th><th>tools</th></tr>
 HTML;
 	$owing = ll_get_owing();
 	$invoiced = ll_get_invoiced();
@@ -350,8 +420,9 @@ HTML;
 		if (
 			($ldata['perms'] == 's' or strpos($ldata['perms'],'vendors') !== false)
 			and $vid != $ldata['vid'] # don't delete yourself!
-			and $owed == 0 and $boxcount == 0) 
-		{
+			and $owed == 0 and $boxcount == 0
+			and $vend['acctype'] == 'purchase'
+		) {
 			$del_vendor = "<a href=\"$make?action=del_vendor&vid=$vid\">delete</a>";
 		}
 		else 
@@ -370,13 +441,34 @@ HTML;
 			$loginlink = "<span class=\"inactivelink\">log in</span>";
 		}
 		$squashedphone = squashedphone($vend['phone']);
+		if ($vend['months'] > 0) {
+			$transfermonths = <<<HTML
+{$vend['months']}
+<span class="move">(<a class="move" href="$make?action=transfer_months&from=$from&vid=$vid">transfer</a>)</span>
+HTML;
+		}
+		if ($boxcount > 0) {
+			$boxlinks = <<<HTML
+<a href="admin.php?form=View your voicemail boxes&vid=$vid&showkids=0">$boxcount box$es</a>
+<span class="move">(<a class="move" href="$make?action=transfer_box&from=$from&vid=$vid">move box</a>)</span> 
+$div
+HTML;
+		} else {
+			$boxlinks = "no boxes";
+		}
 		print <<<HTML
+<style type=text/css>
+.move {
+	font-size: small;
+	font-style: italic;
+}
+</style>
 <tr valign=top bgcolor="$color">
 <td rowspan=2>$vid</td>
 <td>$vendor</td>
+<td align=right> $transfermonths </td>
 <td align=right><a href="admin.php?vid=$vid&form=Show all invoices">$invstr</a></td>
-<td align=right><a href="admin.php?vid=$vid&form=Show unpaid invoices">$owed</a></td>
-<td align=right>$vend[months]</td>
+<td align=right><a href="admin.php?vid=$vid&form=Show unpaid invoices">$owed</a> &nbsp;&nbsp;</td>
 <td>
 <table cellspacing=0 cellpadding=0 border=0 style="border: none">
 <tr bgcolor="$color">
@@ -387,13 +479,13 @@ $loginlink /
 <td width=120>
 <nobr>
 <a href="$make?action=show_logins&from=$from&vid=$vid">$logincount login$s</a>
-(<a href="$make?action=new_user&from=$from&vid=$vid">add</a>) $div
+<span class="move">(<a class="move" href="$make?action=new_user&from=$from&vid=$vid">add</a>)</span>
+$div
 </nobr>
 </td>
-<td width=200>
+<td width=150>
 <nobr>
-<a href="admin.php?form=View your voicemail boxes&vid=$vid&showkids=0">$boxcount box$es</a>
-(<a href="$make?action=transfer_box&from=$from&vid=$vid">transfer box</a>) $div
+$boxlinks
 </nobr>
 </td>
 <td width=80>
@@ -452,8 +544,18 @@ HTML;
 HTML;
 		if ($vend['rate'] == "") $rate = DEFRATE;
 		else $rate = $vend['rate'];
+		$defprices = DEFPRICES;
 		$rateform = <<<HTML
 <tr><td> rate </td><td> <input name="vend[rate]" value="$rate"></td></tr> 
+<tr valign=top><td> retail prices </td>
+    <td> 
+<input id=retail_prices name="vend[retail_prices]" value="{$vend['retail_prices']}" size="60" >
+<br>
+<a style="font-size: small; font-variant: italic;" 
+   href="javascript:void(0);" 
+   onclick="edit_form.retail_prices.value='$defprices'" 
+   title="$defprices" alt="$defprices">click to add defaults</a>
+</td></tr> 
 HTML;
 		if ($vend['llphone'] == "") $llphone = DEFPHONE;
 		else $llphone = $vend['llphone'];
