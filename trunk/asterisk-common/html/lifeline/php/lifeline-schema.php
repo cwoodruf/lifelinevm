@@ -80,4 +80,5 @@ $schema['vendors'] = array(
   'status' => array( 'datatype' => "varchar(32) default ''" ),
   'notes' => array( 'datatype' => "text" ),
   'llphone' => array( 'datatype' => 'varchar(32)' ),
+  'retail_prices' => array( 'datatype' => 'text' ),
 );

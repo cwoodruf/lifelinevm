@@ -427,10 +427,40 @@ function ll_get_owing($vend=null) {
 }
 
 # switch vendors for a box we assume you've checked the sanity of this prior
-function ll_transferbox($box,$currvendor,$newvendor) {
+function ll_transfer($what,$value,$currvendor,$newvendor) {
 	$lldb = ll_connect();
-	$query = sprintf("update boxes set vid=%u where box=%u and vid=%u",
-				$newvendor['vid'], $box, $currvendor['vid']);
+	switch($what) {
+	case 'box': 
+		$query = sprintf("update boxes set vid=%u where box=%u and vid=%u",
+				$newvendor['vid'], $value, $currvendor['vid']);
+		$affected = $lldb->exec($query);
+		if ($affected) return true;
+		return false;
+
+	case 'months': 
+		$query = sprintf("update vendors set months=months-%u where vid=%u",
+				$value, $currvendor['vid']);
+		$affected = $lldb->exec($query);
+		if (!$affected) die("couldn't deduct $months months from {$currvendor['vid']}!");
+
+		$query = sprintf("update vendors set months=months+%u where vid=%u",
+				$value, $newvendor['vid']);
+		$affected = $lldb->exec($query);
+		if (!$affected) die("couldn't add $months months to {$newvendor['vid']}!");
+		# log the transfer
+		return true;
+
+	default: die("not sure what I'm supposed be doing?");
+	}
+}
+
+function ll_logmonthstransfer($fromvid,$tovid,$months,$login) {
+	$lldb = ll_connect();
+	$query = sprintf(
+		"insert into monthstransfer (transferred,fromvid,tovid,months,login) ".
+		"values (now(), %u, %u, %d, %s)",
+		$fromvid, $tovid, $months, $lldb->quote($login)
+	);
 	$affected = $lldb->exec($query);
 	if ($affected) return true;
 	return false;
@@ -619,8 +649,8 @@ function ll_check_time($vend,$box,$months) {
 	# if the box has no paidto date at all
 	} else if ($bdata['paidto'] == 0) {
 		if ($months < 0) die("invalid number of months: should be zero or more!");
-		$udata['paidto'] = date('Y-m-d',strtotime(date('Y-m-d')." +$months months"));
-		$udata['status'] = '';
+		# $udata['paidto'] = date('Y-m-d',strtotime(date('Y-m-d')." +$months months"));
+		$udata['status'] = "add $months months";
 
 	# if the box has time
 	} else {
@@ -734,8 +764,6 @@ function ll_delete_box($vend,$box) {
 	$lldb = ll_connect();
 
 	$months = ll_box_months_left($bdata);
-	# if the box has never been used add on those as well
-	$months += ll_box_add_months($bdata);
 
 	# ddata is the container for updating the box information bdata is the original
 	$ddata['status'] = 'deleted';
@@ -748,7 +776,7 @@ function ll_delete_box($vend,$box) {
 			unset($bvend['unpaid_months']);
 			ll_save_to_table('update','vendors',$bvend,'vid',$bvend['vid']);
 		}
-		return true;
+		return $months;
 	}
 }
 
