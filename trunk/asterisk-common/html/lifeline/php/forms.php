@@ -614,7 +614,6 @@ function vendlink($vid) {
 function formatpaymentlist($title,$payments) {
 	global $permcheck;
 	$html = <<<HTML
-$title
 <table cellpadding=5 cellspacing=0 border=1>
 <tr>
 <th>#</tH><th>Box</th><th>Date</th>
@@ -628,6 +627,7 @@ HTML;
 		$amount = sprintf('$ %.2f', $p['amount']);
 		$hst = sprintf('$ %.2f', $p['hst']);
 		$vendlink = vendlink($p['vid']);
+		if ($p['amount']) $byvendor[$p['vendor']] += $p['amount'];
 		$html .= <<<HTML
 <tr valign=top>
 <td>$item</td>
@@ -644,7 +644,21 @@ HTML;
 HTML;
 	}
 	$html .= "</table>\n";
-	return $html;
+	if (count($byvendor)) {
+		$summary = <<<HTML
+<table class="noformat">
+<tr><td>Totals:</td><td>
+<table cellpadding=5 cellspacing=0 border=0>
+<tr>
+HTML;
+		foreach ($byvendor as $vendor => $total) {
+			if ($total == 0) continue;
+			$amount = sprintf('$ %.2f', $total);
+			$summary .= "<td><b>$vendor</b> $amount</td>\n";
+		}
+		$summary .= "</tr>\n</table>\n</td></tr></table>\n";
+	}
+	return $title.$summary."<p>".$html;
 }
 
 function callhtml($box,$limit=50) {
@@ -656,7 +670,6 @@ function callhtml($box,$limit=50) {
 
 function formatcallhtml($title,$calls) {
 	$callhtml = <<<HTML
-$title
 <table cellpadding=5 cellspacing=0 border=1>
 <tr><th>#</th><th>Box</th><th>Vendor Id</th><th>Time</th><th>Action</th><th>Caller ID</th></tr>
 
@@ -670,6 +683,7 @@ HTML;
 		$vendlink = vendlink($call['vid']);
 		$callerid = htmlentities($call['callerid']);
 		$i++;
+		$sums[$calltype]++;
 		$callhtml .= <<<HTML
 <tr>
 <td>$i</td>
@@ -682,7 +696,12 @@ HTML;
 HTML;
 	}
 	$callhtml .= "</table>\n";
-	return $callhtml;
+	$summary = "Summary: <table cellpadding=3 cellspacing=0 border=0>\n<tr>\n";
+	foreach ($sums as $ctype => $count) {
+		$summary .= "<td><b>$ctype</b> $count&nbsp;</td>\n";
+	}
+	$summary .= "</tr>\n</table>\n";
+	return $title.$summary."<p>".$callhtml;
 }
 
 function delete_months($data) {
