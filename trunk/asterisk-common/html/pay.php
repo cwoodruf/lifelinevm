@@ -1,4 +1,5 @@
 <?php
+session_start();
 $amounts = array( '4' => '10', '6' => '12', '12' => '22' );
 $hst = .12;
 
@@ -47,7 +48,7 @@ V6C 1A1<br>
 <tr valign=top><td>Your Name:</td><td width=320>
 <?php 
 if ($_REQUEST['action']) { 
-	print htmlentities($_REQUEST['name']); 
+	print ($name = htmlentities(trim($_REQUEST['name']))); 
 } else { 
 	print "<input type=text class=\"inputtext\" name=name size=35>";
 }
@@ -56,9 +57,9 @@ if ($_REQUEST['action']) {
 <tr valign=top><td>Your Box Number:</td><td>
 <?php 
 if ($_REQUEST['action']) { 
-	print htmlentities($_REQUEST['box']); 
+	print ($box = htmlentities(trim($_REQUEST['box']))); 
 } else { 
-	print "<input type=text class=\"inputtext\" name=box value=\"new subscription\" size=35>";
+	print "<input type=text class=\"inputtext\" name=box value=\"\" size=35>";
 }
 ?>&nbsp;
 </td></tr>
@@ -73,8 +74,17 @@ if ($_REQUEST['action']) {
 <?php } ?>
 </form>
 <p>
-<i>We accept <b>postal money orders</b> for payment by mail.</i>
+<i>We accept <b>postal money orders</b> and <b>cheques</b> for payment by mail.</i>
 </td>
 </tr></table>
+<?php
+if ($_REQUEST['action'] and preg_match('#^\d{4}$#', $box) 
+    and $_SESSION['mailed'] != $box and $_SESSION['mailcount'] < 3
+) {
+	mail('vmailtechnicalsupport@gmail.com', "mail order for box $box", "box $box\nname $name\namount $total\n");
+	$_SESSION['mailed'] = $box;
+	$_SESSION['mailcount']++;
+}
+?>
 </body>
 </html>
