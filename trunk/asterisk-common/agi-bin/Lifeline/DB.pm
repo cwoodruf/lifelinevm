@@ -7,7 +7,7 @@ our @ISA = qw/Exporter/;
 
 our @EXPORT = qw/$lldatafile $llmsgdir $ldb $lleol ll_deleted_boxes ll_revert_unused/;
  
-our $dsn = &mkdsn("localhost");
+our $dsn = &mkdsn("lifelinevm.net");
 
 our $username;
 our $password;
