@@ -1,4 +1,5 @@
 #!/bin/bash
+/usr/bin/ssh asterisk "/usr/bin/svn update /home/asterisk/svn/lifelinevm"
 if [ $HOSTNAME != aifl89.ath.cx ] ; then
 	echo -$HOSTNAME: running rsync on aifl.ath.cx
 	/usr/bin/ssh asterisk@aifl.ath.cx '/usr/local/asterisk/bin/sync.sh'
