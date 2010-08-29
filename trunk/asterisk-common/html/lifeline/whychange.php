@@ -11,14 +11,14 @@
 	</style>
 </head>
 <body vlink=#660099 link=#686868 alink=#686868 bgcolor=lightyellow>
-<table cellpadding=10 width=1100><tr>
+<table cellpadding=10 width=880><tr>
 <td align=center valign=middle>
-	<img src=/cnp/images/Image2.gif width=200 height=200>
+	<img src=/images/phone_guy.gif width=200 height=200>
 </td>
 <td>
 	<h1>Lifeline Voice mail: why change?</h1>
 	The original DERA voice mail system started operations in 1998 and we've 
-	been using the same system since then. At some point the system will stop
+	been mostly using the same technology since then. At some point the system will stop
 	working and we wanted to avoid any downtime for you by building a new one
 	before that happens.
 	<p>
