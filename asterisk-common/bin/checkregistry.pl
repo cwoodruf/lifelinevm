@@ -4,12 +4,15 @@
 use Getopt::Std;
 use strict;
 my %opt;
-getopts('v', \%opt);
+# options: v: verbose, m: send mail on restart
+getopts('vm:', \%opt);
 
 my $asterisk = '/usr/local/asterisk/sbin/asterisk ';
 my $showcmd = " -rx 'sip show registry'";
 #my $restartcmd = " -rx 'restart when convenient'";
 my $restartcmd = " -rx 'sip reload'";
+my $mail = '/bin/mail';
+my $mailto = $opt{m}; 
 
 my $notfailed = 'Registered';
 my $sipregs = `$asterisk $showcmd`;
@@ -37,9 +40,13 @@ foreach my $reg (split "\n", $sipregs) {
 if ($restart) {
 	my $cmd = "$asterisk $restartcmd";
 	print "doing: $cmd\n" if $opt{v};
+	system qq/echo "doing $cmd" | $mail -s "lifelinevm.net sip restart" $mailto/
+		if $opt{m};
 	system $cmd and warn "problem restarting asterisk: $!";
 } elsif ($count == 0) {
 	print "doing: $asterisk\n" if $opt{v};
+	system qq/echo "doing $asterisk" | $mail -s "lifelinevm.net asterisk restart" $mailto/
+		if $opt{m};
 	system $asterisk and warn "can't start asterisk: $!";
 } else {
 	print "not doing anything\n" if $opt{v};
