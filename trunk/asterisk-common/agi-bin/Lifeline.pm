@@ -262,11 +262,12 @@ sub log_calls {
 	my $callerid = shift || '';
 	my $message = $ll->{new_msg} || '';
 	my $host = $ENV{HOSTNAME} || `hostname` || '';
+	my $callstart = $ll->get('callstart');
 	my $ins = $ll->{db}->prepare(
-		"insert into calls (box,vid,action,status,message,callerid,host,call_time) ".
-		"values (?,?,?,?,?,?,?,now())"
+		"insert into calls (box,vid,action,status,message,callerid,host,callstart,call_time) ".
+		"values (?,?,?,?,?,?,?,?,now())"
 	);
-	$ins->execute($ll->{box},$ll->{vid},$action,$status,$message,$callerid,$host) or die $ins->errstr;
+	$ins->execute($ll->{box},$ll->{vid},$action,$status,$message,$callerid,$host,$callstart) or die $ins->errstr;
 }
 
 sub log_err {
