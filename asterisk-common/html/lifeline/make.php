@@ -446,7 +446,7 @@ HTML;
 {$vend['months']}
 <span class="move">(<a class="move" href="$make?action=transfer_months&from=$from&vid=$vid">transfer</a>)</span>
 HTML;
-		}
+		} else $transfermonths = '&nbsp;';
 		if ($boxcount > 0) {
 			$boxlinks = <<<HTML
 <a href="admin.php?form=View your voicemail boxes&vid=$vid&showkids=0">$boxcount box$es</a>
