@@ -20,6 +20,7 @@ opendir SRC, $source or die "can't open directory $source: $!";
 
 while (my $item = readdir(SRC)) { 
 	next unless -f "$source/$item";
+next unless $item =~ /^513/;
 	next unless $item =~ m#(\d{4})(\d*)\.(MSG|GRT)$#;
 	my ($box,$msg,$type) = ($1,$2,$3);
 	if ($delbox->{$box}) {
