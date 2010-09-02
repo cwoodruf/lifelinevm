@@ -37,7 +37,7 @@ our $digits = '1234567890*#';
 sub load {
 	my $ll = &init(@_);
 	local $/; undef $/;
-	if (open CACHE, $ll->{cache}) {
+	if (-f $ll->{cache} and open CACHE, $ll->{cache}) {
 		my ($msgs,$raw);
 		$raw = <CACHE>;
 		close CACHE;
