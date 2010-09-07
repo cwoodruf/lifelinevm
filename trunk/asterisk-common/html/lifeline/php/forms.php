@@ -713,7 +713,7 @@ HTML;
 		else if ($call['action'] == 'll-saveseccode.pl') 
 			$calltype = "change security code";
 		else if ($call['action'] == 'll-greeting.pl') 
-			$calltype = "entered box number";
+			$calltype = "box number valid";
 		else $calltype = $call['action']." ".$call['status'];
 		$vendlink = vendlink($call['vid']);
 		$callerid = htmlentities($call['callerid']);
