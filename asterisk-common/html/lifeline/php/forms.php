@@ -712,9 +712,9 @@ HTML;
 		else if ($call['action'] == 'll-login.pl') $calltype = "login: status {$call['status']}";
 		else if ($call['action'] == 'll-saveseccode.pl') 
 			$calltype = "change security code";
-		else if ($call['action'] == 'll-greeting.pl') 
-			$calltype = "box number valid";
-		else $calltype = $call['action']." ".$call['status'];
+		else if ($call['action'] == 'll-valid.pl') {
+			$calltype = "box {$call['status']}";
+		} else $calltype = $call['action']." ".$call['status'];
 		$vendlink = vendlink($call['vid']);
 		$callerid = htmlentities($call['callerid']);
 		$i++;
@@ -733,6 +733,7 @@ HTML;
 	}
 	$callhtml .= "</table>\n";
 	$summary = "Summary: <table cellpadding=5 cellspacing=0 border=0>\n<tr>\n";
+	ksort($sums);
 	foreach ($sums as $ctype => $count) {
 		$summary .= "<td><b>$ctype</b> $count&nbsp;</td>\n";
 	}
