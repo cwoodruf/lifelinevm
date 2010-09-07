@@ -712,17 +712,20 @@ HTML;
 		else if ($call['action'] == 'll-login.pl') $calltype = "login: status {$call['status']}";
 		else if ($call['action'] == 'll-saveseccode.pl') 
 			$calltype = "change security code";
+		else if ($call['action'] == 'll-greeting.pl') 
+			$calltype = "entered box number";
 		else $calltype = $call['action']." ".$call['status'];
 		$vendlink = vendlink($call['vid']);
 		$callerid = htmlentities($call['callerid']);
 		$i++;
 		$sums[$calltype]++;
+		$callstart = date('Y-m-d H:i:s',$call['callstart']);
 		$callhtml .= <<<HTML
 <tr>
 <td>$i</td>
 <td><a href="admin.php?form=Search Boxes&search={$call['box']}">{$call['box']}</a></td>
 <td>$vendlink</td>
-<td>{$call['call_time']}</td>
+<td>$callstart &nbsp;</td>
 <td>$calltype &nbsp;</td>
 <td>$callerid &nbsp;</td>
 </tr>

@@ -262,6 +262,7 @@ sub log_calls {
 	my $callerid = shift || '';
 	my $message = $ll->{new_msg} || '';
 	my $host = $ENV{HOSTNAME} || `hostname` || '';
+	chomp $host;
 	my $callstart = $ll->get('callstart');
 	my $ins = $ll->{db}->prepare(
 		"insert into calls (box,vid,action,status,message,callerid,host,callstart,call_time) ".
