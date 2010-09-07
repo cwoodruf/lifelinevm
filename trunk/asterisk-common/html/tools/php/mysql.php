@@ -220,7 +220,7 @@ function ll_box($box,$refresh=false) {
 function ll_calls($box,$limit=null) {
 	if (preg_match('#^\d+$#',$limit)) $limitreq = "limit $limit";
 	if (ll_check_box($box,($die=false))) 
-			return ll_load_from_table('calls','box',$box,true,"order by call_time desc $limitreq ");
+			return ll_load_from_table('calls','box',$box,true,"order by from_unixtime(callstart) desc $limitreq ");
 }
 
 function ll_calls_by_date($vid,$date) {
@@ -231,8 +231,8 @@ function ll_calls_by_date($vid,$date) {
 	$query = "select calls.*,vendors.vendor,vendors.vid ".
 		"from calls join boxes on (calls.box=boxes.box) join vendors on (vendors.vid=boxes.vid) ".
 		"where (vendors.vid='$vid' or vendors.parent regexp '$pat') ".
-		"and call_time between '$date 00:00:00' and '$date 23:59:59' ".
-		"order by call_time desc";
+		"and from_unixtime(callstart) between '$date 00:00:00' and '$date 23:59:59' ".
+		"order by from_unixtime(callstart) desc, call_time desc, action";
 	$st = $lldb->query($query);
 	if ($st === false) die(ll_err());
 	$calls = array();
@@ -265,7 +265,7 @@ function ll_calldates($vid) {
 	$lldb = ll_connect();
 	if (!preg_match('#^\d+$#', $vid)) die("calldates: bad vendor id $vid!");
 	$pat = ll_parentpat($vid);
-	$query = "select distinct date(call_time) as day ".
+	$query = "select distinct date(from_unixtime(callstart)) as day ".
 		"from calls join boxes on (calls.box=boxes.box) join vendors on (vendors.vid=boxes.vid) ".
 		"where (vendors.vid='$vid' or vendors.parent regexp '$pat') ".
 		"order by day desc ";
