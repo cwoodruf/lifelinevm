@@ -1305,7 +1305,7 @@ HTML;
 
 function list_invoices($data,$showall=false) {
 	global $ldata;
-	if ($data['vid'] != $ldata['vid'] and $data['parent'] != $ldata['vid']) 
+	if ($data['vid'] != $ldata['vid'] and !ll_has_access($ldata,$data)) 
 		die("Error: you are trying to view someone else's invoices.");
 	$table = table_header(3,0,0,850);
 	$top = form_top($data); 
