@@ -10,5 +10,6 @@ $msg .= ".".$ll->{rectype};
 my $callerid = shift;
 # $ll->flag_new_msgs(1);
 $ll->setflag('new_msgs',1);
+$ll->setflag('reminder',0);
 $ll->{new_msg} = $msg;
 $ll->log_calls('ll-flagmsg.pl',$ll->{last_page_result},$callerid);

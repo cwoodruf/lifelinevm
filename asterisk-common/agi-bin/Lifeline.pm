@@ -22,7 +22,7 @@ our $min_msg_size = 6000; # for gsm and a 2 second timeout
 our $def_grt = 'll-en-greeting';
 our $pt_cutoff = 3 * 7 * 86400; # number of seconds before a paidto date gets out of date
 our $skeleton_key = 'do not use';
-our %flags = (announcement => 1, new_msgs => 1);
+our %flags = (announcement => 1, new_msgs => 1, reminder => 1);
 
 our $apache_user = 'asterisk';
 our ($basedir,$logdir,$log,$error_log);
@@ -312,7 +312,8 @@ sub flag_new_msgs {
 	my $flag = shift;
 	return $ll unless defined $flag;
 	if ($flag) {
-		$ll->{db}->do("update boxes set new_msgs = 1 where box = '$ll->{box}'");
+		# remind is for sending email reminders remind = 1 means "don't send"
+		$ll->{db}->do("update boxes set new_msgs = 1, remind = 0 where box = '$ll->{box}'");
 		$ll->{new_msgs} = 1;
 	} else {
 		$ll->{db}->do("update boxes set new_msgs = 0 where box = '$ll->{box}'");
