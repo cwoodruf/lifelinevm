@@ -1,0 +1,29 @@
+* { 
+	font-family: Garamond, Arial, sans-serif; 
+	font-size: 12pt; 
+	color: brown; 
+}
+
+*:link { 
+	color: #228B22 
+}
+
+input {
+	color: black;
+}
+
+table {
+	border-style: outset;
+	border-width: 1;
+	border-color: black;
+	background: white;
+}
+
+a { 
+	color: #228B22 
+}
+
+.inactivelink {
+	color: gray;
+}
+

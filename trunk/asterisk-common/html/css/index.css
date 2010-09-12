@@ -1,0 +1,12 @@
+* {
+	font-size: 12pt;
+	font-family: garamond,serif;
+}
+h1 { font-size: 16pt; text-decoration: underline; }
+h2 { font-size: 13pt; }
+.yell {
+	color: red;
+	text-decoration: underline;
+	font-weight: bold;
+	font-style: italic;
+}
