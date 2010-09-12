@@ -591,7 +591,10 @@ function mk_personal_input($bdata=array(),$vend=null) {
 $table
 <tr><td><nobr>VM Phone:</nobr></td><td>$phonesel (incoming voicemail number)</td></tr>
 <tr><td>Name:</td><td><input size=32 name="personal[name]" value="{$bdata['name']}"></td></tr>
-<tr><td>Email:</td><td><input size=40 name="personal[email]" value="{$bdata['email']}"></td></tr>
+<tr valign=top>
+    <td>Email:</td>
+    <td><input size=40 name="personal[email]" value="{$bdata['email']}"><br>
+	<i><b>only</b> enter email if client wants email reminders</i></td></tr>
 <tr><td>Notes:</td><td><input size=60 name="personal[notes]" value="{$bdata['notes']}"></td></tr>
 </table>
 
