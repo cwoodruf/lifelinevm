@@ -5,6 +5,10 @@ require_once("$lib/pw/auth.php");
 $action = $_REQUEST['action'];
 if ($action === 'logout') delete_login();
 
+# for the export action
+if ($_REQUEST['hash']) {
+	$_REQUEST['password'] = base64_decode($_REQUEST['hash']);
+}
 $ldata = login_response('redirect.php',$_SERVER['PHP_SELF'],'ll_pw_data');
 $vdata = ll_vendor($ldata['vid']);
 
@@ -43,6 +47,24 @@ if ($vdata == null or !is_array($vdata)) {
 	die("missing vendor: aborting!");
 }
 
+$myperms = split(':',$ldata['perms']);
+foreach ($myperms as $p) {
+	$permcheck[$p] = true;
+}
+
+if ($action === 'export' and $permcheck['export']) {
+	$export = ll_vendor($_REQUEST['vid']);
+	if (preg_match('#^\d+$#', $_REQUEST['vid']) and ll_has_access($ldata,$export)) {
+		header('content-type: text/plain');
+		$logins = ll_users($export);
+		foreach ($logins as $login) {
+			$exported[$login['login']] = $login['password'];
+		}
+		print base64_encode(serialize($exported));
+	}
+	exit;
+}
+
 $ldata = array_merge($ldata,$vdata);
 
 # if we need to do something with a specific subvendor then
@@ -66,10 +88,6 @@ HTML;
 	}
 }
 
-$myperms = split(':',$ldata['perms']);
-foreach ($myperms as $p) {
-	$permcheck[$p] = true;
-}
 if (!$permcheck['edit']) die("you do not have sufficient access to use this site!");
 
 $form = $_REQUEST['form'] ? $_REQUEST['form'] : $_REQUEST['action'];

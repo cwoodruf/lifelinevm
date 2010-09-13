@@ -62,15 +62,16 @@ if ($_REQUEST['login'] != 'superuser' and $from == 'admin') {
 }
 $seller = $sdata['vendor'];
 
-# create pages
-if ($action === 'invoice') {
-	print invoice($vend);
-	exit;
-}
 if ($sdata['perms'] == 's') $myperms = $baseperms;
 else $myperms = split(':',$ldata['perms']);
 foreach ($myperms as $p) {
 	$permcheck[$p] = true;
+}
+
+# create pages
+if ($action === 'invoice') {
+	print invoice($vend);
+	exit;
 }
 
 if ($permcheck['vendors']) 
