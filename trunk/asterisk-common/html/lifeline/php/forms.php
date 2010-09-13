@@ -4,7 +4,7 @@ require_once("php/lifeline-schema.php");
 $back = "<a href=/lifeline/admin.php>Back to admin</a>";
 $table = table_header();
 
-function table_header($cp=5,$cs=0,$b=0,$w=400,$style='') {
+function table_header($cp=5,$cs=0,$b=0,$w=450,$style='') {
 	return "<table cellpadding=$cp cellspacing=$cs border=$b width=$w $style>";
 }
 
@@ -458,7 +458,7 @@ $table
 <tr><td><b>Name:</b></td><td>{$personal['name']}</td></tr>
 <tr><td><b>Email:</b></td><td>{$personal['email']}</td></tr>
 <tr><td><b>Amount:</b></td><td>{$amount}</td></tr>
-<tr><td><b>Notes:</b></td><td>{$personal['notes']}</td></tr>
+<tr valign=top><td><b>Notes:</b></td><td>{$personal['notes']}</td></tr>
 <tr><td colspan=2 align=right>
 <b>PRINT THIS:</b>
 <a href="index.php?box=$box&seccode={$bdata['seccode']}&amount=$amount&llphone={$bdata['llphone']}" 
@@ -900,8 +900,8 @@ $top
 $newvendfield
 <tr><td><b>Name:</b></td><td>{$bdata['name']}</td></tr>
 <tr><td><b>Email:</b></td><td>{$bdata['email']}</td></tr>
-<tr><td><b>Notes:</b></td><td>{$bdata['notes']}</td></tr>
-<tr><td><b>Paid to:</b></td><td>{$bdata['paidto']}</td></tr>
+<tr valign=top><td><b>Notes:</b></td><td>{$bdata['notes']}</td></tr>
+<tr><td><b><nobr>Paid to:</nobr></b></td><td>{$bdata['paidto']}</td></tr>
 <tr><td><b>Status:</b></td><td>{$bdata['status']}</td></tr>
 </table>
 $payment_form
@@ -958,7 +958,7 @@ function update_box_time($data,$months='') {
 $top
 $table
 <tr><td><b>Box:</b></td><td><a href="admin.php?form=Search Boxes&search=$box">{$bdata['llphone']} Ext $box</a></td></tr>
-<tr><td><b>Paid to:</b></td><td>$paidto</td></tr>
+<tr><td><b><nobr>Paid to:</nobr></b></td><td>$paidto</td></tr>
 <tr><td><b>Status:</b></td><td>{$bdata['status']}</td></tr>
 <tr><td><b>Vendor:</b></td><td>{$bdata['vendor']}</td></tr>
 <tr><td><b>Amount paid:</b></td><td>$amount</td></tr>
@@ -1003,9 +1003,9 @@ $table
 <tr><td><b>Box:</b></td><td><a href="admin.php?form=Search Boxes&search=$box">{$bdata['llphone']} Ext $box</a></td></tr>
 <tr><td><b>Name:</b></td><td>{$bdata['name']}</td></tr>
 <tr><td><b>Email:</b></td><td>{$bdata['email']}</td></tr>
-<tr><td><b>Notes:</b></td><td>{$bdata['notes']}</td></tr>
+<tr valign=top><td><b>Notes:</b></td><td>{$bdata['notes']}</td></tr>
 <tr><td><b>Status:</b></td><td>{$bdata['status']}</td></tr>
-<tr><td><b>Paid to:</b></td><td>{$bdata['paidto']}</td></tr>
+<tr><td><b><nobr>Paid to:</nobr></b></td><td>{$bdata['paidto']}</td></tr>
 <tr><td colspan=2 align=right>
 <b>PRINT THIS:</b>
 <a href="index.php?box=$box&seccode={$bdata['seccode']}&llphone={$bdata['llphone']}" 
