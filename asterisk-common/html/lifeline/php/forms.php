@@ -453,7 +453,7 @@ function new_box_instructions($data,$box,$seccode,$amount,$personal) {
 	return <<<HTML
 $top
 $table
-<tr><td><b>Box:</b></td><td><a href="?form=Search+Boxes&search=$box">$box</a></td></tr>
+<tr><td><b>Extension:</b></td><td><a href="?form=Search+Boxes&search=$box">{$bdata['llphone']} Ext $box</a></td></tr>
 <tr><td><b>Status:</b></td><td>{$bdata['status']} $paidto</td></tr>
 <tr><td><b>Name:</b></td><td>{$personal['name']}</td></tr>
 <tr><td><b>Email:</b></td><td>{$personal['email']}</td></tr>
@@ -546,7 +546,7 @@ $top
 <input type=hidden name=nextsubmit value="$nextsubmit">
 <input type=hidden name=remove value="$remove">
 <div style="width: 740px; background: cornsilk; border: 1px black solid; padding: 3px;">
-Box: <input $is_hidden name=box size=7 value="$box"><b>$box</b> $status &nbsp;&nbsp;
+Box: <input $is_hidden name=box size=7 value="$box"><b>{$bdata['llphone']} Ext $box</b> $status &nbsp;&nbsp;
 $seccode_input
 $month_input
 $edit_input
@@ -894,7 +894,7 @@ HTML;
 $top
 <input type=hidden name=trans value="$trans">
 <table cellpadding=3 cellspacing=0 border=0>
-<tr><td><b>Box:</b></td><td><input type=hidden name=box value="$box"><b>$box</b></td></tr>
+<tr><td><b>Box:</b></td><td><input type=hidden name=box value="$box"><b>{$bdata['llphone']} Ext $box</b></td></tr>
 <tr><td><b>Months:</b></td><td><input type=hidden name=months value="$months"><b>$months</b></td></tr>
 <tr><td><b>{$original}Vendor:</b></td><td>{$bdata['vendor']}</td></tr>
 $newvendfield
@@ -957,7 +957,7 @@ function update_box_time($data,$months='') {
 	return <<<HTML
 $top
 $table
-<tr><td><b>Box:</b></td><td><a href="admin.php?form=Search Boxes&search=$box">$box</a></td></tr>
+<tr><td><b>Box:</b></td><td><a href="admin.php?form=Search Boxes&search=$box">{$bdata['llphone']} Ext $box</a></td></tr>
 <tr><td><b>Paid to:</b></td><td>$paidto</td></tr>
 <tr><td><b>Status:</b></td><td>{$bdata['status']}</td></tr>
 <tr><td><b>Vendor:</b></td><td>{$bdata['vendor']}</td></tr>
@@ -1000,7 +1000,7 @@ function update_personal($data) {
 	return <<<HTML
 $top
 $table
-<tr><td><b>Box:</b></td><td><a href="admin.php?form=Search Boxes&search=$box">$box</a></td></tr>
+<tr><td><b>Box:</b></td><td><a href="admin.php?form=Search Boxes&search=$box">{$bdata['llphone']} Ext $box</a></td></tr>
 <tr><td><b>Name:</b></td><td>{$bdata['name']}</td></tr>
 <tr><td><b>Email:</b></td><td>{$bdata['email']}</td></tr>
 <tr><td><b>Notes:</b></td><td>{$bdata['notes']}</td></tr>
