@@ -567,7 +567,7 @@ function mk_personal_input($bdata=array(),$vend=null) {
 	$phones = explode(':',$vend['llphone']);
 	if (count($phones) > 1) {
 		# this is mainly for jobwave / triumph	
-		$vanpat = '#vancouver|burnaby|surrey|langely|coquitlam|maple\s*ridge|richmond#';
+		$vanpat = '#van|burnaby|surrey|langely|coquitlam|maple\s*ridge|richmond#';
 		$tollfreepat = '#^\s*(1\D*|)8\d\d#';
 		$phonesel = "<select name=\"personal[llphone]\">";
 		$islocal = preg_match($vanpat, $ldata['login']);
