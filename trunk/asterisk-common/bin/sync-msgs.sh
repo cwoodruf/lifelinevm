@@ -28,3 +28,6 @@ echo sync-msgs: FROM main TO $localbackup with delete
 /usr/bin/rsync -rcvt --delete --times $msgdir asterisk@$localbackup:$msgdir
 echo sync-msgs: FROM main TO $remotebackup with delete
 /usr/bin/rsync -rcvt --delete --times $msgdir asterisk@$remotebackup:$msgdir
+
+echo send email alerts for new messages
+/usr/local/asterisk/bin/llremindinit.pl

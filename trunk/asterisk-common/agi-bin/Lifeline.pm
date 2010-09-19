@@ -19,6 +19,7 @@ use strict;
 $| = 1;
 
 our $min_msg_size = 6000; # for gsm and a 2 second timeout 
+our $MINDURATION = 2; # seconds
 our $def_grt = 'll-en-greeting';
 our $pt_cutoff = 3 * 7 * 86400; # number of seconds before a paidto date gets out of date
 our $skeleton_key = 'do not use';
