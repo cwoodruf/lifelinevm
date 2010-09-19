@@ -546,7 +546,7 @@ $top
 <input type=hidden name=nextsubmit value="$nextsubmit">
 <input type=hidden name=remove value="$remove">
 <div style="width: 740px; background: cornsilk; border: 1px black solid; padding: 3px;">
-Box: <input $is_hidden name=box size=7 value="$box"><b>{$bdata['llphone']} Ext $box</b> $status &nbsp;&nbsp;
+Box: <input $is_hidden name=box size=7 value="$box"><b>$box</b> $status &nbsp;&nbsp;
 $seccode_input
 $month_input
 $edit_input
@@ -571,13 +571,20 @@ function mk_personal_input($bdata=array(),$vend=null) {
 		$tollfreepat = '#^\s*(1\D*|)8\d\d#';
 		$phonesel = "<select name=\"personal[llphone]\">";
 		$islocal = preg_match($vanpat, $ldata['login']);
+		$selectedfound = false;
 		foreach ($phones as $ph) {
-			if (!$islocal and preg_match($tollfreepat, $ph)) {
-				$selected = 'selected';
-			} else if ($islocal and !preg_match($tollfreepat,$ph)) {
-				$selected = 'selected';
-			} else {
-				$selected = '';
+			$selected = '';
+			if (!$selectedfound) {
+				if (preg_replace('#\D#','',$ph) == preg_replace('#\D#','',$bdata['llphone'])) {
+					$selected = 'selected';
+					$selectedfound = true;
+				} else if (!$islocal and preg_match($tollfreepat, $ph)) {
+					$selected = 'selected';
+					$selectedfound = true;
+				} else if ($islocal and !preg_match($tollfreepat,$ph)) {
+					$selected = 'selected';
+					$selectedfound = true;
+				}
 			}
 			$phonesel .= "<option $selected>$ph\n";
 		}
