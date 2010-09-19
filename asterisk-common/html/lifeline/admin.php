@@ -1,6 +1,8 @@
 <?php
 require_once("php/globals.php");
 require_once("$lib/pw/auth.php");
+@include_once("news.php");
+if (function_exists('gettweets')) $newsdiv = gettweets();
 
 $action = $_REQUEST['action'];
 if ($action === 'logout') delete_login();

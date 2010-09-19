@@ -1,7 +1,7 @@
 <?php
 
 function login_form ($redirecturl,$app,$callback) {
-	global $lib;
+	global $lib,$newsdiv;
 	if (@include_once("$lib/asterisk.php")) {
 		$uptime = get_uptime();
 	}
@@ -31,6 +31,21 @@ table {
 	background: white;
 	width: 500px;
 	border: 1px black solid;
+}
+div.news {
+	text-align: left;
+	width: 500px;
+	font-size: 10pt;
+	border: 1px black solid;
+	background: white;
+	margin: 15px;
+	padding: 10px;
+}
+li.news {
+	padding-bottom: 10px;
+}
+li.news b {
+	color: black;
 }
 </style>
 </head>
@@ -122,6 +137,7 @@ document.write('a');
 document.write(gt);
 </script>
 </span>
+$newsdiv
 </center>
 </body>
 </html>
