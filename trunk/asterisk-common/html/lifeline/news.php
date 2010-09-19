@@ -10,7 +10,7 @@ function gettweets() {
 <ul>
 HTML;
 		foreach ($news as $datetime => $item) {
-			$date = substr($datetime,1,10);
+			$date = substr($datetime,0,10);
 			$newsdiv .= "<li class=\"news\"><b>$date</b> - $item</li>\n";
 		}
 	$newsdiv .= <<<HTML
