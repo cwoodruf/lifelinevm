@@ -928,6 +928,7 @@ function defpayment($vend,$months) {
 
 function update_box_time($data,$months='') {
 	global $table,$ldata;
+
 	$vend = ll_vendor($data['vid']);
 	if ($months === '') $months = $_REQUEST['months'];
 
