@@ -1382,7 +1382,7 @@ function edit_invoice($invoice) {
 		die("you do not have permission to view invoices!");
 
 	$idata = ll_invoice($invoice);
-	if ($ldata['vid'] != $idata['vdata']['parent']) 
+	if (!ll_has_access($ldata, $idata['vdata'])) 
 		die("you do not have permission to edit this invoice!");
 	
 	$table = table_header(3,0,0,600);
