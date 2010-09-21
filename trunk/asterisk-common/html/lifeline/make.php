@@ -248,6 +248,7 @@ function vendorsel($vendors) {
 New vendor: <select name="newvid">
 HTML;
 	foreach ($vendors as $vendor) {
+		if ($vendor['acctype'] == 'login') continue;
 		if ($vendor['vid'] == $vid) $checked = 'selected';
 		else $checked = '';
 		$html .= "<option value=\"{$vendor['vid']}\" $checked>{$vendor['vendor']}</option>\n";
