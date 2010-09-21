@@ -845,11 +845,7 @@ function ll_invoices($all=false,$vend=null) {
 function ll_check_invoice($ldata, $idata) {
 	$savedidata = ll_invoice($idata['invoice']);
 	# is this logged in user allowed to update this invoice?
-	$parent = $savedidata['vdata']['parent'];
-	$vid = $idata['vid'];
-	$pat = ll_parentpat("($vid|$parent)");
-	if (preg_match("#$pat#", $ldata['vid'])) return true;
-	return false;
+	return ll_has_access($ldata,$savedidata['vdata']);
 }
 
 function ll_save_invoice($idata,$ldata=null) {
