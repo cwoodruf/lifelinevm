@@ -291,7 +291,8 @@ sub log_to_file {
 
 sub greeting {
 	my $ll = shift;
-	my $greeting = -f $ll->{grt}.'.'.$ll->{rectype} ? $ll->{grt} : $def_grt;
+	my $mygrt = $ll->{grt}.'.'.$ll->{rectype};
+	my $greeting = (-f $mygrt and (stat($mygrt))[7] > $min_msg_size) ? $ll->{grt} : $def_grt;
 	$greeting;
 }
 
