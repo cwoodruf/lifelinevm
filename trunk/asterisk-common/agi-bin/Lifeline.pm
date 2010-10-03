@@ -104,30 +104,32 @@ sub init {
 
 	END { $ll->{db}->disconnect if defined $ll->{db} }
 
-	my $exists = $ll->{db}->selectrow_arrayref(
-		"select seccode,UNIX_TIMESTAMP(paidto),new_msgs,email,status,vid,announcement ".
-		"from boxes where box='$ll->{box}' ".
-		"and status not in ('deleted')"
-	);
-	if ('ARRAY' eq (ref $exists)) {
-		# seccode is the security code for the box (an md5 hash)
-		$ll->{md5_seccode} = $exists->[0];
-		$ll->{paidto} = $exists->[1];
-		$ll->{new_msgs} = $exists->[2] ? 1 : 0;
-		$ll->{email} = $exists->[3];
-		$ll->{status} = $exists->[4];
-		$ll->{vid} = $exists->[5];
-		$ll->{announcement} = $exists->[6];
-		if (
-			defined $ll->{md5_seccode}
-			and $ll->valid_paidto($pt_cutoff)
-		) {
-			$ll->{box_ok} = 1;
+	if ($ll->{box}) {
+		my $exists = $ll->{db}->selectrow_arrayref(
+			"select seccode,UNIX_TIMESTAMP(paidto),new_msgs,email,status,vid,announcement ".
+			"from boxes where box='$ll->{box}' ".
+			"and status not in ('deleted')"
+		);
+		if ('ARRAY' eq (ref $exists)) {
+			# seccode is the security code for the box (an md5 hash)
+			$ll->{md5_seccode} = $exists->[0];
+			$ll->{paidto} = $exists->[1];
+			$ll->{new_msgs} = $exists->[2] ? 1 : 0;
+			$ll->{email} = $exists->[3];
+			$ll->{status} = $exists->[4];
+			$ll->{vid} = $exists->[5];
+			$ll->{announcement} = $exists->[6];
+			if (
+				defined $ll->{md5_seccode}
+				and $ll->valid_paidto($pt_cutoff)
+			) {
+				$ll->{box_ok} = 1;
+			} else {
+				$ll->{box_ok} = 0;
+			}
 		} else {
 			$ll->{box_ok} = 0;
 		}
-	} else {
-		$ll->{box_ok} = 0;
 	}
 	$ll->{dir} = "$basedir/$ll->{box}";
 	$ll->{msgdir} = "$ll->{dir}/messages";
@@ -269,7 +271,9 @@ sub log_calls {
 		"insert into calls (box,vid,action,status,message,callerid,host,callstart,call_time) ".
 		"values (?,?,?,?,?,?,?,?,now())"
 	);
-	$ins->execute($ll->{box},$ll->{vid},$action,$status,$message,$callerid,$host,$callstart) or die $ins->errstr;
+	my $box = $ll->{box} || "";
+	my $vid = $ll->{vid} || "";
+	$ins->execute($box,$vid,$action,$status,$message,$callerid,$host,$callstart) or die $ins->errstr;
 }
 
 sub log_err {
