@@ -228,10 +228,23 @@ function ll_calls_by_date($vid,$date) {
 	if (!preg_match('#^\d+$#', $vid)) die("calls_by_date: bad vendor id $vid!");
 	if (!preg_match('#^\d{4}-\d{2}-\d{2}$#', $date)) die("calls_by_date: bad date $date!");
 	$pat = ll_parentpat($vid);
+/*
+# simple query which won't pick up the ll-callstart.pl actions as we don't know the box number at that point
 	$query = "select calls.*,vendors.vendor,vendors.vid ".
-		"from calls join boxes on (calls.box=boxes.box) join vendors on (vendors.vid=boxes.vid) ".
+		"from calls left outer join boxes on (calls.box=boxes.box) join vendors on (vendors.vid=boxes.vid) ".
 		"where (vendors.vid='$vid' or vendors.parent regexp '$pat') ".
 		"and from_unixtime(callstart) between '$date 00:00:00' and '$date 23:59:59' ".
+		"order by from_unixtime(callstart) desc, call_time desc, action";
+*/
+	$query = "select calls.*,vendors.vendor,vendors.vid ".
+		"from calls join boxes on (calls.box=boxes.box) ".
+		"join vendors on (vendors.vid=boxes.vid) ".
+		"where (vendors.vid='$vid' or vendors.parent regexp '$pat') ".
+		"and from_unixtime(callstart) between '$date 00:00:00' and '$date 23:59:59' ".
+		# this union picks up the ll-callstart.pl actions where we have no box number
+		"union select calls.*,'',0 from calls ".
+		"where from_unixtime(callstart) between '$date 00:00:00' and '$date 23:59:59' ".
+		"and calls.box = '' ".
 		"order by from_unixtime(callstart) desc, call_time desc, action";
 	$st = $lldb->query($query);
 	if ($st === false) die(ll_err());

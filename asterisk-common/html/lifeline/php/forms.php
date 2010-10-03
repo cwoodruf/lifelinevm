@@ -718,14 +718,17 @@ function formatcallhtml($title,$calls) {
 
 HTML;
 	foreach ($calls as $call) {
-		if ($call['action'] == 'll-flagmsg.pl') $calltype = 'message left';
-		else if ($call['action'] == 'll-login.pl') $calltype = "login: status {$call['status']}";
-		else if ($call['action'] == 'll-saveseccode.pl') 
-			$calltype = "change security code";
-		else if ($call['action'] == 'll-valid.pl') {
-			$calltype = "box {$call['status']}";
-		} else $calltype = $call['action']." ".$call['status'];
-		$vendlink = vendlink($call['vid']);
+		switch($call['action']) {
+		case 'll-flagmsg.pl': 	$calltype = 'message left'; break;
+		case 'll-login.pl': 	$calltype = "login: status {$call['status']}"; break;
+		case 'll-saveseccode.pl': $calltype = "change security code"; break;
+		case 'll-valid.pl': 	$calltype = "box {$call['status']}"; break;
+		case 'll-callstart.pl': $calltype = "call start"; break;
+		default: 		$calltype = $call['action']." ".$call['status']; 
+		}
+		# the vid of 0 is reserved so we can detect events with no box # 
+		if ($call['vid']) $vendlink = vendlink($call['vid']);
+		else $vendlink = '&nbsp;';
 		$callerid = htmlentities($call['callerid']);
 		$i++;
 		$sums[$calltype]++;
