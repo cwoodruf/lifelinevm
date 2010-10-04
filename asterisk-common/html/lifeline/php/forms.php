@@ -520,7 +520,10 @@ HTML;
 		if ($action === 'Remove time from box') {
 			$remove = 1;
 			$monthsleft = ll_box_months_left($bdata);
-			if ($bdata['canremove'] < $monthsleft) $monthsleft = $bdata['canremove'];
+			# this is not getting updated correctly and is giving errors
+			# canremove only applies when a box has been moved from one vendor to another
+			# wcg for example has a group of sub accounts where this logic wouldn't apply
+			# if ($bdata['canremove'] < $monthsleft) $monthsleft = $bdata['canremove'];
 			if ($monthsleft <= 0) 
 				return "$top<h3>Box $box has less than one month left on its subscription.</h3>$end";
 			$submittype = 'form';
