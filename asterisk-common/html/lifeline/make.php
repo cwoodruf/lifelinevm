@@ -418,6 +418,7 @@ HTML;
 
 		$created = preg_replace('# .*#','',$vend['created']);
 		$boxcount = ll_activeboxcount($vid);
+		$allboxes += $boxcount;
 		$logincount = ll_logincount($vid);
 		if (
 			($ldata['perms'] == 's' or strpos($ldata['perms'],'vendors') !== false)
@@ -458,7 +459,7 @@ HTML;
 		} else {
 			$boxlinks = "no boxes";
 		}
-		print <<<HTML
+		$vendhtml .= <<<HTML
 <style type=text/css>
 .move {
 	font-size: small;
@@ -505,6 +506,12 @@ $del_vendor
 </td></tr>
 HTML;
 	}
+	print <<<HTML
+<h3>$allboxes active boxes</h3>
+$vendhtml
+
+HTML;
+
 }
 
 function vendor_form($vend) {
