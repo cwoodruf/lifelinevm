@@ -236,15 +236,18 @@ function ll_calls_by_date($vid,$date) {
 		"and from_unixtime(callstart) between '$date 00:00:00' and '$date 23:59:59' ".
 		"order by from_unixtime(callstart) desc, call_time desc, action";
 */
+	# more complex query that can pick up actions with no box number or vid associated
 	$query = "select calls.*,vendors.vendor,vendors.vid ".
 		"from calls join boxes on (calls.box=boxes.box) ".
 		"join vendors on (vendors.vid=boxes.vid) ".
 		"where (vendors.vid='$vid' or vendors.parent regexp '$pat') ".
-		"and from_unixtime(callstart) between '$date 00:00:00' and '$date 23:59:59' ".
-		# this union picks up the ll-callstart.pl actions where we have no box number
+		"and from_unixtime(callstart) between '$date 00:00:00' and '$date 23:59:59' ";
+	# this union picks up the ll-callstart.pl actions where we have no box number
+	if ($vid == ROOTVID) $query .=
 		"union select calls.*,'',0 from calls ".
 		"where from_unixtime(callstart) between '$date 00:00:00' and '$date 23:59:59' ".
-		"and calls.box = '' ".
+		"and calls.box = '' ";
+	$query .= 
 		"order by from_unixtime(callstart) desc, call_time desc, action";
 	$st = $lldb->query($query);
 	if ($st === false) die(ll_err());
@@ -416,7 +419,8 @@ function ll_add_months($status) {
 }
 
 function ll_months_left($date) {
-        $months = round((strtotime($date) - time())/(31*86400));
+	# crude but generous accounting for a month ...
+        $months = round((strtotime($date) - time())/(28*86400));
         if ($months < 0) $months = 0;
         return $months;
 }
@@ -647,9 +651,11 @@ function ll_check_time($vend,$box,$months) {
 	$bdata = ll_box($box);
 	if ($months > 0) {
 		ll_check_months($vend,$months);
-	} else {
-		if (abs($months) > $bdata['canremove']) 
-			die("Error: you can only remove {$bdata['canremove']} months!");
+	# this code needs to be refactored as vendors can have sub accounts where this logic
+	# would likely not apply
+	# } else {
+	#	if (abs($months) > $bdata['canremove']) 
+	#		die("Error: you can only remove {$bdata['canremove']} months!");
 	}
 
 	# if the box exists but has never been used
@@ -686,6 +692,11 @@ function ll_check_time($vend,$box,$months) {
 	# canremove determines how many months you can realistically delete
 	# this is only really significant if the box has moved to another vendor 
 	# with time on it from the previous vendor basically its a high water mark
+	# this logic is muddied at this point because vendors can have sub vendors
+	# in most cases a customer uses all of the time plus some so its unlikely 
+	# months would get subtracted from a box without the customer knowing
+	# nevertheless it is possible and should probably still be checked somehow
+	# the checking code is commented out currently
 	if (!ll_isparent($vend['vid'],$bdata)) {
 		$udata['canremove'] = $months;
 	} else {
