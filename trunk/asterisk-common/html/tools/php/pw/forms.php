@@ -1,7 +1,9 @@
 <?php
 
 function login_form ($redirecturl,$app,$callback) {
-	global $lib,$newsdiv;
+	global $lib,$newsdiv,$sitename,$sitecolor;
+	if (!$sitecolor) $sitecolor = 'lightyellow';
+
 	if (@include_once("$lib/asterisk.php")) {
 		$uptime = get_uptime();
 	}
@@ -49,9 +51,9 @@ li.news b {
 }
 </style>
 </head>
-<body bgcolor=lightyellow>
+<body bgcolor=$sitecolor>
 <center>
-<h3>{$_SERVER['SERVER_NAME']} log in</h3>
+<h3>$sitename {$_SERVER['SERVER_NAME']} log in</h3>
 <div>
 <form name=form_login action="$redirecturl" method=post>
 <input type=hidden name=app value="$app">
