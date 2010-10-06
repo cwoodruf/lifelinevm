@@ -142,7 +142,7 @@ else if ($action === 'new_user' or $action === 'New login user')
 else if ($action === 'emails' or $action === 'Email list') show_emails();
 else if ($action === 'Add user') add_user($vend); 
 else if ($action === 'modify_user') user_form($vend,$login);
-else if ($action === 'Update user') { ll_del_user($vend,$login); add_user($vend); }
+else if ($action === 'Update user') { add_user($vend); }
 else if ($action === 'delete_user') del_user_form($vend);
 else if ($action === 'Really delete user') del_user($vend);
 else if ($action === 'del_vendor') del_vendor_form($vend);
@@ -749,7 +749,12 @@ $loginbuttons
 <input type=hidden name=vid value="$vid">
 <table cellpadding=5 cellspacing=0 border=0>
 <tr><td colspan=2 align=center><input type=reset value=Reset></td></tr>
-<tr><td>Login/email:</td><td><input name=login size=40 value="$login"></td></tr>
+<tr><td>Login/email:</td>
+<td>
+	<input name=login size=40 value="$login">
+	<input name=oldlogin type=hidden value="$login">
+</td>
+</tr>
 $passwordentry
 <tr valign=top>
     <td>Permissions:<div style="font-size: small">(hover mouse for detail)</div></td><td>
@@ -768,6 +773,7 @@ function add_user($vend) {
 	global $ldata, $baseperms,$from;
 	$vendor = $vend['vendor'];
 	$login = $_REQUEST['login'];
+	$oldlogin = $_REQUEST['oldlogin'];
 	$vid = $vend['vid'];
 	$password = $_REQUEST['password1'];
 	if ($password !== $_REQUEST['password2']) die("passwords don't match!");
@@ -783,7 +789,7 @@ function add_user($vend) {
 	if (is_array($permlist)) $permstr = implode(':',array_keys($permlist));
 
 	$notes = $_REQUEST['notes'];
-	ll_add_user($vend,$login,$password,$permstr,$notes);
+	ll_add_user($vend,$oldlogin,$login,$password,$permstr,$notes);
 	print <<<HTML
 <h3>Updated user <a href="make.php?action=modify_user&from=$from&vid=$vid&login=$login">$login</a>. 
 <a href="make.php?action=show_logins&from=$from&vid=$vid">Logins for $vendor</a>

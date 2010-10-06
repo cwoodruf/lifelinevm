@@ -152,24 +152,31 @@ function ll_vendors($vid) {
 	return false;
 }
 
-function ll_add_user($vend,$login,$password,$perms,$notes='') {
+function ll_add_user($vend,$oldlogin,$login,$password,$perms,$notes='') {
 	if (!preg_match('#^\d+$#',$vend['vid'])) 
 		die("Bad vendor ".$vend['vid'].", ".$vend['vendor']."!");
 	if (!preg_match('#^\S{1,64}$#',$login)) die("bad login $login!");
+	if (!preg_match('#^\S{0,64}$#',$oldlogin)) die("bad oldlogin $oldlogin!");
 	if (!preg_match('#^[\w:]*$#',$perms)) die("bad perms $perms!");
 	if (!empty($password)) {
 		if (!preg_match('#^\S{1,32}$#',$password)) die("bad password $password!");
 		$udata['password'] = md5($password);
 	}
-
 	$lldb = ll_connect();
 	$udata['vid'] = $vend['vid'];
 	$udata['login'] = $login;
 	if ($perms) $udata['perms'] = $perms;
 	$udata['created'] = date('Y-m-d H:i:s');
 	$udata['notes'] = $notes;
-
+	if ($oldlogin and $olduser = ll_user($oldlogin)) {
+		return ll_save_to_table('update','users',$udata,'login',$oldlogin);
+	}
+	if (!$udata['password']) die("need a password to insert a new user record!");
 	return ll_save_to_table('replace','users',$udata,null,$uid);
+}
+
+function ll_user($login,$refresh=true) {
+	return ll_load_from_table('users','login',$login,false,'',$refresh);
 }
 
 function ll_del_user($vend,$login) {
@@ -311,6 +318,25 @@ function ll_paymentdates($vid) {
 	return $dates;
 }
 
+function ll_boxcount($vend,$refresh=false) {
+	static $boxcounts;
+	if (is_array($vend)) $vid = $vend['vid'];
+	else $vid = $vend;
+	if (!$refresh and $boxcounts[$vid]) return $boxcounts[$vid];
+
+	$pat = ll_parentpat($vid);
+	$query = "select count(*) as howmany from boxes join vendors on (boxes.vid=vendors.vid) ".
+		"where (boxes.vid=$vid or vendors.parent regexp '$pat') ".
+		"$status $order";
+	$lldb = ll_connect();
+	$st = $lldb->query($query);
+	if ($st === false) die(ll_err());
+	$row = $st->fetch();
+
+	$boxcounts[$vid] = $row[0];
+	return $row[0];
+}
+
 function ll_boxes($vend,$showkids=false,$status='not_deleted',$order = "order by paidto desc") {
 	if ($status == 'deleted') 
 		$status = " and (boxes.status in ('deleted') or paidto < current_date()) ";
@@ -321,7 +347,7 @@ function ll_boxes($vend,$showkids=false,$status='not_deleted',$order = "order by
 	else $vid = $vend;
 	
 	if ($showkids) {
-		$path = ll_parentpat($vid);
+		$pat = ll_parentpat($vid);
 		$query = "select boxes.*,vendors.vendor from boxes join vendors on (boxes.vid=vendors.vid) ".
 			"where (boxes.vid=$vid or vendors.parent regexp '$pat') ".
 			"$status $order";
@@ -968,6 +994,49 @@ function ll_delete_trans($vend,$trans,$box=null) {
 	if ($rows === false) die(ll_err());
 }
 
+function ll_generate_monthly_invoice($vend,$req,$trans) {
+	global $ldata;
+	$lldb = ll_connect();
+	# deliberately selecting a range we aren't already using
+	$st = $lldb->query("select max(invoice) from invoices where invoice between 1000 and 4999");
+        if ($st === false) die(ll_err());
+	$row = $st->fetch();
+	$st->closeCursor();
+	if ($row[0]) {
+		$idata['invoice'] = $row[0] + 1;
+	} else {
+		$idata['invoice'] = 1000;
+	}
+	$idata['login'] = $ldata['login'];
+	$idata['vid'] = $vend['vid'];
+	$idata['month'] = $req['month'];
+	$idata['created'] = date('Y-m-d H:i:s');
+	$idata['trans'] = $trans;
+
+	$st = get_salestax($idata['created']);
+	# ttl = amt + gst*amt = amt(1+gst) = rate * months
+	$ttl = $req['amount'];
+	# net = ttl/(1+gst);
+	$net = $ttl/(1+$st['rate']);
+	$stnet = $ttl - $net;
+
+	if ($vend['gstexempt']) {
+		$idata['total'] = sprintf('%.2f',$net);
+		$idata['gst'] = 0;
+	} else {
+		$idata['gst'] = sprintf('%.2f', $stnet);
+		$idata['total'] = sprintf ('%.2f', $ttl);
+	}
+	if (ll_save_to_table('insert','invoices',$idata,null,$newid)) {
+		$vdata['months'] = "+".$months;
+		$vdata['all_months'] = "+".$months;
+		if (ll_save_to_table('update','vendors',$vdata,'vid',$vend['vid']))
+			return $idata['invoice'];
+	} else {
+		die("ERROR: unable to generate invoice!");
+	}
+}
+
 function ll_generate_invoice($vend,$months,$trans) {
 	global $ldata;
 	$lldb = ll_connect();
@@ -1068,7 +1137,6 @@ function ll_load_from_table($table,$name,$key='',$return_all=true,$query_end='',
 		$query = "select * from $table where $name='$key' $query_end";
 	}
 	if (!$refresh and $seen[$query]) return $seen[$query];
-
 	$st = $lldb->query($query);
 	if ($st === false) {
 		die(ll_err());
