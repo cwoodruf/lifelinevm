@@ -1,6 +1,6 @@
 -- MySQL dump 10.11
 --
--- Host: localhost    Database: lifeline
+-- Host: localhost    Database: coolaid
 -- ------------------------------------------------------
 -- Server version	5.0.77-log
 
@@ -67,27 +67,6 @@ CREATE TABLE `calls` (
 SET character_set_client = @saved_cs_client;
 
 --
--- Table structure for table `calls20100907`
---
-
-DROP TABLE IF EXISTS `calls20100907`;
-SET @saved_cs_client     = @@character_set_client;
-SET character_set_client = utf8;
-CREATE TABLE `calls20100907` (
-  `box` varchar(32) NOT NULL default '',
-  `call_time` datetime NOT NULL default '0000-00-00 00:00:00',
-  `action` varchar(32) NOT NULL default '',
-  `status` varchar(32) NOT NULL default '',
-  `message` text NOT NULL,
-  `callerid` varchar(64) default NULL,
-  `vid` int(11) default NULL,
-  `host` varchar(64) default NULL,
-  `callstart` double NOT NULL default '0',
-  PRIMARY KEY  (`box`,`action`,`status`,`message`(255),`call_time`,`callstart`)
-) ENGINE=MyISAM DEFAULT CHARSET=latin1;
-SET character_set_client = @saved_cs_client;
-
---
 -- Table structure for table `calls_deleted`
 --
 
@@ -138,6 +117,7 @@ CREATE TABLE `invoices` (
   `created` datetime default NULL,
   `paidon` datetime default NULL,
   `months` int(11) default NULL,
+  `month` varchar(32) default NULL,
   `gst` float default NULL,
   `pst` float default NULL,
   `total` float default NULL,
@@ -298,21 +278,6 @@ CREATE TABLE `payments` (
 SET character_set_client = @saved_cs_client;
 
 --
--- Table structure for table `payphones`
---
-
-DROP TABLE IF EXISTS `payphones`;
-SET @saved_cs_client     = @@character_set_client;
-SET character_set_client = utf8;
-CREATE TABLE `payphones` (
-  `number` varchar(16) NOT NULL,
-  `wherefrom` text,
-  `notes` text,
-  PRIMARY KEY  (`number`)
-) ENGINE=MyISAM DEFAULT CHARSET=latin1;
-SET character_set_client = @saved_cs_client;
-
---
 -- Table structure for table `sync_calls`
 --
 
@@ -416,35 +381,6 @@ CREATE TABLE `vendors` (
 SET character_set_client = @saved_cs_client;
 
 --
--- Table structure for table `vendors_20100615`
---
-
-DROP TABLE IF EXISTS `vendors_20100615`;
-SET @saved_cs_client     = @@character_set_client;
-SET character_set_client = utf8;
-CREATE TABLE `vendors_20100615` (
-  `vid` int(11) NOT NULL default '0',
-  `vendor` varchar(128) NOT NULL default '',
-  `created` timestamp NOT NULL default '0000-00-00 00:00:00',
-  `parent` int(11) default NULL,
-  `address` varchar(128) default NULL,
-  `phone` varchar(128) default NULL,
-  `contact` varchar(128) default NULL,
-  `email` varchar(128) default NULL,
-  `fax` varchar(128) default NULL,
-  `gstexempt` int(11) default '0',
-  `rate` float default NULL,
-  `months` int(11) default '0',
-  `all_months` int(11) default '0',
-  `pst_number` varchar(128) default NULL,
-  `gst_number` varchar(128) default NULL,
-  `credit_limit` float default NULL,
-  `status` varchar(32) default '',
-  `notes` text
-) ENGINE=MyISAM DEFAULT CHARSET=latin1;
-SET character_set_client = @saved_cs_client;
-
---
 -- Table structure for table `vmucodes`
 --
 
@@ -525,4 +461,4 @@ SET character_set_client = @saved_cs_client;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2010-10-07 21:19:54
+-- Dump completed on 2010-10-07 21:20:07
