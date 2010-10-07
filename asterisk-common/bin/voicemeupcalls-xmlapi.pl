@@ -10,7 +10,7 @@ getopts('v', \%opt);
 my $auth_token = '8fa0b3a8d3029ed9fecf0e35071d7842';
 my $client_account_id = '80015026';
 my $baseurl = "http://developer.voicemeup.com/xml_engine/xml_engine.php";
-my $auth = "client_account_id=$client_account_id&auth_token=$auth_token";
+my $auth = "result_limit=1000&client_account_id=$client_account_id&auth_token=$auth_token";
 
 my $day = shift;
 $day = `/bin/date +\%Y-\%m-01` unless $day =~ /^\d\d\d\d-\d\d-\d\d/;
