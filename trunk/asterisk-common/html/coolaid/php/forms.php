@@ -101,12 +101,12 @@ $adminfo
 HTML;
 }
 
-function credit_left($vid) {
+function boxes_left($vid) {
 	$vend = ll_vendor($vid);
-	$cl = $vend['credit_limit'];
-	$m = $vend['unpaid_months'];
-	if ($cl < 0) return true; 
-	return $cl - $m;
+	$bl = $vend['box_limit'];
+	$m = ll_boxcount($vid);
+	if ($bl < 0) return true; 
+	return $bl - $m;
 }
 
 function main_form($data) {
@@ -115,7 +115,7 @@ function main_form($data) {
 	$top = form_top($data,false); 
 	$end = form_end($data);
 	$vend = ll_vendor($ldata['vid']);
-	# credit limit in this case means the number of boxes you can have 
+	# box limit in this case means the number of boxes you can have at any one time
 	# I'll be doing all the invoicing by hand so there will be only one person with these permissions
 	if ($permcheck['invoices']) {
 		$purchase .= <<<HTML
@@ -123,7 +123,7 @@ function main_form($data) {
 <p>
 HTML;
 	}
-	if (!$overdueblock and $ldata['credit_limit'] >= ll_boxcount($vend['vid'])) {
+	if (!$overdueblock and $ldata['box_limit'] >= ll_boxcount($vend['vid'])) {
 		$addtime_buttons = <<<HTML
 <input type=submit name=form value="Create a new voicemail box"> <p>
 <input type=submit name=form value="Add time to an existing box"> <p>
@@ -169,8 +169,8 @@ function vend_status_str($vend) {
 	if (count($overdue)) {
 		$purchaselink = "Some invoices overdue.";
 	}
-	if ($vend['credit_limit'] > -1) {
-		$outof = " out of a possible {$vend['credit_limit']}. ";
+	if ($vend['box_limit'] > -1) {
+		$outof = " out of a possible {$vend['box_limit']}. ";
 	}
 
 	$status = <<<HTML
@@ -190,9 +190,9 @@ else return confirm('Create voice mail box? Action cannot be undone.');
 "
 JS;
 	$boxcount = ll_boxcount($vend);
-	$boxesleft = $vend['credit_limit'] - $boxcount;
+	$boxesleft = $vend['box_limit'] - $boxcount;
 	if ($boxesleft <= 0) {
-		return "<h3>You have exceeded your box limit of {$vend['credit_limit']}</h3>";
+		return "<h3>You have exceeded your box limit of {$vend['box_limit']}</h3>";
 	}
 	$max = MAXBOXES;
 	if ($max > $boxesleft) $max = $boxesleft;
@@ -460,7 +460,7 @@ click here to use today's date</a>
 </div>
 HTML;
 	} else {
-		$status = "({$bdata['status']})";
+		if ($bdata['status']) $status = "(".htmlentities($bdata['status']).")";
 	}
 
 	if ($box != '') {
@@ -1252,7 +1252,7 @@ function purchase_time($data) {
 	$vend = ll_vendor($data['vid']);
 	$trans = ll_valid_trans($_REQUEST['trans']);
 	ll_delete_trans($vend,$trans);
-	$invoice = ll_generate_monthly_invoice($vend,$_REQUEST,$trans);
+	$invoice = ll_generate_monthly_invoice($vend,$_REQUEST,$trans,MININVOICE,MAXINVOICE);
 	$vend = ll_vendor($data['vid'],true);
 	$top = form_top($data); 
 	$end = form_end($data);

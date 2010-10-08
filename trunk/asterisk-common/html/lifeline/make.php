@@ -654,7 +654,7 @@ function update_vendor($dbaction) {
 		if ($dbaction === 'update') ll_save_to_table('update','vendors',$update,'vid',$vid,true);
 		else if ($dbaction === 'insert') ll_save_to_table('insert','vendors',$update,null,$vid,true);
 	}
-	$update = ll_vendor($vid);
+	$update = ll_vendor($vid,true);
 	print <<<HTML
 <h3>Updated Vendor 
     <a href="make.php?action=edit&from=$from&vid=$vid">{$update['vendor']}</a>

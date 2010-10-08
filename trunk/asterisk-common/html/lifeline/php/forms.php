@@ -504,7 +504,7 @@ click here to use today's date</a>
 </div>
 HTML;
 	} else {
-		$status = "({$bdata['status']})";
+		if ($bdata['status']) $status = "(".htmlentities($bdata['status']).")";
 	}
 
 	if ($box != '') {

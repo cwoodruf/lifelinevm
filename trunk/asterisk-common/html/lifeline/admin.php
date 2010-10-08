@@ -12,6 +12,7 @@ if ($_REQUEST['hash']) {
 	$_REQUEST['password'] = base64_decode($_REQUEST['hash']);
 }
 $ldata = login_response('redirect.php',$_SERVER['PHP_SELF'],'ll_pw_data');
+if ($ldata['app'] != $_SERVER['PHP_SELF']) die("you are already logged in to {$ldata['app']}!");
 $vdata = ll_vendor($ldata['vid']);
 
 # temporarily become another vendor

@@ -508,7 +508,7 @@ HTML;
 }
 
 function vendor_form($vend) {
-	global $seller,$from,$ldata,$sdata,$def_credit_limit,$defparent;
+	global $seller,$from,$ldata,$sdata,$defparent;
 
 	$vendor = $vend['vendor'];
 	$vid = $vend['vid'];
@@ -532,8 +532,8 @@ HTML;
 		$submitname = 'Update';
 	} else $submitname = 'Create';
 
-	if (!isset($vend['vid'])) $cl = $def_credit_limit;
-	else $cl = $vend['credit_limit'];
+	if (!isset($vend['vid'])) $bl = DEFBOXLIMIT;
+	else $bl = $vend['box_limit'];
 
 	if ($ldata['vid'] == ROOTVID) {
 		if ($vend['parent'] == "") $parent = ROOTVID;
@@ -541,8 +541,8 @@ HTML;
 		$parent = <<<HTML
 <tr><td> parent </td><td><input name="vend[parent]" size=60 value="$parent"></td></tr>
 HTML;
-		$creditlimit = <<<HTML
-<tr><td> credit limit </td><td><input name="vend[credit_limit]" value="$cl"> <i>-1 = unlimited</i></td></tr>
+		$boxlimit = <<<HTML
+<tr><td> box limit </td><td><input name="vend[box_limit]" value="$bl"> <i>-1 = unlimited</i></td></tr>
 HTML;
 		if ($vend['rate'] == "") $rate = DEFRATE;
 		else $rate = $vend['rate'];
@@ -582,9 +582,9 @@ HTML;
 </tr>
 HTML;
 		}
-		$clvalue = $cl > 0 ? "$cl month".($cl > 1 ? 's':'') : "";
-		$creditlimit = <<<HTML
-<tr><td> credit limit </td><td>$clvalue &nbsp; </td></tr>
+		$blvalue = $bl > 0 ? "$bl month".($bl > 1 ? 's':'') : "";
+		$boxlimit = <<<HTML
+<tr><td> box limit </td><td>$blvalue &nbsp; </td></tr>
 HTML;
 	}
 
@@ -611,7 +611,7 @@ $parent
 $rateform
 <tr><td> months </td><td> {$vend['months']} </td></tr>
 <tr><td> gst number </td><td><input name="vend[gst_number]" size=60 value="{$vend['gst_number']}"></td></tr>
-$creditlimit
+$boxlimit
 <tr><td> status </td><td> {$vend['status']} </td></tr>
 </table>
 HTML;
@@ -647,7 +647,7 @@ function update_vendor($dbaction) {
 		if ($dbaction === 'update') ll_save_to_table('update','vendors',$update,'vid',$vid,true);
 		else if ($dbaction === 'insert') ll_save_to_table('insert','vendors',$update,null,$vid,true);
 	}
-	$update = ll_vendor($vid);
+	$update = ll_vendor($vid,true);
 	print <<<HTML
 <h3>Updated Vendor 
     <a href="make.php?action=edit&from=$from&vid=$vid">{$update['vendor']}</a>

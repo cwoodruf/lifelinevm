@@ -841,7 +841,7 @@ function ll_invoices_overdue($vid,&$block) {
 	$vend = ll_vendor($vid);
 	$vids[] = $vid;
 	foreach (explode(':',$vend['parent']) as $parent) {
-		if ($parent == ROOTVID) continue;
+		if (!$parent or $parent == ROOTVID) continue;
 		$vids[] = $parent;
 	}
 	$whatvid = "and invoices.vid in (".implode(",",$vids).") ";
@@ -994,18 +994,20 @@ function ll_delete_trans($vend,$trans,$box=null) {
 	if ($rows === false) die(ll_err());
 }
 
-function ll_generate_monthly_invoice($vend,$req,$trans) {
+function ll_generate_monthly_invoice($vend,$req,$trans,$start=MININVOICE,$finish=MAXINVOICE) {
 	global $ldata;
 	$lldb = ll_connect();
 	# deliberately selecting a range we aren't already using
-	$st = $lldb->query("select max(invoice) from invoices where invoice between 1000 and 4999");
+	$st = $lldb->query("select max(invoice) from invoices where invoice between $start and $finish");
+	if (!preg_match('#^\d+$#',$start)) die("invoice start date is not a number!");
+	if (!preg_match('#^\d+$#',$finish)) die("invoice finish date is not a number!");
         if ($st === false) die(ll_err());
 	$row = $st->fetch();
 	$st->closeCursor();
 	if ($row[0]) {
 		$idata['invoice'] = $row[0] + 1;
 	} else {
-		$idata['invoice'] = 1000;
+		$idata['invoice'] = $start;
 	}
 	$idata['login'] = $ldata['login'];
 	$idata['vid'] = $vend['vid'];
@@ -1037,18 +1039,20 @@ function ll_generate_monthly_invoice($vend,$req,$trans) {
 	}
 }
 
-function ll_generate_invoice($vend,$months,$trans) {
+function ll_generate_invoice($vend,$months,$trans,$start=MININVOICE,$finish=MAXINVOICE) {
 	global $ldata;
 	$lldb = ll_connect();
 	# deliberately selecting a range we aren't already using
-	$st = $lldb->query("select max(invoice) from invoices where invoice between 1000 and 4999");
+	if (!preg_match('#^\d+$#',$start)) die("invoice start date is not a number!");
+	if (!preg_match('#^\d+$#',$finish)) die("invoice finish date is not a number!");
+	$st = $lldb->query("select max(invoice) from invoices where invoice between $start and $finish");
         if ($st === false) die(ll_err());
 	$row = $st->fetch();
 	$st->closeCursor();
 	if ($row[0]) {
 		$idata['invoice'] = $row[0] + 1;
 	} else {
-		$idata['invoice'] = 1000;
+		$idata['invoice'] = $start;
 	}
 	$idata['login'] = $ldata['login'];
 	$idata['vid'] = $vend['vid'];

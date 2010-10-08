@@ -76,7 +76,7 @@ $schema['vendors'] = array(
   'months' => array( 'datatype' => "int(11) default '0'" ),
   'all_months' => array( 'datatype' => "int(11) default '0'" ),
   'gst_number' => array( 'datatype' => "varchar(128) default NULL" ),
-  'credit_limit' => array( 'datatype' => "float default NULL" ),
+  'box_limit' => array( 'datatype' => "int(11) default NULL" ),
   'status' => array( 'datatype' => "varchar(32) default ''" ),
   'notes' => array( 'datatype' => "text" ),
   'llphone' => array( 'datatype' => 'varchar(32)' ),

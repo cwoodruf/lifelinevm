@@ -3,12 +3,15 @@
 # coolaid specific
 $sitename = 'Coolaid';
 $sitecolor = '#F8F8F8';
+define('DEFBOXLIMIT',300);
+define('MININVOICE',8000);
+define('MAXINVOICE',10000);
 
 # note that some of these global values are used by the 
 # html/tools/php/mysql.php and html/tools/php/pw/auth.php shared libraries
 
 # vendor id for setting rate etc for a vendor
-define("ROOTVID",6962);
+define("ROOTVID",1);
 define("MAXBOXES",20); 
 define("MAXMONTHS",24); 
 define('GETASTSTATUS', false);
@@ -17,18 +20,18 @@ define("DAY",86400);
 define("MINBOX",1000);
 define("MAXBOX",9999);
 define("DEFRATE",2.5);
-define("DEFPRICES","1=3.00;2=6.00;3=9.00;4=10.00;5=12.50;6=15.00;7=17.00;8=19.00;9=21.00;10=23.00;11=25.00;12=25.00");
+define("DEFPRICES","");
 define("INVOICEOVERDUE", 90);
 define("INVOICEBLOCKED", INVOICEOVERDUE + 30);
 
 # default phone number if the vendor doesn't have a phone associated with them
-define("DEFPHONE","604 248-4930");
+define("DEFPHONE","778 410-2093"); # this is just a victoria test number from link2voip.com
 $phone = DEFPHONE;
 
 # where things are
 $lib = '/usr/local/asterisk/html/tools/php';
 define("DBLOGINFILE","$lib/.mysql-coolaid.php");
-define("SALTFILE","/usr/local/asterisk/agi-bin/Lifeline/salt-coolaid");
+define("SALTFILE","/usr/local/asterisk/agi-bin/Lifeline/salt");
 $asterisk = '/usr/local/asterisk/sbin/asterisk';
 $asterisk_dir = "/usr/local/asterisk/var/lib/asterisk";
 $asterisk_sounds = "$asterisk_dir/sounds";
@@ -63,6 +66,9 @@ $permhelp = array(
 # financial stuff
 # least number of months you can buy
 $min_purchase = 4; 
+# see DEFBOXLIMIT above: coolaid has a cap on the number of boxes they can have 
+# and they pay month to month more or less like the phone bill - except that I generate 
+# the invoices and send them by email
 # credit for number of months: -1 = no credit limit
 $def_credit_limit = -1; 
 # how long to keep a box alive if its not renewed 
