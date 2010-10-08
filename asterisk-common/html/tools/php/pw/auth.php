@@ -47,7 +47,7 @@ function save_login($this_login,$this_app,$ldata) {
 	$_SESSION['login']['initial_vid'] = $ldata['vid'];
 	$_SESSION['login']['app'] = $this_app;
 	$_SESSION['login']['login'] = $this_login;
-	$_SESSION['login']['time'] = $time = time();
+	$_SESSION['login']['time'] = time();
 	return $_SESSION['login'];
 }
 
