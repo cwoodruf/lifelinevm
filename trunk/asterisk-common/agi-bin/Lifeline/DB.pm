@@ -5,12 +5,13 @@ use Exporter;
 use DBI;
 our @ISA = qw/Exporter/;
 
-our @EXPORT = qw/$lldatafile $llmsgdir $ldb $lleol ll_deleted_boxes ll_revert_unused/;
+our @EXPORT = qw/$lldatafile @llmsgdirs $llmsgdir $coolaidmsgdir $ldb $lleol ll_deleted_boxes ll_revert_unused/;
  
 our $dsn = &mkdsn("lifelinevm.net");
 
 our $username;
 our $password;
+# with coolaid I am cheating a bit as I've given the lifeline ll user permissions to work with coolaid's db
 do "Lifeline/database";
 our $ldb = &mkldb($dsn,$username,$password);
 END { $ldb->disconnect if defined $ldb; }
@@ -35,13 +36,16 @@ sub mkldb {
 
 our $lldatafile = "/usr/local/asterisk/Lifeline/users.csv";
 our $llmsgdir = "/usr/local/asterisk/lifeline-msgs";
+our $coolaidmsgdir = "/usr/local/asterisk/coolaid-msgs";
+our @llmsgdirs = ($llmsgdir, $coolaidmsgdir);
 # end of life in days
 our $lleol = 90;
 
 # just get a list of deleted boxes
 sub ll_deleted_boxes {
+	my ($table) = @_;
 	my %delbox;
-	my $getq = "select box from boxes where status = 'deleted'";
+	my $getq = "select box from $table where status = 'deleted'";
 	my $get = $ldb->prepare($getq);
 	$get->execute or die $get->errstr;
 	while (my $row = $get->fetch) {
@@ -53,6 +57,8 @@ sub ll_deleted_boxes {
 
 # find all boxes older than $eoldays days that haven't been used
 # as this func does everything for this task no need to die on error
+# note this business logic does not apply to Coolaid where they
+# pay a flat amount per month so its not implemented here
 sub ll_revert_unused {
 	my ($eoldays) = @_;
 	warn "ll_revert_unused: invalid eoldays!" and return 

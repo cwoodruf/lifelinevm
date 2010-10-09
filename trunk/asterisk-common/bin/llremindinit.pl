@@ -12,6 +12,12 @@ my $get = $ldb->prepare(
 	"from boxes ".
 	"where new_msgs=1 and reminder=0 ".
 	"and email <> '' and email is not null ".
+	"and paidto >= current_date()".
+	"union ".
+	"select box,email ".
+	"from coolaid.boxes ".
+	"where new_msgs=1 and reminder=0 ".
+	"and email <> '' and email is not null ".
 	"and paidto >= current_date()"
 );
 
