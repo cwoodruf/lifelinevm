@@ -13,22 +13,27 @@ my $optoutdir = '/vservers/callbackpack10/bin/llremind/optout';
 my %emails;
 while (<>) {
 	chomp;
-	my ($box, $email) = split;
+	my ($box, $email, @llphone) = split;
+	my $llphone = join " ", @llphone;
 	next unless $box =~ /^\d+$/;
 	next unless $email =~ /^\w[\w\-\.]*\@\w[\w\-\.]*\.\w{2,4}$/;
-	push @{$emails{$email}}, $box;
+	next unless $llphone =~ /^[\w\-\.\(\) ]{0,20}$/;
+	push @{$emails{$email}}, [$llphone, $box];
 }
 
 foreach my $email (keys %emails) {
-	print "$email has opted out\n" and next if -f "$optoutdir/".md5_hex($email); 
-	
-	print "sending reminders for box(es) @{$emails{$email}} to $email\n" if $opt{v};
-	open MAIL, "| $mail -a 'from: $from' -s 'new voice mail for @{$emails{$email}}' $email" 
-		or die "can't open $mail: $!";
-	print MAIL <<TXT;
+	foreach my $edata (@{$emails{$email}}) {
+		my ($llphone,$box) = @$edata;
+		print "$email has opted out\n" and next if -f "$optoutdir/".md5_hex($email); 
+		
+		my $vphone = "$llphone ext $box";
+		print "sending reminders for $vphone to $email\n" if $opt{v};
+		open MAIL, "| $mail -a 'from: $from' -s 'new voice mail for $vphone' $email" 
+			or die "can't open $mail: $!";
+		print MAIL <<TXT;
 DO NOT REPLY TO THIS EMAIL MESSAGE.
 
-You have new voice mail messages.
+You have new voice mail messages in $vphone.
 
 Lifeline Voice Mail
 http://callbackpack.com
@@ -37,7 +42,8 @@ http://callbackpack.com
 Opt out: http://callbackpack.com/optout.php
 
 TXT
-	close MAIL;
-	sleep(2);
+		close MAIL;
+		sleep(2);
+	}
 }
 
