@@ -22,7 +22,7 @@ print $options and exit if $opt{h};
 
 my $deflogin = 'lifelinevm';
 my $me = $opt{l} || $deflogin;
-my $count = $opt{c} || 3;
+my $count = $opt{c} || 4;
 my $verbose = $opt{v};
 
 my $serialfile = "/usr/local/asterisk/html/lifeline/tweets.serialized";
