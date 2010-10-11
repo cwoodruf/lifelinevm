@@ -6,11 +6,11 @@
 
 for msgdir in /usr/local/asterisk/lifeline-msgs/ /usr/local/asterisk/coolaid-msgs
 do
-
 	us=asterisk@lifelinevm.net
 	findcmd="/usr/bin/find $msgdir -regex '.*\(\.[0-9]+\|greeting\)\.gsm$' \
 			-newer ~/lastupdated -print -exec /usr/bin/scp --preserve {} $us:{} \;"
-	echo $findcmd
+	echo start `/bin/date`
+	echo $findcmd 
 	lastupdate="/bin/touch ~/lastupdated"
 	localbackup=192.168.1.44
 	remotebackup=aifl.ath.cx
@@ -29,7 +29,7 @@ do
 	/usr/bin/rsync -rcvt --delete --times $msgdir asterisk@$remotebackup:$msgdir
 done
 
-echo sync-msgs: CLEANUP
+echo sync-msgs: CLEANUP `/bin/date`
 /usr/local/asterisk/bin/cleanup.pl -v
 # don't need to do this with sync as normally all call data goes to the master db
 # also there is a problem where data is getting repeated because the florida server is 3 hours ahead and
