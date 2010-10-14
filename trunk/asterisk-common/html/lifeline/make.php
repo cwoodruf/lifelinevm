@@ -501,7 +501,8 @@ $del_vendor
 <tr bgcolor="$color" valign=top><td colspan=5>
 <div style="margin-bottom: 10px;">
 <b>Contact:</b> <a href="sip:1$squashedphone@192.168.1.44">{$vend['phone']}</a> &nbsp;&nbsp; 
-                {$vend['contact']} {$vend['email']} &nbsp;&nbsp; {$vend['notes']}
+                {$vend['contact']} <a href="mailto:{$vend['email']}">{$vend['email']}</a> 
+                &nbsp;&nbsp; {$vend['notes']}
 </div>
 </td></tr>
 HTML;
