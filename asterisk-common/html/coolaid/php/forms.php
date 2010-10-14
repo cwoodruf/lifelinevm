@@ -1097,7 +1097,7 @@ function view_boxes_form($data,$boxes=null) {
 	$html = <<<HTML
 $numboxes box$s
 $table
-<tr><th><nobr>Box / Paid to</nobr></th><th>Tools</th></tr>
+<tr><th><nobr>Box / Paid to</nobr></th><th>Details</th></tr>
 HTML;
 	foreach ($boxes as $row) {
 		$box = $row['box'];
@@ -1107,15 +1107,15 @@ HTML;
    target=_blank>instructions</a>
 HTML;
 		if ($permcheck['boxes']) {
-			$add = "$url$box&form=add\">add time</a>";
-			$sub = "$url$box&form=sub\">subtract time</a>";
+			$add = "$url$box&form=add\">add</a>";
+			$sub = "$url$box&form=sub\">subtract</a>";
 			$del = "$url$box&form=del\">delete</a>";
 		}
 		# removed to avoid potential privacy complaints 
 		# and to allow us to put vm and web on different servers more easily
 		$msg = "$url$box&listen=1\">messages</a>";
 		$shsc = showcodelink($box,$row['seccode']);
-		$chsc = "$shsc / $url$box&form=chsc\">change security code</a>";
+		$chsc = "$shsc or $url$box&form=chsc\">change</a> security code";
 		$edit = "$url$box&form=edit\">edit</a>";
 		$v = "<input type=hidden name=vendor value=\"".$row['vendor']."\">";
 
@@ -1141,10 +1141,10 @@ $notesbr$loginbr
 </td>
 </tr>
 <tr bgcolor=lightgray>
-<td><a href="admin.php?form=Call+Activity&box=$box">activity</a> / $edit</td>
+<td>show <a href="admin.php?form=Call+Activity&box=$box">activity</a> / $edit box &nbsp;&nbsp;</td>
 <td>
 <nobr>
-$add $div $sub $div $del $div $chsc $div $instr
+$add or $sub time $div $del box $div $chsc $div $instr
 </nobr>
 </td>
 </tr>
