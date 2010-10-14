@@ -1141,7 +1141,7 @@ $notesbr$loginbr
 </td>
 </tr>
 <tr bgcolor=lightgray>
-<td>show <a href="admin.php?form=Call+Activity&box=$box">activity</a> / $edit box &nbsp;&nbsp;</td>
+<td><nobr>show <a href="admin.php?form=Call+Activity&box=$box">activity</a> / $edit box &nbsp;&nbsp;</nobr></td>
 <td>
 <nobr>
 $add or $sub time $div $del box $div $chsc $div $instr
