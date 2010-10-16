@@ -82,7 +82,7 @@ print <<<HTML
 <title>$seller admin</title>
 <link rel=stylesheet type=text/css href=/lifeline/css/admin.css>
 </head>
-<body bgcolor=lightyellow>
+<body bgcolor=$lightyellow>
 <center>
 $goback &nbsp;&nbsp; $docs
 <h3>$seller admin</h3>
@@ -389,6 +389,7 @@ function show_emails() {
 
 function list_vendors($vid=null) {
 	global $ldata,$from;
+	global $white, $lavender, $cornsilk,$gray;
 	if (preg_match('#^\d+$#',$vid)) {
 		if (!ll_has_access($ldata,ll_vendor($vid))) die("you do not have access to this vendor!");
 		$vendors[] = ll_vendor($vid);
@@ -398,7 +399,7 @@ function list_vendors($vid=null) {
 	if ($vendors === false) return;
 	$make = "/lifeline/make.php";
 	$div = ''; # "&nbsp;-&nbsp;";
-	$color = 'cornsilk';
+	$color = $cornsilk;
 	print <<<HTML
 <table cellpadding=3 cellspacing=0 border=0 width=1100>
 <tr bgcolor="$color"><th>id</th><th>vendor</th><th>months</th><th>invoiced</th><th>owing</th><th>tools</th></tr>
@@ -406,7 +407,7 @@ HTML;
 	$owing = ll_get_owing();
 	$invoiced = ll_get_invoiced();
 	foreach ($vendors as $vend) {
-		$color = ++$row % 2 ? 'white' : 'lavender';
+		$color = ++$row % 2 ? $white : $lavender;
 		$vendor = $vend['vendor'];
 		$vid = $vend['vid'];
 
@@ -430,7 +431,7 @@ HTML;
 		}
 		else 
 		{
-			$del_vendor = '<span style="color: gray">delete</span>';
+			$del_vendor = "<span style=\"color: $gray\">delete</span>";
 		}
 		if (!$boxcount) $boxcount = 'no';
 		if ($boxcount <> 1) $es = 'es';

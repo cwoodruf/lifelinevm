@@ -75,4 +75,12 @@ $def_credit_limit = -1;
 # see Lifeline.pm - this should be same value
 $pt_cutoff = 3 * 7 * 84600; 
 
+# colors
+$lightyellow = '#FFFFE0';
+$cornsilk = '#FFF8DC';
+$white = '#FFFFFF';
+$lavender = '#E6E6FA';
+$gray = '#909090';
+$verylightgray = '#F8F8F8';
+$lightgray = '#E3E3E3';
 
