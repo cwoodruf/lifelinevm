@@ -9,7 +9,7 @@ function table_header($cp=5,$cs=0,$b=0,$w=450,$style='') {
 }
 
 function head() {
-	global $form,$ldata;
+	global $form,$ldata,$lightyellow;
 	$title = empty($form) ? "main page" : $form;
 	if ($ldata['retail_prices'] and $form == 'Create a new voicemail box') {
 		$pairs = explode(';',$ldata['retail_prices']);
@@ -40,7 +40,7 @@ JS;
 <link rel=stylesheet type=text/css href=/lifeline/css/admin.css>
 $retail_script
 </head>
-<body bgcolor=lightyellow>
+<body bgcolor=$lightyellow>
 HTML;
 }
 
@@ -1129,7 +1129,7 @@ HTML;
 }
 
 function view_boxes_form($data,$boxes=null) {
-	global $table;
+	global $table,$lightgray;
 	global $vend,$permcheck;
 	$top = form_top($data); 
 	$end = form_end($data);
@@ -1187,7 +1187,7 @@ $notesbr$loginbr
 <b>last edit:</b> {$row['login']}
 </td>
 </tr>
-<tr bgcolor=lightgray>
+<tr bgcolor=$lightgray>
 <td><nobr>show <a href="admin.php?form=Call+Activity&box=$box">activity</a> / $edit box &nbsp;&nbsp;</nobr></td>
 <td>
 <nobr>
@@ -1321,7 +1321,7 @@ HTML;
 }
 
 function list_invoices($data,$showall=false) {
-	global $ldata;
+	global $ldata,$lightgray;
 	if ($data['vid'] != $ldata['vid'] and !ll_has_access($ldata,$data)) 
 		die("Error: you are trying to view someone else's invoices.");
 	$table = table_header(3,0,0,850);
@@ -1370,7 +1370,7 @@ HTML;
                 $html .= "</tr>\n";
 		if ($invoice['notes']) {
 			$notes = htmlentities($invoice['notes']);
-			$html .= "<tr bgcolor=lightgray><td colspan=7 align=center><b>Notes:</b> $notes</td></tr>\n";
+			$html .= "<tr bgcolor=$lightgray><td colspan=7 align=center><b>Notes:</b> $notes</td></tr>\n";
 		}
         }
 	$html .= <<<HTML

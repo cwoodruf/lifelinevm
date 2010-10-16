@@ -9,7 +9,7 @@ function table_header($cp=5,$cs=0,$b=0,$w=450,$style='') {
 }
 
 function head() {
-	global $form,$ldata;
+	global $form,$ldata,$verylightgray;
 	$title = empty($form) ? "main page" : $form;
 	if ($ldata['retail_prices'] and $form == 'Create a new voicemail box') {
 		$pairs = explode(';',$ldata['retail_prices']);
@@ -40,7 +40,7 @@ JS;
 <link rel=stylesheet type=text/css href=/coolaid/css/admin.css>
 $retail_script
 </head>
-<body bgcolor=#F8F8F8>
+<body bgcolor=$verylightgray>
 HTML;
 }
 
@@ -199,7 +199,7 @@ JS;
 	$maxmonths = MAXMONTHS;
 	$months = 1;
 	$boxeswidget = <<<HTML
-Number of boxes to create &nbsp; <input size=3 name=boxes value=1> (maximum $max) &nbsp;&nbsp; 
+Number of boxes to create &nbsp; <input size=3 name=boxes value=1> (max. $max) &nbsp;&nbsp; 
 HTML;
 	$top = form_top($data,true,true,'post',$formjs); 
 	$end = form_end($data);
@@ -211,9 +211,9 @@ $top
 <input type=hidden name=trans value="$trans">
 $boxeswidget
 Valid for &nbsp; 
-<input size=3 name=months value="$months"
+<input size=2 name=months value="$months"
  onchange="getElementById('payment_amount').value=get_retail_price(this.value);"
-> &nbsp; months (up to $maxmonths months). &nbsp;&nbsp; 
+> &nbsp; months (max. $maxmonths) &nbsp;&nbsp; 
 $personal
 $payment_form
 <br>
@@ -278,7 +278,7 @@ function create_new_box($data) {
 	if ($boxes > MAXBOXES) die("please select a smaller number of boxes than ".MAXBOXES);
 
 	$months = $_REQUEST['months'];
-	if (!preg_match('#^\d\d?$#',$months) or $months <= 0) die("create_new_box: invalid number of months");
+	if (!preg_match('#^\d\d?$#',$months) or $months < 0) die("create_new_box: invalid number of months");
 	if ($months > MAXMONTHS) die("please select a smaller number of months than ".MAXMONTHS);
 
 	$totalmonths = $months * $boxes;
@@ -1082,7 +1082,7 @@ HTML;
 }
 
 function view_boxes_form($data,$boxes=null) {
-	global $table;
+	global $table,$lightgray,$gray;
 	global $vend,$permcheck;
 	$top = form_top($data); 
 	$end = form_end($data);
@@ -1140,7 +1140,7 @@ $notesbr$loginbr
 <b>last edit:</b> {$row['login']}
 </td>
 </tr>
-<tr bgcolor=lightgray>
+<tr bgcolor=$lightgray>
 <td><nobr>show <a href="admin.php?form=Call+Activity&box=$box">activity</a> / $edit box &nbsp;&nbsp;</nobr></td>
 <td>
 <nobr>
@@ -1267,7 +1267,7 @@ HTML;
 }
 
 function list_invoices($data,$showall=false) {
-	global $ldata;
+	global $ldata,$lightgray;
 	if ($data['vid'] != $ldata['vid'] and !ll_has_access($ldata,$data)) 
 		die("Error: you are trying to view someone else's invoices.");
 	$table = table_header(3,0,0,850);
@@ -1316,7 +1316,7 @@ HTML;
                 $html .= "</tr>\n";
 		if ($invoice['notes']) {
 			$notes = htmlentities($invoice['notes']);
-			$html .= "<tr bgcolor=lightgray><td colspan=7 align=center><b>Notes:</b> $notes</td></tr>\n";
+			$html .= "<tr bgcolor=$lightgray><td colspan=7 align=center><b>Notes:</b> $notes</td></tr>\n";
 		}
         }
 	$html .= <<<HTML

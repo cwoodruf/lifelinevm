@@ -327,7 +327,7 @@ function ll_boxcount($vend,$refresh=false) {
 	$pat = ll_parentpat($vid);
 	$query = "select count(*) as howmany from boxes join vendors on (boxes.vid=vendors.vid) ".
 		"where (boxes.vid=$vid or vendors.parent regexp '$pat') ".
-		"$status $order";
+		"and boxes.status <> 'deleted' and (paidto >= current_date() or paidto = 0)";
 	$lldb = ll_connect();
 	$st = $lldb->query($query);
 	if ($st === false) die(ll_err());
@@ -341,7 +341,7 @@ function ll_boxes($vend,$showkids=false,$status='not_deleted',$order = "order by
 	if ($status == 'deleted') 
 		$status = " and (boxes.status in ('deleted') or paidto < current_date()) ";
 	else if ($status == 'not_deleted') 
-		$status = " and boxes.status not in ('deleted') and paidto >= current_date() ";
+		$status = " and boxes.status not in ('deleted') and (paidto >= current_date() or paidto = 0) ";
 
 	if (is_array($vend)) $vid = $vend['vid'];
 	else $vid = $vend;
@@ -361,13 +361,7 @@ function ll_boxes($vend,$showkids=false,$status='not_deleted',$order = "order by
 
 function ll_activeboxcount($vid) {
 	if (!preg_match('#^\d+$#',$vid)) die("bad vid in ll_activeboxcount!");
-	$query = "select count(*) from boxes ".
-		"where status not like '%deleted%' and paidto >= current_date() and vid='$vid'";
-	$lldb = ll_connect();
-	$st = $lldb->query($query);
-	if ($st == false) die(ll_err());
-	$row = $st->fetch();
-	return $row[0];
+	return ll_boxcount($vid);
 }
 
 function ll_logincount($vid) {
@@ -591,6 +585,8 @@ function ll_new_box($trans,$vend,$months,$llphone,$min_box,$max_box,$activate=fa
 	$seccode = sprintf('%04d',rand(0,9999));
 	if ($activate) {
 		$paidto = date('Y-m-d',strtotime("+$months months"));
+	} else if ($months == 0) {
+		$add = "permanent";
 	} else {
 		$add = "add $months months";
 	}
