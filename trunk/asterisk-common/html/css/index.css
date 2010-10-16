@@ -1,5 +1,5 @@
 * {
-	font-size: 12pt;
+	font-size: 14px;
 	font-family: garamond,serif;
 }
 h1 { font-size: 16pt; text-decoration: underline; }
@@ -11,3 +11,55 @@ h3 { font-size: 12pt; text-decoration: underline; }
 	font-weight: bold;
 	font-style: italic;
 }
+img.logo {
+	margin-top: 135px;
+}
+div.news, div.links, div.groups, div.retail-top {
+	clear: both;
+	background: #F6F6F6;
+	margin-top: 15px;
+	padding: 5px;
+	border: 1px black solid;
+	width: 98%;
+}
+div.retail-top {
+	margin-top: 0;
+}
+div.retail {
+	background: #FFE6FF;
+	margin: 5px;
+	padding: 5px;
+}
+a.retail {
+	background: #FFFFFF;
+}
+div.menu {
+	width: 98%;
+}
+div.menu {
+	height: 45px;
+	margin-top: 15px;
+	width: inherit;
+	margin-left: 0;
+	height: 45px;
+	list-style: none;
+	background: #F6F6F6;
+	border: 1px solid black;
+	border-bottom: 0;
+}
+a.hoverhilite {
+	height: 19px;
+	color: black;
+	float: left;
+	padding: 13px;
+	text-decoration: none;
+	color: black;
+}
+a.hoverhilite:hover {
+	background: #FFE6FF;
+	text-decoration: underline;
+}
+div.bottomspacer {
+	height: 1000px;
+}
+
