@@ -229,6 +229,8 @@ sub mkpaidto {
 sub valid_paidto {
 	my $ll = shift;
 	my $paidto_cutoff = shift;
+	# for coolaid
+	return 1 if $ll->{status} eq 'permanent';
 	$paidto_cutoff = $pt_cutoff unless $paidto_cutoff =~ /^\d+$/;
 	if (
 		($ll->{paidto} == 0 and $ll->{status} =~ /add \d+ month/) 
