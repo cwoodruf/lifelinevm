@@ -318,15 +318,18 @@ function ll_paymentdates($vid) {
 	return $dates;
 }
 
-function ll_boxcount($vend,$refresh=false) {
+function ll_boxcount($vend,$showkids=false,$refresh=false) {
 	static $boxcounts;
 	if (is_array($vend)) $vid = $vend['vid'];
 	else $vid = $vend;
 	if (!$refresh and $boxcounts[$vid]) return $boxcounts[$vid];
-
 	$pat = ll_parentpat($vid);
+	if ($showkids) 
+		$what = "(boxes.vid='$vid' or vendors.parent regexp '$pat')";
+	else 
+		$what = "boxes.vid='$vid'";
 	$query = "select count(*) as howmany from boxes join vendors on (boxes.vid=vendors.vid) ".
-		"where (boxes.vid=$vid or vendors.parent regexp '$pat') ".
+		"where $what ". 
 		"and boxes.status <> 'deleted' and (paidto >= current_date() or paidto = 0)";
 	$lldb = ll_connect();
 	$st = $lldb->query($query);
@@ -361,7 +364,7 @@ function ll_boxes($vend,$showkids=false,$status='not_deleted',$order = "order by
 
 function ll_activeboxcount($vid) {
 	if (!preg_match('#^\d+$#',$vid)) die("bad vid in ll_activeboxcount!");
-	return ll_boxcount($vid);
+	return ll_boxcount($vid,($showkids=false));
 }
 
 function ll_logincount($vid) {

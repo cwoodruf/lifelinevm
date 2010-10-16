@@ -123,7 +123,11 @@ function main_form($data) {
 <p>
 HTML;
 	}
-	if (!$overdueblock and $ldata['box_limit'] >= ll_boxcount($vend['vid'])) {
+	if (
+		!$overdueblock 
+		and $ldata['box_limit'] >= ll_boxcount($vend['vid']) 
+		and $ldata['acctype'] == 'purchase'
+	) {
 		$addtime_buttons = <<<HTML
 <input type=submit name=form value="Create a new voicemail box"> <p>
 <input type=submit name=form value="Add time to an existing box"> <p>
@@ -753,7 +757,7 @@ function delete_box($data) {
 	$end = form_end($data);
 	return <<<HTML
 $top
-Box $box now deleted. $months month$s returned to {$vend['vendor']}.
+Box $box now deleted.
 $end
 HTML;
 }
@@ -770,7 +774,7 @@ function cleanup_files($box) {
 		rename($greeting,$deleted);
 	}
 	$messages = "$dir/messages";
-	if (($dh = @opendir($messages)) === false) die("can't open $messages!"); # return;
+	if (($dh = @opendir($messages)) === false) return;
 	while (($item = readdir($dh)) !== false) {
 		$name = "$messages/$item";
 		if (!is_file($name)) continue;
