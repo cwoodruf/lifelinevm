@@ -817,7 +817,7 @@ function cleanup_files($box) {
 		rename($greeting,$deleted);
 	}
 	$messages = "$dir/messages";
-	if (($dh = @opendir($messages)) === false) die("can't open $messages!"); # return;
+	if (($dh = @opendir($messages)) === false) return;
 	while (($item = readdir($dh)) !== false) {
 		$name = "$messages/$item";
 		if (!is_file($name)) continue;
