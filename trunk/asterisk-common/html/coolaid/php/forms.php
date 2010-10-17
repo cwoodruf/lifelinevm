@@ -117,7 +117,7 @@ function main_form($data) {
 	$vend = ll_vendor($ldata['vid']);
 	# box limit in this case means the number of boxes you can have at any one time
 	# I'll be doing all the invoicing by hand so there will be only one person with these permissions
-	if ($permcheck['invoices']) {
+	if ($permcheck['invoices'] and $vend['acctype'] == 'purchase') {
 		$purchase .= <<<HTML
 <input type=submit name=form value="Generate invoice"> 
 <p>
@@ -1173,9 +1173,6 @@ function purchase_time_form($data) {
 		$month = date('F Y');
 		return <<<HTML
 $top
-<blockquote>
-<i>You can use any time you purchase to either create new voice mailboxes or to extend existing boxes.</i>
-</blockquote>
 Amount for <input name="month" value="$month" size=12>: 
 &nbsp;&nbsp; 
 $<input size=10 name=amount value="100.00"> 
@@ -1245,14 +1242,13 @@ $table
 <input type=hidden name=amount value="$total">
 <tr><td><nobr>Total including {$st['name']}:</nobr></td><td align=right>\$$total</td></tr>
 <tr><td><nobr>For month:</nobr></td><td align=right>$month</td></tr>
-<tr><td>&nbsp;</td><td align=right><input type=submit name=action value="Buy voicemail now"></td></tr>
+<tr><td>&nbsp;</td><td align=right><input type=submit name=action value="Send invoice"></td></tr>
 </table>
 $end
 HTML;
 }
 
 function purchase_time($data) {
-	global $_REQUEST;
 	$vend = ll_vendor($data['vid']);
 	$trans = ll_valid_trans($_REQUEST['trans']);
 	ll_delete_trans($vend,$trans);
@@ -1262,9 +1258,7 @@ function purchase_time($data) {
 	$end = form_end($data);
 	return <<<HTML
 $top
-Thank you for your purchase. <p>
-Click on the link below and print the invoice. <br>
-<b>Net payment due in 30 days</b><p>
+Click on the link below and print the invoice. <p>
 Invoice: <a href=/coolaid/admin.php?action=invoice&invoice=$invoice target=_blank>$invoice</a>
 $end
 HTML;
@@ -1406,7 +1400,51 @@ function invoice($data,$idata=null) {
 	$st = get_salestax($idata['created']);
 	$created = preg_replace('# .*#','',$idata['created']);
 	if (!isset($idata)) die("Could not find invoice $invoice!");
-	$table = table_header(3,0,0,500,'align=center');
+	$table = table_header(3,0,0,600,'align=center');
+	$invoicebody = <<<HTML
+<table width=650 align=center cellpadding=10 cellspacing=0>
+<tr><td>
+<h2>$seller Invoice $invoice</h2>
+Invoice Date: $created&nbsp;<p>
+FROM:<br>
+<center>
+$sdata[vendor]<br>
+$sdata[address]<br>
+Phone: $sdata[phone]<br>
+Fax: $sdata[fax]<br>
+Email: $sdata[email]<br>
+GST Number: $sdata[gst_number]<br>
+</center>
+<br>
+TO:<br>
+<center>
+$vend[vendor]&nbsp;<br>
+</center>
+$table
+<tr><td><b>Contact:</b></td><td>$vend[contact]&nbsp;</td></tr>
+<tr><td><b>Address:</b></td><td>$vend[address]&nbsp;</td></tr>
+<tr><td><b>Phone:</b></td><td>$vend[phone]&nbsp;</td></tr>
+<tr><td><b>Email:</b></td><td>$vend[email]&nbsp;</td></tr>
+</table>
+<br>
+Please remit <b>\$$total</b> (including \$$tax {$st['name']}) for voicemail for {$idata['month']}.<br>
+Invoice payable $net_due days from invoice date.<br>
+<br>
+Thank you!
+<p>
+$seller
+<br>
+<center>
+<i>Save and print this invoice for your records.</i>
+<br>
+https://{$_SERVER['SERVER_NAME']}/{$_SERVER['REQUEST_URI']}
+</center>
+</td></tr>
+</table>
+HTML;
+	$invoicelink = "mailto:{$vend['email']}?".
+		"subject=Invoice $invoice from {$sdata['vendor']}&body=".
+		str_replace('+',' ',urlencode(html2txt($invoicebody)));
 	return <<<HTML
 <html>
 <head>
@@ -1415,43 +1453,31 @@ function invoice($data,$idata=null) {
 <link rel=stylesheet href=css/admin.css type=text/css>
 </head>
 <body>
-<table width=600 align=center cellpadding=10 cellspacing=0>
-<tr><td>
 <center>
-<h2>$seller Invoice $invoice</h2>
-$sdata[address]<br>
-Phone: $sdata[phone]<br>
-Fax: $sdata[fax]<br>
-Email: $sdata[email]<br>
-GST Number: $sdata[gst_number]<br>
+<a href="$invoicelink">Email this invoice</a>
+<p>
+$invoicebody
 </center>
-<p>
-$table
-<tr><td><b>Invoice Date:</b></td><td>$created&nbsp;</td></tr>
-<tr><td><b>To:</b></td><td>$vend[vendor]&nbsp;</td></tr>
-<tr><td><b>Contact:</b></td><td>$vend[contact]&nbsp;</td></tr>
-<tr><td><b>Purchased by:</b></td><td>$idata[login]&nbsp;</td></tr>
-<tr><td><b>Address:</b></td><td>$vend[address]&nbsp;</td></tr>
-<tr><td><b>Phone:</b></td><td>$vend[phone]&nbsp;</td></tr>
-<tr><td><b>Email:</b></td><td>$vend[email]&nbsp;</td></tr>
-</table>
-<p>
-Please remit <b>\$$total</b> (including \$$tax {$st['name']}) for voicemail for {$idata['month']}.
-<p>
-Invoice payable $net_due days from invoice date.
-<p>
-<p>
-Thank you!
-<p>
-$seller
-<p>
-<p>
-<center><i>Save and print this invoice for your records.</i></center>
-</td></tr>
-</table>
 </body>
 </html>
 HTML;
+}
+
+function html2txt($html) {
+	$txt = $html;
+	$txt = preg_replace('#[\n\r]#','',$txt);
+	$txt = preg_replace('#\s+#',' ',$txt);
+	$txt = preg_replace('#<(?:p|/h2)>#i',"\n\n",$txt);
+	$txt = preg_replace('#<(?:/tr|br)>#i',"\n",$txt);
+	$txt = preg_replace('#<hr>#i',"\n---------------------------------------\n",$txt);
+	$txt = preg_replace('#<[^>]*>?#','',$txt);
+	$txt = preg_replace('#^[^>]*>#','',$txt);
+	$txt = str_replace('&nbsp;',' ',$txt);
+	$txt = str_replace('&quot;','"',$txt);
+	$txt = str_replace('&lt;','<',$txt);
+	$txt = str_replace('&gt;','>',$txt);
+	$txt = str_replace('&amp;','&',$txt);
+	return $txt;
 }
 
 function view_transaction($ldata,$trans) {

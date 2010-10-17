@@ -149,7 +149,7 @@ if ($_REQUEST['listen']) {
 	print view_boxes($ldata);
 } else if ($action === 'Generate invoice') {
 	print confirm_purchase_form($ldata);
-} else if ($action === 'Buy voicemail now') {
+} else if ($action === 'Send invoice') {
 	print purchase_time($ldata);
 } else if ($action === 'invoice') {
 	print invoice($ldata);
