@@ -234,24 +234,44 @@ HTML;
 	} else {
 		$months = 1;
 		$boxeswidget = <<<HTML
-<span id="numboxes">
-Number of boxes to create &nbsp; <input size=3 name=boxes value=1> (maximum $max) 
-</span>
+<span id="numboxes" style="display: inline">
+Number of boxes to create &nbsp; 
+<input size=3 name=boxes value=1> (maximum $max) 
 <a href="javascript: void(0);" onclick="
    boxwidget = getElementById('specificbox');
    numwidget = getElementById('numboxes');
+   entrydesc = getElementById('entrydesc');
    if (boxwidget.style.display == 'inline') {
 	boxwidget.style.display = 'none';
 	numwidget.style.display = 'inline';
+	entrydesc.innerHTML = 'click * to enter a specific box number';
    } else {
 	boxwidget.style.display = 'inline';
 	numwidget.style.display = 'none';
+	entrydesc.innerHTML = 'click * to enter number of boxes';
    }
 " 
-   title="activate specific box">*</a>
+   title="click * to enter a specific box number">*</a>
+</span>
 <span id="specificbox" style="display: none">
-Box: 
+Reactivate inactive box &nbsp;
 <input name="box" size="4">
+<a href="javascript: void(0);" onclick="
+   boxwidget = getElementById('specificbox');
+   numwidget = getElementById('numboxes');
+   entrydesc = getElementById('entrydesc');
+   if (numwidget.style.display == 'none') {
+	boxwidget.style.display = 'none';
+	numwidget.style.display = 'inline';
+	entrydesc.innerHTML = 'click * to enter a specific box number';
+   } else {
+	boxwidget.style.display = 'inline';
+	numwidget.style.display = 'none';
+	entrydesc.innerHTML = 'click * to enter number of boxes';
+   }
+" 
+   title="click * to enter number of boxes">*</a>
+</span>
 </span> &nbsp;&nbsp; 
 HTML;
 	}
@@ -268,7 +288,7 @@ Valid for &nbsp;
 <input size=3 name=months value="$months"
  onchange="getElementById('payment_amount').value=get_retail_price(this.value);"
 > &nbsp; months (up to $maxmonths months). &nbsp;&nbsp; 
-<br><i style="font-size: small">click * to enter specific box number</i>
+<br><span id="entrydesc" style="font-style: italic; font-size: small;">click * to enter a specific box number</span>
 $personal
 $payment_form
 <br>
