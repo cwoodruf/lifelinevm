@@ -551,9 +551,9 @@ function ll_new_box($trans,$vend,$months,$llphone,$min_box,$max_box,$activate=fa
 	# we can activate specific boxes only if they are not in use
 	if ($max_box == $min_box) {
 		$box = $min_box;
-		if (!ll_available(ll_box($box))) die("box $box currently in use!");
+		if (!ll_is_available(ll_box($box))) die("box $box currently in use!");
 	} else {
-		$box = ll_find_new_box($min_box,$max_box);
+		$box = ll_find_available_box($min_box,$max_box);
 	}
 
 	$seccode = sprintf('%04d',rand(0,9999));
@@ -579,19 +579,17 @@ function ll_new_box($trans,$vend,$months,$llphone,$min_box,$max_box,$activate=fa
 		return array($box,$seccode,$paidto);
 }
 
-function ll_available($bdata) {
-	$paidto = strtotime($bdata['paidto']);
+function ll_is_available($bdata) {
+	$paidtoepoch = strtotime($bdata['paidto']);
 	if ($bdata['status'] == 'deleted' 
-		or ($bdata['status'] == '' and time() - $bdata['paidto'] > DELBOXAFTER*DAY)) 
+		or ($bdata['status'] == '' and time() - $paidtoepoch > DELBOXAFTER*DAY)) 
 	{
 		return true;
 	}
 	return false;
 }
 
-function ll_find_new_box($min_box,$max_box) {
-	static $available;
-
+function ll_find_available_box($min_box,$max_box) {
 	$lldb = ll_connect();
 	# figure out what boxes are available (save this in case we need to do more than one)
 	if (!is_array($available)) {
@@ -603,7 +601,7 @@ function ll_find_new_box($min_box,$max_box) {
 		if ($st === false) die(ll_err());
 		while ($row = $st->fetch()) {
 			list($box,$paidto,$status) = $row;
-			$available[$box] = ll_available($row);
+			$available[$box] = ll_is_available($row);
 		}
 		$st->closeCursor();
 		for ($i = MINBOX; $i <= MAXBOX; $i++) {
