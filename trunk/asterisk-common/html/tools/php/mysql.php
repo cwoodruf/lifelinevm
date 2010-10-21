@@ -403,6 +403,12 @@ function ll_find_boxes($vend,$search) {
 	return ll_load_from_table('ourboxes',null,null,true,$where);
 }
 
+function ll_check_boxlimit($vend,$dummy=null) {
+	$boxes = ll_boxcount($vend);
+	if ($boxes < $vend['box_limit']) return true;
+	die("vendor {$vend['vendor']} has met or exceeded their box limit {$vend['box_limit']}");
+}
+
 function ll_check_months($vend,$months) {
 	if (!preg_match('#^-?\d+$#',$months))
 		die("Invalid months value $months!");
@@ -419,7 +425,7 @@ function ll_check_months($vend,$months) {
 		}
 	}
 	if ($vend['months'] < $months) 
-		die("Vendor ".$vend['name']." only has ".$vend['months']." month(s) available!");
+		die("Vendor ".$vend['vendor']." only has ".$vend['months']." month(s) available!");
 	return $months;
 }
 
@@ -535,7 +541,7 @@ function ll_log($vend,$cdata) {
 
 # find a new box based on a range of numbers
 # by default do not put in a subscription date - this is done when the box is called for the first time
-function ll_new_box($trans,$vend,$months,$llphone,$min_box,$max_box,$activate=false) {
+function ll_new_box($trans,$vend,$months,$llphone,$min_box,$max_box,$creditcheck='ll_check_months') {
 	global $ldata, $salt;
 
 	if (!preg_match('#^\d+$#',$min_box) or !preg_match('#^\d+$#',$max_box)) {
@@ -544,7 +550,11 @@ function ll_new_box($trans,$vend,$months,$llphone,$min_box,$max_box,$activate=fa
 	if ($min_box > $max_box) list($max_box,$min_box) = array($min_box,$max_box);
 
 	$cutoff_interval = '6 months';
-	ll_check_months($vend,$months);
+	if (function_exists($creditcheck)) {
+		$creditcheck($vend,$months);
+	} else {
+		die("no / invalid credit check function!");
+	}
 	$vdata['months'] = $vend['months'] - $months;
 	$lldb = ll_connect();
 
@@ -557,9 +567,7 @@ function ll_new_box($trans,$vend,$months,$llphone,$min_box,$max_box,$activate=fa
 	}
 
 	$seccode = sprintf('%04d',rand(0,9999));
-	if ($activate) {
-		$paidto = date('Y-m-d',strtotime("+$months months"));
-	} else if ($months == 0) {
+	if ($months == 0) {
 		$add = "permanent";
 	} else {
 		$add = "add $months months";
