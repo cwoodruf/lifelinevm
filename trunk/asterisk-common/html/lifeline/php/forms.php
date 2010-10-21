@@ -234,7 +234,25 @@ HTML;
 	} else {
 		$months = 1;
 		$boxeswidget = <<<HTML
-Number of boxes to create &nbsp; <input size=3 name=boxes value=1> (maximum $max) &nbsp;&nbsp; 
+<span id="numboxes">
+Number of boxes to create &nbsp; <input size=3 name=boxes value=1> (maximum $max) 
+</span>
+<a href="javascript: void(0);" onclick="
+   boxwidget = getElementById('specificbox');
+   numwidget = getElementById('numboxes');
+   if (boxwidget.style.display == 'inline') {
+	boxwidget.style.display = 'none';
+	numwidget.style.display = 'inline';
+   } else {
+	boxwidget.style.display = 'inline';
+	numwidget.style.display = 'none';
+   }
+" 
+   title="activate specific box">*</a>
+<span id="specificbox" style="display: none">
+Box: 
+<input name="box" size="4">
+</span> &nbsp;&nbsp; 
 HTML;
 	}
 	$top = form_top($data,true,true,'post',$formjs); 
@@ -250,6 +268,7 @@ Valid for &nbsp;
 <input size=3 name=months value="$months"
  onchange="getElementById('payment_amount').value=get_retail_price(this.value);"
 > &nbsp; months (up to $maxmonths months). &nbsp;&nbsp; 
+<br><i style="font-size: small">click * to enter specific box number</i>
 $personal
 $payment_form
 <br>
@@ -309,9 +328,13 @@ function create_new_box($data) {
 	$trans = ll_valid_trans($_REQUEST['trans']);
 	ll_delete_trans($vend,$trans,'new');
 
-	$boxes = $_REQUEST['boxes'];
-	if (!preg_match('#^\d\d?$#',$boxes) or $boxes <= 0) die("create_new_box: invalid number of boxes");
-	if ($boxes > MAXBOXES) die("please select a smaller number of boxes than ".MAXBOXES);
+	if (preg_match('#^\d+$#', $_REQUEST['box'])) {
+		$box = $_REQUEST['box'];
+	} else {
+		$boxes = $_REQUEST['boxes'];
+		if (!preg_match('#^\d\d?$#',$boxes) or $boxes <= 0) die("create_new_box: invalid number of boxes");
+		if ($boxes > MAXBOXES) die("please select a smaller number of boxes than ".MAXBOXES);
+	}
 
 	$months = $_REQUEST['months'];
 	if (!preg_match('#^\d\d?$#',$months) or $months <= 0) die("create_new_box: invalid number of months");
@@ -325,8 +348,12 @@ function create_new_box($data) {
 	$llphone = $_REQUEST['personal']['llphone'];
 	if (empty($llphone)) $llphone = $phone;
 
-	list($min_box,$max_box) = get_box_range(); # pick a random box range 
-	if ($boxes == 1) {
+	if (!isset($box)) {
+		list($min_box,$max_box) = get_box_range(); # pick a random box range 
+	} else { 
+		$max_box = $min_box = $box;
+	}
+	if (isset($box) or $boxes == 1) {
 		list ($box,$seccode,$paidto) = ll_new_box($trans,$vend,$months,$llphone,$min_box,$max_box);
 		$amount = ll_update_payment($box,$vid,$ldata['login'],$months,$_REQUEST['payment']);
 		ll_update_personal($vend,$box,$_REQUEST['personal']);
@@ -879,7 +906,9 @@ function confirm_update_box_time($data,$months='') {
 	$vend = ll_vendor($data['vid'],true);
 
 	$bdata = ll_box($box);
-	if (empty($bdata)) die("box $box does not exist!");
+	if (empty($bdata)) {
+		die("box $box does not exist!");
+	}
 
 	$boxupdate = ll_check_time($vend,$box,$months);
 	$trans = ll_generate_trans($vend,'boxes');

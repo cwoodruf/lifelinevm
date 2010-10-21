@@ -537,9 +537,8 @@ function ll_log($vend,$cdata) {
 # by default do not put in a subscription date - this is done when the box is called for the first time
 function ll_new_box($trans,$vend,$months,$llphone,$min_box,$max_box,$activate=false) {
 	global $ldata, $salt;
-	static $available;
 
-	if (!preg_match('#^\d+$#',$min_box) or !preg_match('#^\d+$#',$max_box) or $max_box == $min_box) {
+	if (!preg_match('#^\d+$#',$min_box) or !preg_match('#^\d+$#',$max_box)) {
 		die("new_box: bad box range $min_box, $max_box!");
 	}
 	if ($min_box > $max_box) list($max_box,$min_box) = array($min_box,$max_box);
@@ -549,40 +548,12 @@ function ll_new_box($trans,$vend,$months,$llphone,$min_box,$max_box,$activate=fa
 	$vdata['months'] = $vend['months'] - $months;
 	$lldb = ll_connect();
 
-	# figure out what boxes are available (save this in case we need to do more than one)
-	if (!is_array($available)) {
-		$available = array();
-		$st = $lldb->query(
-				"select box,paidto,status from boxes ".
-				"order by box"
-			);
-		if ($st === false) die(ll_err());
-		while ($row = $st->fetch()) {
-			list($box,$paidto,$status) = $row;
-			$paidto = strtotime($paidto);
-			if ($status == 'deleted' 
-				or ($status == '' and time() - $paidto > DELBOXAFTER*DAY)) 
-			{
-				$available[$box] = true;
-			} 
-			else 
-			{
-				$available[$box] = false;
-			}
-		}
-		$st->closeCursor();
-		for ($i = MINBOX; $i <= MAXBOX; $i++) {
-			if (isset($available[$i])) continue;
-			$available[$i] = true;
-		}
-	}
-	# now pick an unused box
-	for ($i=$min_box; $i<=$max_box; $i++) {
-		if ($available[$i]) {
-			$box = $i;
-			$available[$i] = false;
-			break;
-		}
+	# we can activate specific boxes only if they are not in use
+	if ($max_box == $min_box) {
+		$box = $min_box;
+		if (!ll_available(ll_box($box))) die("box $box currently in use!");
+	} else {
+		$box = ll_find_new_box($min_box,$max_box);
 	}
 
 	$seccode = sprintf('%04d',rand(0,9999));
@@ -606,6 +577,48 @@ function ll_new_box($trans,$vend,$months,$llphone,$min_box,$max_box,$activate=fa
 	ll_log($vend,array('newpaidto'=>$paidto,'box'=>$box,'months'=>$months,'action'=>'new_box'));
 	if (ll_save_to_table('update','vendors',$vdata,'vid',$vend['vid'])) 
 		return array($box,$seccode,$paidto);
+}
+
+function ll_available($bdata) {
+	$paidto = strtotime($bdata['paidto']);
+	if ($bdata['status'] == 'deleted' 
+		or ($bdata['status'] == '' and time() - $bdata['paidto'] > DELBOXAFTER*DAY)) 
+	{
+		return true;
+	}
+	return false;
+}
+
+function ll_find_new_box($min_box,$max_box) {
+	static $available;
+
+	$lldb = ll_connect();
+	# figure out what boxes are available (save this in case we need to do more than one)
+	if (!is_array($available)) {
+		$available = array();
+		$st = $lldb->query(
+				"select box,paidto,status from boxes ".
+				"order by box"
+			);
+		if ($st === false) die(ll_err());
+		while ($row = $st->fetch()) {
+			list($box,$paidto,$status) = $row;
+			$available[$box] = ll_available($row);
+		}
+		$st->closeCursor();
+		for ($i = MINBOX; $i <= MAXBOX; $i++) {
+			if (isset($available[$i])) continue;
+			$available[$i] = true;
+		}
+	}
+	# now pick an unused box
+	for ($i=$min_box; $i<=$max_box; $i++) {
+		if ($available[$i]) {
+			return $i;
+			$available[$i] = false;
+			break;
+		}
+	}
 }
 
 function ll_set_paidto($box,$startdate) {
