@@ -341,7 +341,7 @@ function create_new_box($data) {
 	if ($months > MAXMONTHS) die("please select a smaller number of months than ".MAXMONTHS);
 
 	$totalmonths = $months * $boxes;
-	if ($vend['months'] < $totalmonths) die("you only have $totalmonths months available!");
+	if ($vend['months'] < $totalmonths) die("you only have {$vend['months']} months available!");
 	$netmonths = $vend['months'];
 	$vid = $ldata['vid'];
 
