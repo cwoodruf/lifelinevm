@@ -127,12 +127,15 @@ sub play {
 sub msg_date {
 	my ($msg) = @_;
 	return unless defined $msg;
-	my $digit = $a->stream_file($msg_rec,$digits);
-	return $digit if defined $digit;
+	my $digit;
+	$digit = $a->stream_file($msg_rec,$digits);
+	return $digit if $digit;
 	my $msg_epoch = ($msg->{msg}=~m#^.*/(\d+)#)[0];
-	$a->say_date($msg_epoch);
+	$digit = $a->say_date($msg_epoch,$digits);
+	return $digit if $digit;
 	$a->exec("Wait","1");
-	$a->say_time($msg_epoch);
+	$digit = $a->say_time($msg_epoch,$digits);
+	return $digit if $digit;
 
 	# caller id stuff
 	my $getcid = $db->prepare("select callerid from calls where message=?");
@@ -145,8 +148,9 @@ sub msg_date {
 	my $phone = $1;
 	if (length($phone) > 0) { 
 		$digit = $a->stream_file($msg_from,$digits);
-		return $digit if defined $digit;
-		$a->say_digits($phone); 
+		return $digit if $digit;
+		$digit = $a->say_digits($phone,$digits); 
+		return $digit if $digit;
 	}
 }
 
