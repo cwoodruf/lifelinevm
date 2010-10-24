@@ -68,17 +68,17 @@ while ((my $ascii = &play($ll->curr_msg,$callback_app)) >= 0) {
 	elsif ($d eq '7') { 
 		$ll->del_msg; 
 		if ($ll->curr_msg->{deleted}) {
-			$a->stream_file($del_msg); 
+			$a->stream_file($del_msg,$digits); 
 		} else {
-			$a->stream_file($restore_msg);
+			$a->stream_file($restore_msg,$digits);
 		}
 		goto MENU; 
 	} elsif ($d eq '9') { 
 		$ll->del_all($ll->curr_msg->{deleted}); 
 		if ($ll->curr_msg->{deleted}) {
-			$a->stream_file($del_all);
+			$a->stream_file($del_all,$digits);
 		} else {
-			$a->stream_file($restore_all);
+			$a->stream_file($restore_all,$digits);
 		}
 		goto MENU; 
 	} else { goto MENU; }
@@ -127,7 +127,7 @@ sub play {
 sub msg_date {
 	my ($msg) = @_;
 	return unless defined $msg;
-	$a->stream_file($msg_rec);
+	$a->stream_file($msg_rec,$digits);
 	my $msg_epoch = ($msg->{msg}=~m#^.*/(\d+)#)[0];
 	$a->say_date($msg_epoch);
 	$a->exec("Wait","1");
@@ -143,7 +143,7 @@ sub msg_date {
 	return unless $cid =~ /.*<(\d+)>.*/;
 	my $phone = $1;
 	if (length($phone) > 0) { 
-		$a->stream_file($msg_from);
+		$a->stream_file($msg_from,$digits);
 		$a->say_digits($phone); 
 	}
 }
