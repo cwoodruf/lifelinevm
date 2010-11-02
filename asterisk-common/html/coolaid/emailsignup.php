@@ -46,7 +46,7 @@ function emailsignup($id,$user) {
 	if ($user['email'] != $_REQUEST['email']) die("emails don't match!");
 	$email = htmlentities($_REQUEST['email']);
 	if ($password != $_REQUEST['password_confirm']) die("passwords don't match!");
-	if (ll_add_user($user,$email,$password,$user['perms'])) {
+	if (ll_add_user($user,$email,$email,$password,$user['perms'])) {
 		return "Saved new password for $email. <a href=\"admin.php?login=$email&action=logout\">Log in</a>";
 	}
 	return "Error saving password for $email!";
@@ -174,7 +174,7 @@ This is an automatic message from the Lifeline voice mail system.
 
 Please click on the link below to create a new password to the voice mail web admin:
 
-https://lifelinevm.net/coolaid/emailsignup.php?id=ID
+https://lifelinevm.net/lifeline/emailsignup.php?id=ID
 
 If you have any questions contact us at:
 vmailtechnicalsupport@gmail.com
