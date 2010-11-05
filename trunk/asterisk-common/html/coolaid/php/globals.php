@@ -3,7 +3,7 @@
 # coolaid specific
 $sitename = 'Coolaid';
 $sitecolor = '#F8F8F8';
-define('DEFBOXLIMIT',300);
+define('DEFBOXLIMIT',200);
 define('MININVOICE',8000);
 define('MAXINVOICE',10000);
 
@@ -23,6 +23,7 @@ define("DEFRATE",2.5);
 define("DEFPRICES","");
 define("INVOICEOVERDUE", 90);
 define("INVOICEBLOCKED", INVOICEOVERDUE + 30);
+define("LOGINOUTPUTLIMIT",100);
 
 # default phone number if the vendor doesn't have a phone associated with them
 define("DEFPHONE","778 410-2093"); # this is just a victoria test number from link2voip.com

@@ -1246,6 +1246,10 @@ function ll_login_logger($login,$status) {
 	return ll_save_to_table('insert','loginlog',$logdata,null,$ignoreme,true);
 }
 
+function ll_get_logins($limit) {
+	if ($limit > 0) $limitby = sprintf('limit %u', $limit);
+	return ll_load_from_table('loginlog',null,null,true,"order by attempted desc $limitby");
+}
 
 function ll_prompt_login($login) {
 	$lldb = ll_connect();

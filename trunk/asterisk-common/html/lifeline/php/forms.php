@@ -164,7 +164,10 @@ HTML;
 	}
 
 	if (preg_match('#logins#',$data['perms'])) 
-		$users = '<input type=submit name=action value="Manage account and users"> <p>';
+		$users = '<input type=submit name=action value="Manage account and users"><p>';
+		if ($data['vid'] == ROOTVID) {
+			$users .= '<input type=submit name=action value="Recent logins"><p>';
+		}
 	return <<<HTML
 $top
 $addtime_buttons
@@ -421,6 +424,26 @@ $head
 HTML;
 	}
 	return $cracked;
+}
+
+function show_logins($data,$limit=LOGINOUTPUTLIMIT) {
+	$top = form_top($data); 
+	$end = form_end($data);
+	if (!$limit) $limit = LOGINOUTPUTLIMIT;
+	$logins = ll_get_logins($limit);
+	$html = <<<HTML
+$top
+<h4>Last $limit logins</h4>
+<table cellpadding=5 cellspacing=0 border=1>
+HTML;
+	foreach ($logins as $login) {
+		$html .= "<tr><td>".implode("&nbsp;</td><td>", array_unique(array_values($login)))."</td></tr>\n";
+	}
+	$html .= <<<HTML
+</table>
+$end;
+HTML;
+	return $html;
 }
 
 function show_boxes($data,$boxlist) {
