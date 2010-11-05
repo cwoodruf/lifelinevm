@@ -147,6 +147,8 @@ if ($_REQUEST['listen']) {
 	print update_personal($ldata);
 } else if ($action === 'Show boxes') {
 	print view_boxes($ldata);
+} else if ($action === 'Recent logins') {
+	print show_logins($ldata,$_REQUEST['limit']);
 } else if ($action === 'Generate invoice') {
 	print confirm_purchase_form($ldata);
 } else if ($action === 'Send invoice') {
