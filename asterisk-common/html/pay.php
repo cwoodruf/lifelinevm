@@ -32,8 +32,8 @@ $total = sprintf('$ %.2f',$net + $hst);
 <br>
 <br>
 <p>
-<b>Lifeline Voice Mail</b><br>
-142 - 757 West Hastings Street,<br>
+<b>Lifeline Voice Mail Society</b><br>
+142 - 757 West Hastings Street, Box 275<br>
 Vancouver, BC<br>
 V6C 1A1<br>
 <br>
