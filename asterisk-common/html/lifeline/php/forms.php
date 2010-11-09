@@ -426,7 +426,7 @@ HTML;
 	return $cracked;
 }
 
-function show_logins($data,$limit=LOGINOUTPUTLIMIT) {
+function list_logins($data,$limit=LOGINOUTPUTLIMIT) {
 	$top = form_top($data); 
 	$end = form_end($data);
 	if (!$limit) $limit = LOGINOUTPUTLIMIT;

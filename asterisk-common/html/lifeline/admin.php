@@ -146,7 +146,7 @@ if ($_REQUEST['listen']) {
 } else if ($action === 'Update name, email etc.') {
 	print update_personal($ldata);
 } else if ($action === 'Recent logins') {
-	print show_logins($ldata,$_REQUEST['limit']);
+	print list_logins($ldata,$_REQUEST['limit']);
 } else if ($action === 'Show boxes') {
 	print view_boxes($ldata);
 } else if ($action === 'Purchase time') {
