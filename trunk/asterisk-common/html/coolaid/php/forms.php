@@ -256,11 +256,17 @@ HTML;
 $top
 <input type=hidden name=trans value="$trans">
 $boxeswidget
+<br>
+<span id="entrydesc" style="font-style: italic; font-size: small;">click * to enter a specific box number</span>
+<br>
 Valid for &nbsp; 
 <input size=2 name=months value="$months"
  onchange="getElementById('payment_amount').value=get_retail_price(this.value);"
-> &nbsp; months (max. $maxmonths) &nbsp;&nbsp; 
-<br><span id="entrydesc" style="font-style: italic; font-size: small;">click * to enter a specific box number</span>
+> &nbsp; month(s) &nbsp; maximum $maxmonths months
+<br>
+<span id="entrydesc" style="font-style: italic; font-size: small; font-weight: bold;">
+enter 0 months for a unlimited time box</span>
+<br>
 $personal
 $payment_form
 <br>
@@ -389,7 +395,7 @@ HTML;
 	return $cracked;
 }
 
-function show_logins($data,$limit=LOGINOUTPUTLIMIT) {
+function list_logins($data,$limit=LOGINOUTPUTLIMIT) {
 	$top = form_top($data); 
 	$end = form_end($data);
 	if (!$limit) $limit = LOGINOUTPUTLIMIT;
@@ -1338,7 +1344,7 @@ HTML;
 }
 
 function list_invoices($data,$showall=false) {
-	global $ldata,$lightgray;
+	global $ldata,$lightgray,$permcheck;
 	if ($data['vid'] != $ldata['vid'] and !ll_has_access($ldata,$data)) 
 		die("Error: you are trying to view someone else's invoices.");
 	$table = table_header(3,0,0,850);
@@ -1366,15 +1372,19 @@ HTML;
                 $html .= "<tr valign=top>\n";
 		$in = $invoice['invoice'];
 		# if you are logged in as the parent then you can edit the invoice
-		$editinv = "<td align=right><a href=\"admin.php?form=Edit invoice&invoice=$in\">edit</a>";
+		if ($ldata['orig_vid'] and preg_match("#{$ldata['orig_vid']}#",$vend['parent'])) {
+			$editinv = "<td align=right><a href=\"admin.php?form=Edit invoice&invoice=$in\">edit</a>";
+		}
                 foreach (array('invoice','vendor','created','gst','total','paidon') as $field) {
 			$value = htmlentities($invoice[$field]);
                         if (is_numeric($field)) continue;
-			if ($field === 'invoice') 
-				$html .= <<<HTML
+			if ($field === 'invoice') {
+				if ($permcheck['invoices']) {
+					$html .= <<<HTML
 <td align=center><a href="/coolaid/admin.php?action=invoice&invoice=$in" target=_blank>$in</a></td>
 HTML;
-                        else if ($field === 'total' or $field === 'gst') {
+				} else $html .= "<td align=center>$in</td>";
+			} else if ($field === 'total' or $field === 'gst') {
 				$html .= "<td align=right>".(sprintf('$%.2f',$value))." &nbsp;</td>";
 			} else if ($field === 'paidon') {
 				$html .= "<td align=right>$value $editinv</td>";
