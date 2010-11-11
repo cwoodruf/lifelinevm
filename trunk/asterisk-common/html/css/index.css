@@ -14,7 +14,7 @@ h3 { font-size: 12pt; text-decoration: underline; }
 img.logo {
 	margin-top: 135px;
 }
-div.news, div.links, div.groups, div.retail-top {
+div.intro, div.news, div.links, div.groups, div.retail-top {
 	clear: both;
 	background: #F6F6F6;
 	margin-top: 15px;
@@ -22,6 +22,17 @@ div.news, div.links, div.groups, div.retail-top {
 	border: 1px black solid;
 	width: 98%;
 }
+div.intro {
+	height: 180px;
+}
+div.intro a {
+	margin: 8px;
+	font-weight: bold;
+	font-style: italic;
+	color: #606060;
+	float: right;
+}
+
 div.retail-top {
 	margin-top: 0;
 }
@@ -43,7 +54,7 @@ div.menu {
 	margin-left: 0;
 	height: 45px;
 	list-style: none;
-	background: #F6F6F6;
+	background: #FFFFFF;
 	border: 1px solid black;
 	border-bottom: 0;
 }
