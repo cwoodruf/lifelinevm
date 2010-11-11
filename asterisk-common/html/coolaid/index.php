@@ -76,11 +76,6 @@ Please keep this receipt in case of problems with your account.<br>
 <i>Status: <?php print $bdata['status']; ?></i>
 </div>
 <?php endif; ?>
-<div style="padding-top: 8px;">
-<i><b>Rates:</b> $3.00 per month, $10 for four months, $25 per year. <br>
-<b>Contact:</b> 604 248-4930 Ext 6040 &nbsp;&nbsp;
-<b>Website:</b> http://callbackpack.com</i>
-</div>
 
 <h4>Using voicemail</h4>
 <h4>Leaving messages</h4>
