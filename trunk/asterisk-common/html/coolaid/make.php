@@ -583,7 +583,7 @@ HTML;
 </tr>
 HTML;
 		}
-		$blvalue = $bl > 0 ? "$bl month".($bl > 1 ? 's':'') : "";
+		$blvalue = $bl > 0 ? "$bl box".($bl > 1 ? 'es':'') : "";
 		$boxlimit = <<<HTML
 <tr><td> box limit </td><td>$blvalue &nbsp; </td></tr>
 HTML;
