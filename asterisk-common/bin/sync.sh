@@ -1,9 +1,9 @@
 #!/bin/bash
 /usr/bin/ssh asterisk "/usr/bin/svn update /home/asterisk/svn/lifelinevm"
-if [ $HOSTNAME != aifl89.ath.cx ] ; then
-	echo -$HOSTNAME: running rsync on aifl.ath.cx
-	/usr/bin/ssh asterisk@aifl.ath.cx '/usr/local/asterisk/bin/sync.sh'
-fi
+#if [ $HOSTNAME != aifl89.ath.cx ] ; then
+#	echo -$HOSTNAME: running rsync on aifl.ath.cx
+#	/usr/bin/ssh asterisk@aifl.ath.cx '/usr/local/asterisk/bin/sync.sh'
+#fi
 echo start rsync `/bin/date`
 /usr/bin/rsync --delete -rcvt --exclude='.*' asterisk@lifelinevm.net:/usr/local/asterisk/html/ /usr/local/asterisk/html
 /usr/bin/rsync --delete -rcvt asterisk@lifelinevm.net:/usr/local/asterisk/paycode/ /usr/local/asterisk/paycode

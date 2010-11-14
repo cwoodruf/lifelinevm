@@ -75,4 +75,7 @@ $white = '#FFFFFF';
 $lavender = '#E6E6FA';
 $gray = '#909090';
 $lightgray = '#D3D3D3';
-
+# database
+$ll_dbname = 'lifeline';
+$ll_login = 'll';
+$ll_password = '85$82$str';

@@ -28,21 +28,21 @@ function squashedphone($phone) {
 }
 
 function ll_connect () {
-	global $lldb;
-	global $ll_login;
-	global $ll_password;
-	global $ll_host;
-	global $ll_dbname;
+	global $lldb, $ll_login, $ll_password, $ll_host, $ll_port, $ll_dbname;
 	if (isset($lldb)) return $lldb;
 	if (empty($ll_host)) $ll_host = 'localhost';
 	if (empty($ll_dbname)) $ll_dbname = 'lifeline';
+	if (preg_match('#^\d+$#',$ll_port)) $port = ";port=$ll_port";
 	try {
-		$lldb = new PDO("mysql:dbname=$ll_dbname;host=$ll_host",$ll_login,$ll_password);
+		$lldb = new PDO("mysql:dbname=$ll_dbname;host=$ll_host$port",$ll_login,$ll_password);
 	} catch (Exception $e) {
 		# if the login fails try localhost
 		try {
 			print "connect error: using localhost!<br>\n";
-			$lldb = new PDO("mysql:dbname=$ll_dbname;host=localhost",$ll_login,$ll_password);
+			$lldb = new PDO(
+				"mysql:dbname=$ll_dbname;unix_socket=/tmp/mysql-lifeline.sock",
+				$ll_login,$ll_password
+			);
 		} catch (Exception $e) {
 			die("connect failed: ".$e->getMessage());
 		}
