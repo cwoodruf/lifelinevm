@@ -13,7 +13,7 @@ do
 	echo $findcmd 
 	lastupdate="/bin/touch ~/lastupdated"
 	localbackup=192.168.1.44
-	remotebackup=aifl.ath.cx
+	remotebackup=184.107.32.58 
 
 	echo sync-msgs: FROM $localbackup TO main using ssh
 	/usr/bin/ssh asterisk@$localbackup "$findcmd"
