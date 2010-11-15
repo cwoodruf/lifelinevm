@@ -1,0 +1,32 @@
+# example cron used by the main asterisk server for the first 3 months of operation
+# 5 5 * * * /usr/local/asterisk/bin/dbbackup.sh > /usr/local/asterisk/bin/dbbackup.out 2>&1 
+
+# make a daily tar file of messages in case they get mucked up - nice if you can afford the space
+# 20 3 * * * /usr/bin/find /home/asterisk/messages -name 'messages-*.tgz' -mtime +4 -exec /bin/rm {} \;
+# 25 3 * * * /bin/tar czf /home/asterisk/messages/messages-`/bin/date +%Y%m%d`.tgz /usr/local/asterisk/*-msgs/
+
+# update any new messages to / from secondary servers 
+# 0 * * * * /usr/local/asterisk/bin/sync-msgs.sh >> /usr/local/asterisk/bin/sync-msgs.out 2>&1
+
+# status line visible in web admin
+# 0-59/10 * * * * /usr/local/asterisk/bin/aststatus.pl
+
+# get twitter updates of news
+# 14 7 * * * /usr/local/asterisk/bin/gettweets.pl > /usr/local/asterisk/bin/gettweets.out 2>&1
+
+
+# the registration step in sip is the most error prone 
+# checkregistry.pl does a sip reload if registration isn't "Registered"
+# also checks that asterisk is running and restarts it as necessary
+# 1-59/10 * * * * /usr/local/asterisk/bin/checkregistry.pl -v -mcalvmobile@callbackpack.com >> /usr/local/asterisk/bin/checkregistry.out 2>&1
+
+# restart asterisk every day (just in case something is getting cached that shouldn't be)
+# 20 2 * * * /usr/local/asterisk/sbin/asterisk -rx 'logger rotate' >> /usr/local/asterisk/bin/checkregistry.out
+# 22 2 * * * /usr/local/asterisk/sbin/asterisk -rx 'restart when convenient' >> /usr/local/asterisk/bin/checkregistry.out 2>&1
+
+# use voicemeup's api to get call information - have been doing this by hand
+# 5 0 * * * /usr/local/asterisk/bin/getcalls.sh > /usr/local/asterisk/bin/getcalls.out 2>&1
+
+# was originally used to grab data from the old dialogic / dos lifeline and import it into the new
+# 5 5 * * * /usr/local/asterisk/bin/update.sh > /usr/local/asterisk/bin/update.out 2>&1 
+
