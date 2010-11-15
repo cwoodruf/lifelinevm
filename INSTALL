@@ -75,4 +75,7 @@ multiple sip peers per phone number. Our set up is such that we have all servers
 respond with the back up servers waiting longer to grab the call than the main server.
 If the main server fails or is off line the back up servers can take calls.
 
+The bin/cleanup.pl script is useful for marking boxes, messages and greetings for 
+deletion after a predetermined amount of time. 
+
 
