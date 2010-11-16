@@ -1379,11 +1379,9 @@ HTML;
 			$value = htmlentities($invoice[$field]);
                         if (is_numeric($field)) continue;
 			if ($field === 'invoice') {
-				if ($permcheck['invoices']) {
-					$html .= <<<HTML
+				$html .= <<<HTML
 <td align=center><a href="/coolaid/admin.php?action=invoice&invoice=$in" target=_blank>$in</a></td>
 HTML;
-				} else $html .= "<td align=center>$in</td>";
 			} else if ($field === 'total' or $field === 'gst') {
 				$html .= "<td align=right>".(sprintf('$%.2f',$value))." &nbsp;</td>";
 			} else if ($field === 'paidon') {
@@ -1412,7 +1410,7 @@ function edit_invoice($invoice) {
 	if (!preg_match('#^\d+$#', $invoice)) die("invoice should be a number!");
 
 	if (!preg_match('#invoices|^s$#',$ldata['perms'])) 
-		die("you do not have permission to view invoices!");
+		die("you do not have permission to edit invoices!");
 
 	$idata = ll_invoice($invoice);
 	if (!ll_has_access($ldata, $idata['vdata'])) 
@@ -1462,8 +1460,8 @@ function invoice($data,$idata=null) {
 	global $net_due;
 	global $ldata;
 	# only let people with invoice viewing permissions to look at invoices
-	if (!preg_match('#invoices|^s$#',$ldata['perms'])) 
-		die("You don't have the permissions to view invoices.");
+	# if (!preg_match('#invoices|^s$#',$ldata['perms'])) 
+	#	die("You don't have the permissions to view invoices.");
 	if (!is_array($idata)) {
 		$invoice = $_REQUEST['invoice'];
 		if (!preg_match('#^\d+$#',$invoice)) 
