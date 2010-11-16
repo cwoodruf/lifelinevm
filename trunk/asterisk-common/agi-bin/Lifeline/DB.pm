@@ -7,7 +7,7 @@ our @ISA = qw/Exporter/;
 
 our @EXPORT = qw/$lldatafile @llmsgdirs $llmsgdir $coolaidmsgdir $ldb $lleol ll_deleted_boxes ll_revert_unused/;
  
-our $dsn = &mkdsn("lifelinevm.net");
+our $dsn = &mkdsn("127.0.0.1",3308);
 
 our $username;
 our $password;
@@ -17,8 +17,6 @@ our $ldb = &mkldb($dsn,$username,$password);
 END { $ldb->disconnect if defined $ldb; }
 
 our @foreign = (
-	{ host => '192.168.1.44', port => 3307, user => 'llmaster', password => 'ck*!gitCdia82?' },
-	{ host => 'aifl.ath.cx', port => 3308, user => 'llmaster', password => 'ck*!gitCdia82?' },
 );
 
 sub mkdsn {

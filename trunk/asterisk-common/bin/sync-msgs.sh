@@ -7,26 +7,26 @@
 for msgdir in /usr/local/asterisk/lifeline-msgs/ /usr/local/asterisk/coolaid-msgs
 do
 	us=asterisk@lifelinevm.net
-	findcmd="/usr/bin/find $msgdir -regex '.*\(\.[0-9]+\|greeting\)\.gsm$' \
-			-newer ~/lastupdated -print -exec /usr/bin/scp --preserve {} $us:{} \;"
+	findcmd="/usr/bin/find $msgdir -regex '.*\(\.[0-9]+\|greeting\)\.gsm' \
+			-newer ~/.lastupdated -print -exec /usr/bin/scp --preserve {} $us:{} \;"
 	echo start `/bin/date`
 	echo $findcmd 
 	lastupdate="/bin/touch ~/lastupdated"
-	localbackup=192.168.1.44
-	remotebackup=184.107.32.58 
+	localbackup=10.2.170.10
+	# remotebackup=
 
 	echo sync-msgs: FROM $localbackup TO main using ssh
 	/usr/bin/ssh asterisk@$localbackup "$findcmd"
 	/usr/bin/ssh asterisk@$localbackup "$lastupdate"
 
-	echo sync-msgs: FROM $remotebackup TO main using ssh
-	/usr/bin/ssh asterisk@$remotebackup "$findcmd"
-	/usr/bin/ssh asterisk@$remotebackup "$lastupdate"
+	# echo sync-msgs: FROM $remotebackup TO main using ssh
+	# /usr/bin/ssh asterisk@$remotebackup "$findcmd"
+	# /usr/bin/ssh asterisk@$remotebackup "$lastupdate"
 
 	echo sync-msgs: FROM main TO $localbackup with delete
 	/usr/bin/rsync -rcvt --delete --times $msgdir asterisk@$localbackup:$msgdir
-	echo sync-msgs: FROM main TO $remotebackup with delete
-	/usr/bin/rsync -rcvt --delete --times $msgdir asterisk@$remotebackup:$msgdir
+	# echo sync-msgs: FROM main TO $remotebackup with delete
+	# /usr/bin/rsync -rcvt --delete --times $msgdir asterisk@$remotebackup:$msgdir
 done
 
 echo sync-msgs: CLEANUP `/bin/date`
