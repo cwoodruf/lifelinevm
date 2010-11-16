@@ -77,5 +77,4 @@ $gray = '#909090';
 $lightgray = '#D3D3D3';
 # database
 $ll_dbname = 'lifeline';
-$ll_login = 'll';
-$ll_password = '85$82$str';
+eval(file_get_contents("/usr/local/asterisk/agi-bin/Lifeline/database"));
