@@ -31,7 +31,6 @@ $phone = DEFPHONE;
 
 # where things are
 $lib = '/usr/local/asterisk/html/tools/php';
-define("DBLOGINFILE","$lib/.mysql-coolaid.php");
 define("SALTFILE","/usr/local/asterisk/agi-bin/Lifeline/salt");
 $asterisk = '/usr/local/asterisk/sbin/asterisk';
 $asterisk_dir = "/usr/local/asterisk/var/lib/asterisk";
@@ -84,4 +83,7 @@ $lavender = '#E6E6FA';
 $gray = '#909090';
 $verylightgray = '#F8F8F8';
 $lightgray = '#E3E3E3';
-
+# database
+define("DBLOGINFILE","$lib/.mysql.php");
+$ll_dbname = 'coolaid';
+eval(file_get_contents("/usr/local/asterisk/agi-bin/Lifeline/database"));
