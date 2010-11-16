@@ -6,7 +6,7 @@ use strict;
 my %opt;
 getopts('v',\%opt);
 
-my $mail = "/usr/bin/mail";
+my $mail = "/bin/mail";
 my $from = 'noreply@callbackpack.com';
 my $optoutdir = '/vservers/callbackpack10/bin/llremind/optout';
 
@@ -28,7 +28,7 @@ foreach my $email (keys %emails) {
 		
 		my $vphone = "$llphone ext $box";
 		print "sending reminders for $vphone to $email\n" if $opt{v};
-		open MAIL, "| $mail -a 'from: $from' -s 'new voice mail for $vphone' $email" 
+		open MAIL, "| $mail -s 'new voice mail for $vphone' $email -- -f'$from' " 
 			or die "can't open $mail: $!";
 		print MAIL <<TXT;
 DO NOT REPLY TO THIS EMAIL MESSAGE.
