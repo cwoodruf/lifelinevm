@@ -231,6 +231,7 @@ sub check_login {
 
 sub mkpaidto {
 	my $ll = shift;
+	return unless defined $ll->{db};
 	return unless $ll->{box} =~ /^\d\d\d\d+$/;
 	my $months = shift;
 	return 0 unless ($months > 0 and $months < 100);
@@ -240,9 +241,10 @@ sub mkpaidto {
 	my $paidtostr = sprintf('%04d-%02d-%02d', $pt[5]+1900,$pt[4]+1,$pt[3]);
 	my $upd = $ll->{db}->prepare("update boxes set paidto=? where box=?");
 	$upd->execute($paidtostr,$ll->{box}) 
-		or die "can't update paidto value $paidtostr for box $ll->{box}!";
+		or warn "can't update paidto value $paidtostr for box $ll->{box}!" and return $paidto;
 	my $updstatus = $ll->{db}->prepare("update boxes set status='' where box=?");
-	$updstatus->execute($ll->{box}) or die "can't clear status for box $ll->{box}!";
+	$updstatus->execute($ll->{box}) 
+		or warn "can't clear status for box $ll->{box}!";
 	return $paidto;
 }
 
@@ -270,6 +272,7 @@ sub check_paidto {
 
 sub save_seccode {
 	my $ll = shift;
+	return unless defined $ll->{db};
 	my $seccode1 = shift;
 	my $seccode2 = shift;
 	$ll->{err} = "security code isn't a 4 digit number!" and return unless $seccode1 =~ /^\d{4}$/;
@@ -338,6 +341,7 @@ sub newmsg {
 
 sub flag_new_msgs {
 	my $ll = shift;
+	return $ll unless defined $ll->{db};
 	my $flag = shift;
 	return $ll unless defined $flag;
 	if ($flag) {
@@ -467,6 +471,7 @@ sub clean_up_msgs {
 # get a flag variable from the boxes table
 sub getflag {
 	my $ll = shift;
+	return $ll unless defined $ll->{db};
 	my $box = $ll->{db}->quote($ll->{box});
 
 	my $flag = shift;
@@ -487,6 +492,7 @@ sub getflag {
 # set a flag variable in the boxes table
 sub setflag {
 	my $ll = shift;
+	return $ll unless defined $ll->{db};
 	my $box = $ll->{db}->quote($ll->{box});
 
 	my $flag = shift;
