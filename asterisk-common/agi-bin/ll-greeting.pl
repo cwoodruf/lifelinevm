@@ -2,5 +2,5 @@
 # purpose of this script is to load the greeting variable with the correct greeting file
 use Lifeline;
 use strict;
-my $ll = Lifeline->init(); # use ->load if you need cached messages list
+my $ll = Lifeline->init(refresh => 1);
 $ll->set('greeting',$ll->greeting);
