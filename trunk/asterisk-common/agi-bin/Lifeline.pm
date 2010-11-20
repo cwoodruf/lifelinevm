@@ -58,15 +58,20 @@ sub init {
 
 	$ll->{agi} = Asterisk::AGI->new;
 	%{$ll->{in}} = $ll->{agi}->ReadParse;
-	$ll->{box} = $ll->get('box');
+	$ll->{box} = $ll->get('box') unless defined $ll->{box};
 
 	# base directory (where messages go) is determined from the dial plain
 	$basedir = $ll->get('msgdir');
-	mkdir $basedir, 0777 or die "can't make basedir $basedir: $!" unless -d $basedir;
+	mkdir $basedir, 0777 or warn "can't make basedir $basedir: $!" unless -d $basedir;
 	$logdir = "$basedir/logs";
-	mkdir $logdir, 0777 or die "can't make logdir $logdir: $!" unless -d $logdir;
+	mkdir $logdir, 0777 or warn "can't make logdir $logdir: $!" unless -d $logdir;
 	$log = "$logdir/log.txt";
 	$error_log = "$logdir/error_log.txt";
+
+	$ll->{dir} = "$basedir/$ll->{box}";
+	$ll->{msgdir} = "$ll->{dir}/messages";
+	$ll->{grt} = "$ll->{dir}/greeting";
+	$ll->{rectype} = "gsm";
 
 	# set up the database from the dial plan
 	my $db_name = $ll->get('db_name');
@@ -91,26 +96,23 @@ sub init {
 		warn "$db_host $db_port: ".DBI->errstr;
 		my $db_alt_host = $ll->get('db_alt_host');
 		if (!defined $db_alt_host) {
-			die "no alternate db host set up!";
+			warn "no alternate db host set up!";
+		} else {
+			my $db_alt_port = $ll->get('db_alt_port') || $db_port;
+			my $db_alt_user = $ll->get('db_alt_user') || $db_user;
+			my $db_alt_secret = $ll->get('db_alt_secret') || $db_secret;
+			$dsn = "$db_engine:database=$db_name;host=$db_alt_host";
+			$dsn .= ";port=$db_alt_port" if $db_alt_port =~ /^\d+$/;
+			$ll->{db} = DBI->connect($dsn,$db_alt_user,$db_alt_secret) 
+				or warn "$db_alt_host $db_alt_port: ".DBI->errstr;
 		}
-		my $db_alt_port = $ll->get('db_alt_port') || $db_port;
-		my $db_alt_user = $ll->get('db_alt_user') || $db_user;
-		my $db_alt_secret = $ll->get('db_alt_secret') || $db_secret;
-		$dsn = "$db_engine:database=$db_name;host=$db_alt_host";
-		$dsn .= ";port=$db_alt_port" if $db_alt_port =~ /^\d+$/;
-		$ll->{db} = DBI->connect($dsn,$db_alt_user,$db_alt_secret) 
-			or die "$db_alt_host $db_alt_port: ".DBI->errstr;
 	}
 
 	END { $ll->{db}->disconnect if defined $ll->{db} }
 
 	if ($ll->{box}) {
-		my $exists = $ll->{db}->selectrow_arrayref(
-			"select seccode,UNIX_TIMESTAMP(paidto),new_msgs,email,status,vid,announcement ".
-			"from boxes where box='$ll->{box}' ".
-			"and status not in ('deleted')"
-		);
-		if ('ARRAY' eq (ref $exists)) {
+		my $exists = $ll->findbox;
+		if ('ARRAY' eq (ref $exists) and $exists->[4] !~ m#deleted#) {
 			# seccode is the security code for the box (an md5 hash)
 			$ll->{md5_seccode} = $exists->[0];
 			$ll->{paidto} = $exists->[1];
@@ -131,21 +133,38 @@ sub init {
 			$ll->{box_ok} = 0;
 		}
 	}
-	$ll->{dir} = "$basedir/$ll->{box}";
-	$ll->{msgdir} = "$ll->{dir}/messages";
-	$ll->{grt} = "$ll->{dir}/greeting";
-	$ll->{rectype} = "gsm";
 	$ll->dialplan_export;
 	$ll;
+}
+
+sub findbox {
+	my $ll = shift;
+	$ll->{meta} = "$ll->{dir}/meta.pl";
+	our $exists;
+	do $ll->{meta} if -f $ll->{meta};
+	if (defined $ll->{db} and ($ll->{refresh} or ref $exists ne 'ARRAY')) {
+		$exists = $ll->{db}->selectrow_arrayref(
+			"select seccode,UNIX_TIMESTAMP(paidto),new_msgs,email,status,vid,announcement ".
+			"from boxes where box='$ll->{box}' "
+		);
+		if (open CACHE, "> $ll->{meta}") { 
+			print CACHE Data::Dumper->Dump([$exists],[qw/exists/]);
+			close CACHE;
+		} else {
+			warn "can't open $ll->{meta}: aborting!";
+		}
+		return $exists if defined $exists;
+	} 
+	$exists;
 }
 
 sub chkdirs {
 	my $ll = shift;
 	unless (-d $ll->{dir}) {
-		mkdir $ll->{dir},0777 or die "can't make main dir $ll->{dir}: $!" 
+		mkdir $ll->{dir},0777 or warn "can't make main dir $ll->{dir}: $!" and return;
 	}
 	unless (-d $ll->{msgdir}) {
-		mkdir $ll->{msgdir},0777 or die "can't make msgdir $ll->{msgdir}: $!";
+		mkdir $ll->{msgdir},0777 or warn "can't make msgdir $ll->{msgdir}: $!" and return;
 		# need to do this so web interface can "delete" messages
 		my ($uid,$gid);
 		(undef,undef,$uid,$gid) = getpwnam($apache_user) and chown $uid, $gid, $ll->{msgdir};
@@ -155,6 +174,7 @@ sub chkdirs {
 sub dialplan_export {
 	my $ll = shift;
 	$ll->set('mydir',$ll->{dir});
+	$ll->set('meta',$ll->{meta});
 	$ll->set('mymsgdir',$ll->{msgdir}); 
 	$ll->set('mygrt',$ll->{grt});
 	$ll->set('rectype',$ll->{rectype});
@@ -167,7 +187,7 @@ sub dialplan_export {
 
 sub save_msgs {
 	my $ll = shift;
-	open CACHE, "> $ll->{cache}" or die "can't write to $ll->{box} cache $ll->{cache}: $!";
+	open CACHE, "> $ll->{cache}" or warn "can't write to $ll->{box} cache $ll->{cache}: $!" and return;
 	print CACHE Data::Dumper->Dump([$ll->{msgs}],[qw/msgs/]);
 	close CACHE;
 	$ll;
@@ -262,6 +282,7 @@ sub save_seccode {
 # am trying to use this sparingly mainly for bad login attempts and messages so we can get the caller id later
 sub log_calls {
 	my $ll = shift;
+	return unless defined $ll->{db};
 	my $action = shift || '';
 	my $status = shift || '';
 	my $callerid = shift || '';
@@ -275,7 +296,7 @@ sub log_calls {
 	);
 	my $box = $ll->{box} || "";
 	my $vid = $ll->{vid} || "";
-	$ins->execute($box,$vid,$action,$status,$message,$callerid,$host,$callstart) or die $ins->errstr;
+	$ins->execute($box,$vid,$action,$status,$message,$callerid,$host,$callstart) or warn $ins->errstr;
 }
 
 sub log_err {
