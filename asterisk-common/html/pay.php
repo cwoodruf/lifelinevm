@@ -1,6 +1,6 @@
 <?php
 session_start();
-$amounts = array( '4' => '10', '6' => '15', '12' => '25' );
+$amounts = array( '4' => '10', '6' => '12', '12' => '22' );
 $hst = .12;
 
 $months = $_REQUEST['months'];
@@ -32,8 +32,8 @@ $total = sprintf('$ %.2f',$net + $hst);
 <br>
 <br>
 <p>
-<b>Lifeline Voice Mail Society</b><br>
-142 - 757 West Hastings Street, Box 275<br>
+<b>Lifeline Voice Mail</b><br>
+142 - 757 West Hastings Street,<br>
 Vancouver, BC<br>
 V6C 1A1<br>
 <br>

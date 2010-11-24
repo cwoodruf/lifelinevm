@@ -50,22 +50,45 @@ var ignoreend = ""; ignoreend = ignoreend + '<'; ignoreend = ignoreend + '/'; ig
 
 	<h2>Pay for voicemail online or by mail</h2>
 
-	<a name="bymail">
 	<table cellpadding=10 cellspacing=0 border=1 width=100% bgcolor=#FFFFFF>
-	<tr valign=top><td width=42%>
-	<b>Pay by mail</b>
+	<tr valign=top><td width=50%>
+	<a name="bymail">
+	<nobr><b>Pay by mail</b></nobr> and
+	<span class="yell">
+	save $3.00</span> 
 	<p>
 	<i style="size: small; color: #0F0F0F; margin: 10px">Use a convenient online form:</i>
 	<p>
 	<ul>
-	<li><i><a href="pay.php?months=6">Buy <b>6 months</b> for $15.00</a></i><br><br>
-	<li><i><a href="pay.php?months=12">Buy <b>1 year</b> for $25.00</a></i><br><br>
+	<li><i><a href="pay.php?months=6">Buy <b>6 months</b> now for $12 <br>(was $15.00)</a></i><br><br>
+	<li><i><a href="pay.php?months=12">Buy <b>1 year</b> now for $22 <br>(was $25.00)</a></i><br><br>
 	</ul>
 
-	</td><td width=58%>
+	</td><td width=50%>
 
-	<b>Pay online</b> with <b><a href="https://www.paypal.com">Paypal</a>:</b>
-	<p>
+	Or <b>pay online</b> with <b><a href="https://www.paypal.com">Paypal</a>:</b><br>
+<!--
+	<form action="https://www.paypal.com/cgi-bin/webscr" method="post">
+	<input type="hidden" name="cmd" value="_s-xclick">
+	<input type="hidden" name="hosted_button_id" value="SYCNHQJR8AG6W">
+	<table>
+	<tr><td><input type="hidden" name="on0" value="months"></td></tr><tr><td><select name="os0">
+	<option value="6 Months">6 Months $15.00</option>
+	<option value="12 Months">12 Months $25.00</option>
+	</select> </td></tr>
+	<tr><td>
+	<input type="hidden" name="on1" value="Your voice mail box number">
+	Your voice mail box number:<br></td></tr>
+	<tr><td><input type="text" name="os1" maxlength="60" value=""><br>
+	<i style="font-size: small">Enter "new subscription" if you do not have a voice mail box yet.</i>
+	</td></tr>
+	</table>
+	<input type="hidden" name="currency_code" value="CAD">
+	<input type="image" src="https://www.paypal.com/en_US/i/btn/btn_buynowCC_LG.gif" 
+		border="0" name="submit" alt="PayPal - The safer, easier way to pay online!">
+	<img alt="" border="0" src="https://www.paypal.com/en_US/i/scr/pixel.gif" width="1" height="1">
+	</form>
+-->
 <form action="https://www.paypal.com/cgi-bin/webscr" method="post">
 <input type="hidden" name="cmd" value="_xclick">
 <input type="hidden" name="business" value="lifelinevoicemailsociety@gmail.com">
@@ -78,9 +101,7 @@ var ignoreend = ""; ignoreend = ignoreend + '<'; ignoreend = ignoreend + '/'; ig
 <input type="hidden" name="shipping" value="0.00">
 <input type="hidden" name="bn" value="PP-BuyNowBF:btn_buynowCC_LG.gif:NonHostedGuest">
 <table>
-<tr><td>
-	<input type="hidden" name="on0" value="subscription">
-	<select name="os0">
+<tr><td><input type="hidden" name="on0" value="subscription">subscription</td></tr><tr><td><select name="os0">
 	<option value="6 Months">6 Months $15.00</option>
 	<option value="12 Months">12 Months $25.00</option>
 </select> </td></tr>
