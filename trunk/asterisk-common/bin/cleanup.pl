@@ -10,27 +10,31 @@ use Getopt::Std;
 use strict;
 my %opt;
 getopts('v',\%opt);
+my %handles = (
+	coolaid => Lifeline::DB::mkdbh('coolaid'),
+	lifeline => $ldb,
+);
 
 # first set status on old boxes as deleted
-foreach my $table (qw/lifeline.boxes coolaid.boxes/) {
-	my $delq = "update $table set status='deleted' ".
+my $oldbox;
+foreach my $db (qw/lifeline coolaid/) {
+	my $delq = "update boxes set status='deleted' ".
 		"where status <> 'deleted' and paidto > 0 and datediff(current_date(),paidto) > $lleol";
 	print "$delq\n" if $opt{v};
-	my $deleted = $ldb->do($delq) or die $ldb->errstr;
+
+	my $deleted = $handles{$db}->do($delq) or die $handles{$db}->errstr;
 	print "deleted $deleted boxes\n" if $opt{v};
 
-}
+	my ($reverted,$revertedvends) = ll_revert_unused($lleol,$handles{$db});
+	print "reverted $reverted allocated boxes unused for $lleol days for $revertedvends vendors\n" if $opt{v};
 
-my ($reverted,$revertedvends) = ll_revert_unused($lleol);
-print "reverted $reverted allocated boxes unused for $lleol days for $revertedvends vendors\n" if $opt{v};
+	# now scan directories for stuff we should delete
+	foreach my $msgdir ("/usr/local/asterisk/$db-msgs") {
+		$oldbox = ll_deleted_boxes($handles{$db});
+		print scalar(keys %{$oldbox})," deleted boxes in $db.boxes\n" if $opt{v};
+		finddepth(\&markdelete, $msgdir);
+	}
 
-# now scan directories for stuff we should delete
-my $oldbox;
-foreach my $msgdir (@llmsgdirs) {
-	(my $table = $msgdir) =~ s#.*/(\w+)-msgs.*#$1.boxes#;
-	$oldbox = ll_deleted_boxes($table);
-	print scalar(keys %{$oldbox})," deleted boxes in $table\n" if $opt{v};
-	finddepth(\&markdelete, $msgdir);
 }
 
 sub markdelete {

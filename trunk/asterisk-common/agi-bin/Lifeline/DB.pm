@@ -6,30 +6,45 @@ use DBI;
 our @ISA = qw/Exporter/;
 
 our @EXPORT = qw/$lldatafile @llmsgdirs $llmsgdir $coolaidmsgdir $ldb $lleol ll_deleted_boxes ll_revert_unused/;
- 
-our $dsn = &mkdsn("127.0.0.1",3308);
 
 our $username;
 our $password;
+our $port;
+our $host;
 # with coolaid I am cheating a bit as I've given the lifeline ll user permissions to work with coolaid's db
 do "Lifeline/database";
+
+our $dsn = &mkdsn($host,$port);
 our $ldb = &mkldb($dsn,$username,$password);
+
 END { $ldb->disconnect if defined $ldb; }
 
 our @foreign = (
 );
 
 sub mkdsn {
-	my ($host,$port) = @_;
-	my $dsn = "DBI:mysql:database=lifeline;host=$host";
-	$dsn .= ";port=$port" if $port =~ /^\d+$/;
+	my ($host,$extra,$dbname) = @_;
+	my $db = $dbname || 'lifeline';
+	my $dsn = "DBI:mysql:database=$db;host=$host";
+	if ($extra =~ /^\d+$/) {
+		$dsn .= ";port=$extra";
+	} elsif (-S $extra) {
+		$dsn .= ";socket=$extra";
+	} 
 	$dsn;
+}
+
+sub mkdbh {
+	my ($dbname) = @_;
+	my $dsn = &mkdsn($host,$port,$dbname);
+	my $dbh = DBI->connect($dsn,$username,$password) or die DBI::errstr;
+	$dbh;
 }
 
 sub mkldb {
 	my ($dsn,$username,$password) = @_;
-	my $ldb = DBI->connect($dsn,$username,$password) or die DBI::errstr;
-	$ldb;
+	my $dbh = DBI->connect($dsn,$username,$password) or die DBI::errstr;
+	$dbh;
 }
 
 our $lldatafile = "/usr/local/asterisk/Lifeline/users.csv";
@@ -41,10 +56,11 @@ our $lleol = 90;
 
 # just get a list of deleted boxes
 sub ll_deleted_boxes {
-	my ($table) = @_;
+	my ($dh) = @_;
+	$dh = $ldb unless defined $dh;
 	my %delbox;
-	my $getq = "select box from $table where status = 'deleted'";
-	my $get = $ldb->prepare($getq);
+	my $getq = "select box from boxes where status = 'deleted'";
+	my $get = $dh->prepare($getq);
 	$get->execute or die $get->errstr;
 	while (my $row = $get->fetch) {
 		$delbox{$row->[0]} = 1;
@@ -58,12 +74,13 @@ sub ll_deleted_boxes {
 # note this business logic does not apply to Coolaid where they
 # pay a flat amount per month so its not implemented here
 sub ll_revert_unused {
-	my ($eoldays) = @_;
+	my ($eoldays,$dh) = @_;
+	$dh = $ldb unless defined $dh;
 	warn "ll_revert_unused: invalid eoldays!" and return 
 		unless $eoldays =~ /^\d+$/; # and $eoldays > 0;
 
-	my $vids = $ldb->selectall_arrayref("select vid,vendor from vendors") 
-		or warn "ll_revert_unused: can't get vendor info! ".$ldb->errstr and return;
+	my $vids = $dh->selectall_arrayref("select vid,vendor from vendors") 
+		or warn "ll_revert_unused: can't get vendor info! ".$dh->errstr and return;
 	if (ref $vids ne 'ARRAY') {
 		warn "ll_revert_unused: no vendor info!";
 		return;
@@ -75,7 +92,7 @@ sub ll_revert_unused {
 		"and status regexp 'add [0-9][0-9]* months' ".
 		"and datediff(now(),created) > '$eoldays'";
 
-	my $get = $ldb->prepare($getq);
+	my $get = $dh->prepare($getq);
 	$get->execute or warn $get->errstr and return;
 
 	my (%delete,%credit);
@@ -95,12 +112,12 @@ sub ll_revert_unused {
 	$get->finish;
 
 	foreach my $vid (keys %credit) {
-		$ldb->do("update vendors set months = months + '$credit{$vid}' where vid='$vid'")
-			or warn $ldb->errstr and return;
+		$dh->do("update vendors set months = months + '$credit{$vid}' where vid='$vid'")
+			or warn $dh->errstr and return;
 	}
 	foreach my $box (keys %delete) {
-		$ldb->do("update boxes set notes = concat(notes,' ',status), status='deleted' where box='$box'")
-			or warn $ldb->errstr and return;
+		$dh->do("update boxes set notes = concat(notes,' ',status), status='deleted' where box='$box'")
+			or warn $dh->errstr and return;
 	}
 	return (scalar (keys %delete), scalar (keys %credit));
 }

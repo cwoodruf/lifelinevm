@@ -15,7 +15,6 @@ while (<>) {
 		next;
 	}
 	warn "no fields!\n$_" and next unless defined @fields;
-print "adding $_\n";
 	my %data; @data{@fields} = my @values = map { s/^"//; s/"$//; $_ } split ",";
 	$ins->execute($data{call_hash},@values) or die $ins->errstr.":\n$insq\n@values";
 }

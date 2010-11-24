@@ -71,7 +71,7 @@ $hidden
 </form>
 </div>
 <span style="font-size: small">
-Voice Mail $uptime.
+Voice Mail $uptime
 <script>
 var gt = '>';
 var lt = '<';
