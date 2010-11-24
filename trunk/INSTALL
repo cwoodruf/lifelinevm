@@ -78,4 +78,15 @@ If the main server fails or is off line the back up servers can take calls.
 The bin/cleanup.pl script is useful for marking boxes, messages and greetings for 
 deletion after a predetermined amount of time. 
 
+--------------------------------------
+Ensuring asterisk restart at boot time
+--------------------------------------
+
+In /etc/rc.local
+
+/bin/su -c /usr/local/asterisk/sbin/asterisk asterisk
+
+Running asterisk through su as the asterisk user is very important for connecting to the
+server via the 'asterisk -r' command.
+
 
