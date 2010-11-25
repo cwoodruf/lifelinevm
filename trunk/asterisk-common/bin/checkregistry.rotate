@@ -1,0 +1,5 @@
+/usr/local/asterisk/bin/checkregistry.out {
+	compress
+	weekly
+	rotate 8
+}
