@@ -1,4 +1,6 @@
 #!/bin/sh
+# IMPORTANT: this script should only be run on the main asterisk server 
+#
 # in the event of an outage the other servers will have messages on them
 # if this becomes routine we'd need to use the db to save message data
 # TODO find a way to recognize when an caller has deleted messages on a backup
@@ -11,7 +13,7 @@ do
 			-newer ~/.lastupdated -print -exec /usr/bin/scp --preserve {} $us:{} \;"
 	echo start `/bin/date`
 	echo $findcmd 
-	lastupdate="/bin/touch ~/lastupdated"
+	lastupdate="/bin/touch ~/.lastupdated"
 	localbackup=10.2.170.10
 	# remotebackup=
 
@@ -39,3 +41,5 @@ echo sync-msgs: CLEANUP `/bin/date`
 
 echo send email alerts for new messages
 /usr/local/asterisk/bin/llremindinit.pl
+
+/bin/touch ~/.lastupdated
