@@ -1072,6 +1072,7 @@ function update_personal($data) {
 		$ldata['perms'] == 'edit'
 		and preg_match('#'.ll_parentpat(WCGINT).'#', $data['parent']) 
 		and empty($_REQUEST['startdate'])
+		and $bdata['paidto'] == 0
 	) {
 		die("WCG: you must set a paidto date for this box before making changes!");
 	}
