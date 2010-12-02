@@ -19,6 +19,8 @@ define("DEFPRICES","1=3.00;2=6.00;3=9.00;4=10.00;5=12.50;6=15.00;7=17.00;8=19.00
 define("INVOICEOVERDUE", 90);
 define("INVOICEBLOCKED", INVOICEOVERDUE + 30);
 define("LOGINOUTPUTLIMIT",100);
+# for detecting WCG problems
+define("WCGINT",6969);
 
 # default phone number if the vendor doesn't have a phone associated with them
 define("DEFPHONE","604 248-4930");
