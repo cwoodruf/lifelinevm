@@ -1066,6 +1066,16 @@ function update_personal($data) {
 	if (!preg_match('#^\d+$#',$box)) 
 		die("update_personal: box should be a number not $box!");
 
+	# deal with the disorganization that is WCG International
+	$bdata = ll_box($box);
+	if (
+		$ldata['perms'] == 'edit'
+		and preg_match('#'.ll_parentpat(WCGINT).'#', $data['parent']) 
+		and $bdata['paidto'] == 0
+	) {
+		die("WCG: you must set a paidto date for this box before making changes!");
+	}
+
 	ll_update_personal($vend,$box,$_REQUEST['personal']);
 	if (preg_match('#^\s*(2\d\d\d-\d\d-\d\d)#',$_REQUEST['startdate'],$m)) {
 		$startdate = $m[1];
