@@ -38,16 +38,13 @@ foreach my $db (qw/lifeline coolaid/) {
 }
 
 sub markdelete {
-	# look for old messages and messages that have already been deleted (problem with rsyncing)
+	# look for old messages 
 	if ($File::Find::name =~ m#(\d+)/(?:(greeting)\.gsm|messages/(\d+\.\d+)\.gsm)#) {
 		my ($box,$grtstub,$msgstub) = ($1,$2,$3);
 		my $stub = $grtstub || $msgstub;
 		if ($oldbox->{$box}) {
 			print "old? $oldbox->{$box} - checking $box $stub $File::Find::name\n" if $opt{v};
 			move $_, "$stub.deleted.gsm" or die "$_ -> can't mark as deleted: $!";
-		} elsif (-f "$stub.deleted.gsm") {
-			print "markdelete removing $stub because its already deleted!\n" if $opt{v};
-			unlink $_;
 		}
 	# remove old messages that have been marked for deletion	
 	} elsif (/\.deleted\.gsm$/) {
