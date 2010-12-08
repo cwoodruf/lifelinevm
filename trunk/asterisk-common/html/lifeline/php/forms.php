@@ -1073,6 +1073,7 @@ function update_personal($data) {
 		and preg_match('#'.ll_parentpat(WCGINT).'#', $data['parent']) 
 		and empty($_REQUEST['startdate'])
 		and $bdata['paidto'] == 0
+		and $bdata['status'] != 'deleted'
 	) {
 		die("WCG: you must set a paidto date for this box before making changes!");
 	}
