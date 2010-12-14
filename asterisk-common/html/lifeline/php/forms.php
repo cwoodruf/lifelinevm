@@ -1203,7 +1203,7 @@ function search_form($data) {
 <input type=submit name=form value="Search Boxes">
 <br>
 Boxes: &nbsp;
-<a href="admin.php?form=Search Boxes&search=add [0-9]* months&vid={$data['vid']}">Show unused</a> &nbsp;&nbsp;
+<a href="admin.php?form=Search Boxes&search=^add [0-9]* months&vid={$data['vid']}">Show unused</a> &nbsp;&nbsp;
 <a href="admin.php?form=Search Boxes&search=-deleted">Show active</a> &nbsp;&nbsp;
 <a href="admin.php?form=Search Boxes&search=">Show all</a> &nbsp;&nbsp;
 <a href="admin.php?form=Search Boxes&search=deleted&vid={$data['vid']}">Show deleted</a> &nbsp;&nbsp;
