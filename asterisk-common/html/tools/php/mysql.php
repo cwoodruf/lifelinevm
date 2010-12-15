@@ -818,7 +818,8 @@ function ll_update_seccode($vend,$box,$seccode) {
 	ll_check_box($box);
 	ll_check_seccode($seccode);
 	$bdata = ll_load_from_table('boxes','box',$box,false);
-	if ($bdata['vid'] !== $vend['vid']) 
+	$bvend = ll_vendor($bdata['vid']);
+	if (!ll_has_access($vend,$bvend)) 
 		die("Box $box does not belong to vendor ".$vend['vendor']."! Please contact us.");
 	$sdata['seccode'] = md5($seccode.$salt);
 	return ll_save_to_table('update','boxes',$sdata,'box',$box);

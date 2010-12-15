@@ -1232,7 +1232,8 @@ $table
 HTML;
 	foreach ($boxes as $row) {
 		$box = $row['box'];
-		$paidto = preg_match('#(0000-00-00|^\s*$)#', $row['paidto']) ? $row['status'] : $row['paidto'];
+		$paidto = $row['paidto'] == 0 ? 
+			$row['status'] : $row['paidto'].' '.$row['status'];
 		$instr = <<<HTML
 <a href="index.php?box=$box&seccode={$row['seccode']}&llphone={$row['llphone']}"
    target=_blank>instructions</a>
