@@ -395,7 +395,7 @@ static int record_exec(struct ast_channel *chan, void *data)
 				res = 0;
 				break;
 			}
-                        tmp[0] = f->subclass.integer;
+                        tmp[0] = f->subclass;
                         for (i = 1; i < keys;) {
                                 res = ast_waitfordigit(chan, keytimeout);
                                 if (res < 1) {
