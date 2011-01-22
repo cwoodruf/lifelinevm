@@ -27,7 +27,7 @@
  
 #include "asterisk.h"
 
-ASTERISK_FILE_VERSION(__FILE__, "$Revision: 227580 $")
+ASTERISK_FILE_VERSION(__FILE__, "$Revision: 154542 $")
 
 #include "asterisk/pbx.h"
 #include "asterisk/module.h"
@@ -82,15 +82,15 @@ ASTERISK_FILE_VERSION(__FILE__, "$Revision: 227580 $")
 
 static char *app = "SendURL";
 
-enum option_flags {
+enum {
 	OPTION_WAIT = (1 << 0),
-};
+} option_flags;
 
 AST_APP_OPTIONS(app_opts,{
 	AST_APP_OPTION('w', OPTION_WAIT),
 });
 
-static int sendurl_exec(struct ast_channel *chan, const char *data)
+static int sendurl_exec(struct ast_channel *chan, void *data)
 {
 	int res = 0;
 	char *tmp;
@@ -139,7 +139,7 @@ static int sendurl_exec(struct ast_channel *chan, const char *data)
 				break;
 			}
 			if (f->frametype == AST_FRAME_HTML) {
-				switch (f->subclass.integer) {
+				switch(f->subclass) {
 				case AST_HTML_LDCOMPLETE:
 					res = 0;
 					ast_frfree(f);
@@ -154,7 +154,7 @@ static int sendurl_exec(struct ast_channel *chan, const char *data)
 					goto out;
 					break;
 				default:
-					ast_log(LOG_WARNING, "Don't know what to do with HTML subclass %d\n", f->subclass.integer);
+					ast_log(LOG_WARNING, "Don't know what to do with HTML subclass %d\n", f->subclass);
 				};
 			}
 			ast_frfree(f);

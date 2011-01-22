@@ -8,7 +8,7 @@
 
 AC_PREREQ(2.60)
 
-AC_INIT([asterisk], [trunk], [https://issues.asterisk.org])
+AC_INIT([asterisk], [1.6.2], [https://issues.asterisk.org])
 
 # cross-compile macros
 AC_CANONICAL_BUILD
@@ -20,7 +20,7 @@ AC_CONFIG_SRCDIR([main/asterisk.c])
 AC_CONFIG_AUX_DIR(`pwd`)
 
 AC_COPYRIGHT("Asterisk")
-AC_REVISION($Revision: 270151 $)
+AC_REVISION($Revision: 301492 $)
 
 # preserve any CFLAGS or LDFLAGS that may be set
 # NOTE: This must be done before calling any macros that end up
@@ -60,6 +60,7 @@ case "${host_os}" in
      ;;
      darwin*)
      AC_DEFINE([AST_POLL_COMPAT], 1, [Define to 1 if internal poll should be used.])
+     AC_DEFINE([_DARWIN_UNLIMITED_SELECT], 1, [Define to 1 if running on Darwin.])
      ;;
      *)
      AC_PREFIX_DEFAULT([/usr])
@@ -175,11 +176,11 @@ AC_PROG_INSTALL
 AC_PROG_LN_S
 AC_PROG_RANLIB
 AST_CHECK_GNU_MAKE
+AC_PROG_EGREP
 
 AC_CHECK_TOOLS([STRIP], [strip gstrip], :)
 AC_CHECK_TOOLS([AR], [ar gar], :)
 AC_CHECK_TOOLS([SHA1SUM], [sha1sum], $ac_aux_dir/build_tools/sha1sum-sh)
-AC_CHECK_TOOLS([OPENSSL], [openssl], :)
 
 GNU_LD=0
 if test "x$with_gnu_ld" = "xyes" ; then
@@ -188,6 +189,7 @@ fi
 AC_SUBST(GNU_LD)
 
 AC_PATH_PROG([BISON], [bison], :)
+AC_PATH_PROG([CMP], [cmp], :)
 AC_PATH_PROG([FLEX], [flex], :)
 AC_PATH_PROG([GREP], [grep], :)
 AC_PATH_PROG([FIND], [find], :)
@@ -278,13 +280,8 @@ AC_ARG_ENABLE([dev-mode],
 	[case "${enableval}" in
 	      y|ye|yes) AST_DEVMODE=yes ;;
 	      n|no)  AST_DEVMODE=no ;;
-	      noisy)
-	      AST_DEVMODE=yes
-	      NOISY_BUILD=yes
-	      ;;
 	      *) AC_MSG_ERROR(bad value ${enableval} for --enable-dev-mode)  ;;
 	esac])
-AC_SUBST(NOISY_BUILD)
 AC_SUBST(AST_DEVMODE)
 
 # AST_EXT_LIB_SETUP is used to tell configure to handle variables for
@@ -299,7 +296,6 @@ AC_SUBST(AST_DEVMODE)
 
 AST_EXT_LIB_SETUP([ALSA], [Advanced Linux Sound Architecture], [asound])
 AST_EXT_LIB_SETUP([FFMPEG], [Ffmpeg and avcodec], [avcodec])
-AST_EXT_LIB_SETUP([BLUETOOTH], [Bluetooth], [bluetooth])
 AST_EXT_LIB_SETUP([CAP], [POSIX 1.e capabilities], [cap])
 AST_EXT_LIB_SETUP([CURSES], [curses], [curses])
 AST_EXT_LIB_SETUP([CRYPTO], [OpenSSL Cryptography], [crypto])
@@ -309,11 +305,11 @@ AST_EXT_LIB_SETUP([DAHDI], [DAHDI], [dahdi])
 # have it natively.
 AST_EXT_LIB_SETUP([BKTR], [Stack Backtrace], [execinfo])
 AST_EXT_LIB_SETUP([GSM], [External GSM], [gsm], [, use 'internal' GSM otherwise])
+AST_EXT_LIB_SETUP([GTK], [gtk], [gtk])
 AST_EXT_LIB_SETUP([GTK2], [gtk2], [gtk2])
 AST_EXT_LIB_SETUP([GMIME], [GMime], [gmime])
 AST_EXT_LIB_SETUP([OPENH323], [OpenH323], [h323])
 AST_EXT_LIB_SETUP([HOARD], [Hoard Memory Allocator], [hoard])
-AST_EXT_LIB_SETUP([ICAL], [iCal], [ical])
 AST_EXT_LIB_SETUP([ICONV], [Iconv], [iconv])
 AST_EXT_LIB_SETUP([IKSEMEL], [Iksemel Jabber], [iksemel])
 AST_EXT_LIB_SETUP([IMAP_TK], [UW IMAP Toolkit], [imap])
@@ -321,18 +317,14 @@ AST_EXT_LIB_SETUP([INOTIFY], [inotify support], [inotify])
 AST_EXT_LIB_SETUP([IODBC], [iODBC], [iodbc])
 AST_EXT_LIB_SETUP([ISDNNET], [ISDN4Linux], [isdnnet])
 AST_EXT_LIB_SETUP([JACK], [Jack Audio Connection Kit], [jack])
-AST_EXT_LIB_SETUP([KQUEUE], [kqueue support], [kqueue])
 AST_EXT_LIB_SETUP([LDAP], [OpenLDAP], [ldap])
 AST_LIBCURL_CHECK_CONFIG([], [7.10.1])
 AST_EXT_LIB_SETUP([LIBXML2], [LibXML2], [libxml2])
 AST_EXT_LIB_SETUP([LTDL], [libtool], [ltdl])
 AST_EXT_LIB_SETUP([LUA], [Lua], [lua])
 AST_EXT_LIB_SETUP([MISDN], [mISDN user], [misdn])
-AST_EXT_LIB_SETUP([MYSQLCLIENT], [MySQL client], [mysqlclient])
 AST_EXT_LIB_SETUP([NBS], [Network Broadcast Sound], [nbs])
 AST_EXT_LIB_SETUP([NCURSES], [ncurses], [ncurses])
-AST_EXT_LIB_SETUP([NEON], [neon], [neon])
-AST_EXT_LIB_SETUP([NEON29], [neon29], [neon29])
 AST_EXT_LIB_SETUP([NETSNMP], [Net-SNMP], [netsnmp])
 AST_EXT_LIB_SETUP([NEWT], [newt], [newt])
 AST_EXT_LIB_SETUP([OGG], [OGG], [ogg])
@@ -344,31 +336,13 @@ AST_EXT_LIB_SETUP([PGSQL], [PostgreSQL], [postgres])
 AST_EXT_LIB_SETUP([POPT], [popt], [popt])
 AST_EXT_LIB_SETUP([PORTAUDIO], [PortAudio], [portaudio])
 AST_EXT_LIB_SETUP([PRI], [ISDN PRI], [pri])
-AST_EXT_LIB_SETUP_DEPENDENT([PRI_MWI], [ISDN PRI Message Waiting Indication], [PRI], [pri])
-AST_EXT_LIB_SETUP_DEPENDENT([PRI_MCID], [ISDN PRI Malicious Call ID], [PRI], [pri])
-AST_EXT_LIB_SETUP_DEPENDENT([PRI_CALL_WAITING], [ISDN PRI call waiting supplementary service], [PRI], [pri])
-AST_EXT_LIB_SETUP_DEPENDENT([PRI_AOC_EVENTS], [ISDN PRI advice of charge supplementary service events], [PRI], [pri])
-AST_EXT_LIB_SETUP_DEPENDENT([PRI_TRANSFER], [ISDN PRI call transfer supplementary service], [PRI], [pri])
-AST_EXT_LIB_SETUP_DEPENDENT([PRI_CCSS], [ISDN PRI call completion supplementary service], [PRI], [pri])
-AST_EXT_LIB_SETUP_DEPENDENT([PRI_HANGUP_FIX], [ISDN PRI hangup fix], [PRI], [pri])
-AST_EXT_LIB_SETUP_DEPENDENT([PRI_SUBADDR], [ISDN PRI subaddressing], [PRI], [pri])
-AST_EXT_LIB_SETUP_DEPENDENT([PRI_CALL_HOLD], [ISDN PRI call hold], [PRI], [pri])
-AST_EXT_LIB_SETUP_DEPENDENT([PRI_CALL_REROUTING], [ISDN PRI call rerouting and call deflection], [PRI], [pri])
-AST_EXT_LIB_SETUP_DEPENDENT([PRI_SETUP_KEYPAD], [ISDN PRI keypad facility in SETUP], [PRI], [pri])
-# ------------------------------------v
-# TODO: The code can be changed to always include these features now.
-# These features will always be present if pri_connected_line_update is available.
 AST_EXT_LIB_SETUP_DEPENDENT([PRI_INBANDDISCONNECT], [ISDN PRI set_inbanddisconnect], [PRI], [pri])
-AST_EXT_LIB_SETUP_DEPENDENT([PRI_PROG_W_CAUSE], [ISDN progress with cause], [PRI], [pri])
-AST_EXT_LIB_SETUP_DEPENDENT([PRI_SERVICE_MESSAGES], [ISDN service messages], [PRI], [pri])
-AST_EXT_LIB_SETUP_DEPENDENT([PRI_REVERSE_CHARGE], [ISDN reverse charge], [PRI], [pri])
-# ------------------------------------^
 AST_EXT_LIB_SETUP([PWLIB], [PWlib], [pwlib])
 AST_EXT_LIB_SETUP([RADIUS], [Radius Client], [radius])
 AST_EXT_LIB_SETUP([RESAMPLE], [LIBRESAMPLE], [resample])
 AST_EXT_LIB_SETUP([SDL], [Sdl], [sdl])
 AST_EXT_LIB_SETUP([SDL_IMAGE], [Sdl Image], [SDL_image])
-AST_OPTION_ONLY([sounds-cache], [SOUNDS_CACHE_DIR], [cached sound tarfiles], [${HOME}/.asterisk_sounds_cache])
+AST_OPTION_ONLY([sounds-cache], [SOUNDS_CACHE_DIR], [cached sound tarfiles], [])
 AST_EXT_LIB_SETUP([SPANDSP], [SPANDSP], [spandsp])
 AST_EXT_LIB_SETUP([SS7], [ISDN SS7], [ss7])
 AST_EXT_LIB_SETUP([SPEEX], [Speex], [speex])
@@ -377,7 +351,6 @@ AST_EXT_LIB_SETUP([SPEEXDSP], [SpeexDSP], [speexdsp])
 AST_EXT_LIB_SETUP_DEPENDENT([SPEEX_PREPROCESS], [speex_preprocess_ctl], [], [speex])
 AST_EXT_LIB_SETUP([SQLITE], [SQLite], [sqlite])
 AST_EXT_LIB_SETUP([SQLITE3], [SQLite], [sqlite3])
-AST_EXT_LIB_SETUP([SRTP], [Secure RTP], [srtp])
 AST_EXT_LIB_SETUP([OPENSSL], [OpenSSL Secure Sockets Layer], [ssl])
 AST_EXT_LIB_SETUP([SUPPSERV], [mISDN Supplemental Services], [suppserv])
 AST_EXT_LIB_SETUP([FREETDS], [FreeTDS], [tds])
@@ -399,7 +372,7 @@ AC_FUNC_ALLOCA
 AC_HEADER_DIRENT
 AC_HEADER_STDC
 AC_HEADER_SYS_WAIT
-AC_CHECK_HEADERS([arpa/inet.h fcntl.h inttypes.h libintl.h limits.h locale.h malloc.h netdb.h netinet/in.h stddef.h stdint.h stdlib.h string.h strings.h sys/event.h sys/file.h sys/ioctl.h sys/param.h sys/socket.h sys/time.h syslog.h termios.h unistd.h utime.h arpa/nameser.h sys/io.h])
+AC_CHECK_HEADERS([arpa/inet.h fcntl.h inttypes.h libintl.h limits.h locale.h malloc.h netdb.h netinet/in.h stddef.h stdint.h stdlib.h string.h strings.h sys/file.h sys/ioctl.h sys/param.h sys/socket.h sys/time.h syslog.h termios.h unistd.h utime.h arpa/nameser.h sys/io.h])
 
 AC_CHECK_HEADERS([winsock.h winsock2.h])
 
@@ -414,12 +387,13 @@ AC_HEADER_STDBOOL
 AC_C_CONST
 AC_TYPE_UID_T
 AC_C_INLINE
-AC_TYPE_LONG_DOUBLE_WIDER
 AC_TYPE_MODE_T
 AC_TYPE_OFF_T
 AC_TYPE_PID_T
 AC_TYPE_SIZE_T
 AC_CHECK_MEMBERS([struct stat.st_blksize])
+AC_CHECK_MEMBERS([struct ucred.uid, struct ucred.cr_uid], [], [], [#include <sys/socket.h>])
+AC_CHECK_MEMBERS([struct ifreq.ifr_ifru.ifru_hwaddr], [], [], [#include <net/if.h>])
 AC_HEADER_TIME
 AC_STRUCT_TM
 AC_C_VOLATILE
@@ -448,19 +422,11 @@ AC_FUNC_STRNLEN
 AC_FUNC_STRTOD
 AC_FUNC_UTIME_NULL
 AC_FUNC_VPRINTF
-AC_CHECK_FUNCS([asprintf atexit closefrom dup2 eaccess endpwent euidaccess ffsll ftruncate getcwd gethostbyname gethostname getloadavg gettimeofday glob htonll ioperm inet_ntoa isascii localtime_r memchr memmove memset mkdir munmap ntohll newlocale putenv re_comp regcomp select setenv socket strcasecmp strcasestr strchr strcspn strdup strerror strlcat strlcpy strncasecmp strndup strnlen strrchr strsep strspn strstr strtod strtol strtold strtoq unsetenv utime vasprintf getpeereid sysctl swapctl])
+AC_CHECK_FUNCS([asprintf atexit closefrom dup2 eaccess endpwent euidaccess ftruncate getcwd gethostbyname gethostname getloadavg gettimeofday glob ioperm inet_ntoa isascii localtime_r memchr memmove memset mkdir munmap ppoll putenv re_comp regcomp select setenv socket strcasecmp strcasestr strchr strcspn strdup strerror strlcat strlcpy strncasecmp strndup strnlen strrchr strsep strspn strstr strtod strtol strtold strtoq unsetenv utime vasprintf getpeereid sysctl swapctl])
 
-# NOTE: we use AC_CHECK_LIB to get -lm into the arguments for later checks,
-# so that AC_CHECK_FUNCS can detect functions in that library.
-AC_CHECK_LIB([m], [sqrt])
 # BSD might not have exp2, and/or log2
-AC_CHECK_FUNCS([exp2 log2 exp10 log10 sin cos tan asin acos atan atan2 pow rint exp log remainder fmod round trunc floor ceil])
-
-# Certain architectures don't really have long double, even though
-# AC_CHECK_FUNCS would otherwise find the following functions.
-if test "x${ac_cv_type_long_double_wider}" = "xyes" ; then
-	AC_CHECK_FUNCS([exp2l log2l exp10l log10l sinl cosl tanl asinl acosl atanl atan2l powl sqrtl rintl expl logl remainderl fmodl roundl truncl floorl ceill])
-fi
+AC_CHECK_LIB([m], [sqrt])
+AC_CHECK_FUNCS([exp2l log2l exp10l log10l sinl cosl tanl asinl acosl atanl atan2l powl sqrtl rintl expl logl remainderl fmodl roundl truncl floorl ceill exp2 log2 exp10 log10 sin cos tan asin acos atan atan2 pow rint exp log remainder fmod round trunc floor ceil])
 
 AC_MSG_CHECKING(for timersub in time.h)
 AC_LINK_IFELSE(
@@ -549,37 +515,6 @@ if test "${cross_compiling}" = "no";
 then
   AC_CHECK_FILE(/dev/urandom, AC_DEFINE([HAVE_DEV_URANDOM], 1, [Define to 1 if your system has /dev/urandom.]))
 fi
-
-AC_MSG_CHECKING(for locale_t in locale.h)
-AC_LINK_IFELSE(
-AC_LANG_PROGRAM([#include <locale.h>], [locale_t lt = NULL]),
-AC_MSG_RESULT(yes)
-AC_DEFINE([HAVE_LOCALE_T_IN_LOCALE_H], 1, [Define to 1 if your system defines the locale_t type in locale.h]),
-AC_MSG_RESULT(no)
-  AC_MSG_CHECKING(for locale_t in xlocale.h)
-  AC_LINK_IFELSE(
-  AC_LANG_PROGRAM([#include <xlocale.h>], [locale_t lt = NULL]),
-  AC_MSG_RESULT(yes)
-  AC_DEFINE([HAVE_LOCALE_T_IN_XLOCALE_H], 1, [Define to 1 if your system defines the locale_t type in xlocale.h]),
-  AC_MSG_RESULT(no)
-  )
-)
-
-AC_MSG_CHECKING(for O_EVTONLY in fcntl.h)
-AC_LINK_IFELSE(
-AC_LANG_PROGRAM([#include <fcntl.h>], [int a = O_EVTONLY;]),
-AC_MSG_RESULT(yes)
-AC_DEFINE([HAVE_O_EVTONLY], 1, [Define to 1 if your system defines the file flag O_EVTONLY in fcntl.h]),
-AC_MSG_RESULT(no)
-)
-
-AC_MSG_CHECKING(for O_SYMLINK in fcntl.h)
-AC_LINK_IFELSE(
-AC_LANG_PROGRAM([#include <fcntl.h>], [int a = O_SYMLINK;]),
-AC_MSG_RESULT(yes)
-AC_DEFINE([HAVE_O_SYMLINK], 1, [Define to 1 if your system defines the file flag O_SYMLINK in fcntl.h]),
-AC_MSG_RESULT(no)
-)
 
 AST_C_DEFINE_CHECK([PTHREAD_RWLOCK_INITIALIZER], [PTHREAD_RWLOCK_INITIALIZER], [pthread.h])
 
@@ -695,6 +630,48 @@ AC_RUN_IFELSE(
 	AC_MSG_RESULT(unknown)
 )
 
+AC_MSG_CHECKING(if we can increase the maximum select-able file descriptor)
+AC_RUN_IFELSE(
+AC_LANG_PROGRAM([
+#include <stdio.h>
+#include <sys/select.h>
+#include <sys/time.h>
+#include <sys/resource.h>
+#include <string.h>
+#include <errno.h>
+#include <stdlib.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <unistd.h>
+], [[
+	struct rlimit rlim = { FD_SETSIZE * 2, FD_SETSIZE * 2 };
+	int fd0, fd1;
+	struct timeval tv = { 0, };
+	struct ast_fdset { long fds_bits[[1024]]; } fds = { { 0, } };
+	if (setrlimit(RLIMIT_NOFILE, &rlim)) { exit(1); }
+	if ((fd0 = open("/dev/null", O_RDONLY)) < 0) { exit(1); }
+	if (dup2(fd0, (fd1 = FD_SETSIZE + 1)) < 0) { exit(1); }
+	FD_SET(fd0, (fd_set *) &fds);
+	FD_SET(fd1, (fd_set *) &fds);
+	if (select(FD_SETSIZE + 2, (fd_set *) &fds, NULL, NULL, &tv) < 0) { exit(1); }
+	exit(0)]]),
+	AC_MSG_RESULT(yes)
+	AC_DEFINE([HAVE_VARIABLE_FDSET], 1, [Define to 1 if your system can support larger than default select bitmasks.]),
+	AC_MSG_RESULT(no),
+	AC_MSG_RESULT(cross-compile)
+)
+
+if test "${ac_cv_have_variable_fdset}x" = "0x"; then
+	AC_RUN_IFELSE(
+		AC_LANG_PROGRAM([
+#include <unistd.h>
+#include <sys/types.h>
+#include <stdlib.h>
+], [if (getuid() != 0) { exit(1); }]),
+		AC_DEFINE([CONFIGURE_RAN_AS_ROOT], 1, [Some configure tests will unexpectedly fail if configure is run by a non-root user.  These may be able to be tested at runtime.]))
+fi
+
 AST_GCC_ATTRIBUTE(pure)
 AST_GCC_ATTRIBUTE(malloc)
 AST_GCC_ATTRIBUTE(const)
@@ -703,8 +680,9 @@ AST_GCC_ATTRIBUTE(always_inline)
 AST_GCC_ATTRIBUTE(deprecated)
 AST_GCC_ATTRIBUTE(sentinel)
 AST_GCC_ATTRIBUTE(warn_unused_result)
-AST_GCC_ATTRIBUTE(weakref, [weakref("foo")], static)
+AST_GCC_ATTRIBUTE(weak)
 AST_GCC_ATTRIBUTE(weak_import)
+AST_GCC_ATTRIBUTE(alias, [alias("foo")])
 
 AC_MSG_CHECKING(for -ffunction-sections support)
 saved_CFLAGS="${CFLAGS}"
@@ -813,42 +791,38 @@ AC_LINK_IFELSE(
 		AC_MSG_RESULT(yes)
 		AC_DEFINE([HAVE_RES_NDESTROY], 1, [Define to 1 if your system has the ndestroy resolver function.]),
 		AC_MSG_RESULT(no)
-	)
-	AC_SEARCH_LIBS(res_9_close, resolv)
-	AC_MSG_CHECKING(for res_close)
-	AC_LINK_IFELSE(
-		AC_LANG_PROGRAM([
-				#ifdef HAVE_SYS_SOCKET_H
-				#include <sys/socket.h>
-				#endif
-				#ifdef HAVE_NETINET_IN_H
-				#include <netinet/in.h>
-				#endif
-				#ifdef HAVE_ARPA_NAMESER_H
-				#include <arpa/nameser.h>
-				#endif
-				#include <resolv.h>],
-				[res_close();]),
-		AC_MSG_RESULT(yes)
-		AC_DEFINE([HAVE_RES_CLOSE], 1, [Define to 1 if your system has the close resolver function.]),
-		AC_MSG_RESULT(no)
 	),
 	AC_MSG_RESULT(no)
 )
-
-AST_C_DEFINE_CHECK([GLOB_NOMAGIC], [GLOB_NOMAGIC], [glob.h])
-
-AST_C_DEFINE_CHECK([GLOB_BRACE], [GLOB_BRACE], [glob.h])
 
 AST_C_DEFINE_CHECK([IP_MTU_DISCOVER], [IP_MTU_DISCOVER], [netinet/in.h])
 
 AC_CHECK_HEADER([libkern/OSAtomic.h],
                 [AC_DEFINE_UNQUOTED([HAVE_OSX_ATOMICS], 1, [Define to 1 if OSX atomic operations are supported.])])
 
-AC_CHECK_SIZEOF([int])
-AC_CHECK_SIZEOF([long])
-AC_CHECK_SIZEOF([long long])
-AC_CHECK_SIZEOF([char *])
+AC_CHECK_SIZEOF(int)
+AC_CHECK_SIZEOF(long)
+AC_CHECK_SIZEOF(long long)
+AC_COMPUTE_INT([ac_cv_sizeof_fd_set_fds_bits], [sizeof(foo.fds_bits[[0]])], [$ac_includes_default
+fd_set foo;])
+# This doesn't actually work; what it does is to use the variable set in the
+# previous test as a cached value to set the right output variables.
+AC_CHECK_SIZEOF(fd_set.fds_bits)
+
+# Set a type compatible with the previous.  We cannot just use a generic type
+# for these bits, because on big-endian systems, the bits won't match up
+# correctly if the size is wrong.
+if test $ac_cv_sizeof_int = $ac_cv_sizeof_fd_set_fds_bits; then
+  AC_DEFINE([TYPEOF_FD_SET_FDS_BITS], [int], [Define to a type of the same size as fd_set.fds_bits[[0]]])
+else if test $ac_cv_sizeof_long = $ac_cv_sizeof_fd_set_fds_bits; then
+  AC_DEFINE([TYPEOF_FD_SET_FDS_BITS], [long], [Define to a type of the same size as fd_set.fds_bits[[0]]])
+else if test $ac_cv_sizeof_long_long = $ac_cv_sizeof_fd_set_fds_bits; then
+  AC_DEFINE([TYPEOF_FD_SET_FDS_BITS], [long long], [Define to a type of the same size as fd_set.fds_bits[[0]]])
+fi ; fi ; fi
+
+# PKGCONFIG is used in later tests
+AC_CHECK_TOOL(PKGCONFIG, pkg-config, No)
+
 
 # do the package library checks now
 
@@ -867,8 +841,6 @@ AST_C_DEFINE_CHECK([DAHDI], [DAHDI_CODE], [dahdi/user.h], [200])
 AST_C_DEFINE_CHECK([DAHDI_HALF_FULL], [DAHDI_POLICY_HALF_FULL], [dahdi/user.h])
 
 AST_C_COMPILE_CHECK([DAHDI_LINEREVERSE_VMWI], [struct dahdi_vmwi_info booger], [dahdi/user.h], , [enhanced dahdi vmwi support])
-
-AST_C_COMPILE_CHECK([DAHDI_ECHOCANCEL_FAX_MODE], [int foo = DAHDI_ECHOCANCEL_FAX_MODE], [dahdi/user.h])
 
 AST_C_COMPILE_CHECK([GETIFADDRS], [struct ifaddrs *p; getifaddrs(&p)], [ifaddrs.h], , [getifaddrs() support])
 AST_C_COMPILE_CHECK([TIMERFD], [timerfd_create(0,0); timerfd_settime(0,0,NULL,NULL);], [sys/timerfd.h], , [timerfd support])
@@ -942,11 +914,6 @@ fi
 AST_EXT_LIB_CHECK([ICONV], [iconv], [iconv_open], [iconv.h])
 # Some versions of Linux package iconv in glibc
 AST_EXT_LIB_CHECK([ICONV], [c], [iconv_close], [iconv.h])
-
-# Some distributions (like RedHat) add a libical subdirectory for the headers
-AST_EXT_LIB_CHECK([ICAL], [ical], [icaltimezone_get_utc_timezone], [libical/ical.h], [${PTHREAD_LIBS}], [${PTHREAD_CFLAGS}])
-
-AST_EXT_LIB_CHECK([ICAL], [ical], [icaltimezone_new], [ical.h], [${PTHREAD_LIBS}], [${PTHREAD_CFLAGS}])
 
 AST_EXT_LIB_CHECK([IKSEMEL], [iksemel], [iks_start_sasl], [iksemel.h])
 
@@ -1478,12 +1445,6 @@ AST_EXT_LIB_CHECK([INOTIFY], [c], [inotify_init], [sys/inotify.h])
 
 AST_EXT_LIB_CHECK([JACK], [jack], [jack_activate], [jack/jack.h])
 
-# BSD (and OS X) equivalent of inotify
-AST_EXT_LIB_CHECK([KQUEUE], [c], [kqueue], [sys/event.h])
-
-# 64-bit version of kevent (from kqueue) on OS X
-AC_CHECK_FUNCS([kevent64])
-
 # Needed by unixodbc
 AST_EXT_LIB_CHECK([LTDL], [ltdl], [lt_dlinit], [ltdl.h], [])
 
@@ -1499,7 +1460,7 @@ AC_ARG_ENABLE([xmldoc],
 	esac], [disable_xmldoc=no])
 
 if test "${disable_xmldoc}" != "yes"; then
-	AST_EXT_TOOL_CHECK([LIBXML2], [xml2-config], , ,
+	AST_EXT_TOOL_CHECK([LIBXML2], [xml2], , ,
 	[#include <libxml/tree.h>
 	#include <libxml/parser.h>],
 	[LIBXML_TEST_VERSION])
@@ -1519,24 +1480,13 @@ if test "${PBX_MISDN}" = 1; then
    AST_C_DEFINE_CHECK([MISDN_FAC_RESULT], [Fac_RESULT], [mISDNuser/suppserv.h])
    AST_C_DEFINE_CHECK([MISDN_FAC_ERROR], [Fac_ERROR], [mISDNuser/suppserv.h])
    AC_CHECK_HEADER([linux/mISDNdsp.h], [AC_DEFINE_UNQUOTED([MISDN_1_2], 1, [Build chan_misdn for mISDN 1.2 or later.])])
-   AC_CHECK_MEMBER([Q931_info_t.redirect_dn], [], [PBX_MISDN=0], [#include <mISDNuser/mISDNlib.h>])
 fi
-
-AST_EXT_TOOL_CHECK([MYSQLCLIENT], [mysql_config])
 
 AST_EXT_LIB_CHECK([NBS], [nbs], [nbs_connect], [nbs.h])
 
 AST_EXT_LIB_CHECK([NCURSES], [ncurses], [initscr], [curses.h])
 
-AST_EXT_TOOL_CHECK([NEON], [neon-config])
-
-AST_EXT_TOOL_CHECK([NEON29], [neon-config], , [--libs],
-[#include <ne_auth.h>],
-[#ifndef NE_AUTH_NTLM
-#error Need libneon >= 0.29.0
-#endif])
-
-AST_EXT_TOOL_CHECK([NETSNMP], [net-snmp-config], , [--agent-libs],
+AST_EXT_TOOL_CHECK([NETSNMP], [net-snmp], , [--agent-libs],
 [#include <net-snmp/net-snmp-config.h>
 #include <net-snmp/net-snmp-includes.h>
 #include <net-snmp/agent/net-snmp-agent-includes.h>],
@@ -1552,8 +1502,6 @@ AST_EXT_LIB_CHECK([OGG], [ogg], [ogg_sync_init], [])
 AST_EXT_LIB_CHECK([BKTR], [execinfo], [backtrace], [execinfo.h])
 # Linux, however, has backtrace directly in glibc
 AST_EXT_LIB_CHECK([BKTR], [c], [backtrace], [execinfo.h])
-
-AST_EXT_LIB_CHECK([BLUETOOTH], [bluetooth], [ba2str], [bluetooth/bluetooth.h])
 
 # possible places for oss definitions
 AST_EXT_LIB_CHECK([OSS], [ossaudio], [], [linux/soundcard.h])
@@ -1591,6 +1539,19 @@ if test "${PG_CONFIG}" != No; then
       AC_CHECK_LIB([pq], [PQescapeStringConn], AC_DEFINE_UNQUOTED([HAVE_PGSQL], 1,
       [Define to indicate the PostgreSQL library]), [], -L${PGSQL_libdir} -lz)
 
+      AC_MSG_CHECKING(for pg_encoding_to_char within Postgres headers)
+      old_CFLAGS=${CFLAGS}
+      CFLAGS="${CFLAGS} -I${PGSQL_includedir} -Werror"
+      old_LDFLAGS=${LDFLAGS}
+      LDFLAGS="${LDFLAGS} -L${PGSQL_libdir} -lpq -lz"
+      AC_LINK_IFELSE([AC_LANG_PROGRAM([#include <libpq-fe.h>],
+          [const char *foo = pg_encoding_to_char(1)])],
+        [AC_MSG_RESULT(yes)
+         AC_DEFINE_UNQUOTED([HAVE_PGSQL_pg_encoding_to_char], 1, [Define to indicate presence of the pg_encoding_to_char API.])],
+        [AC_MSG_RESULT(no)])
+      CFLAGS=${old_CFLAGS}
+      LDFLAGS=${old_LDFLAGS}
+
       if test "${ac_cv_lib_pq_PQescapeStringConn}" = "yes"; then
          PGSQL_LIB="-L${PGSQL_libdir} -lpq -lz"
          PGSQL_INCLUDE="-I${PGSQL_includedir}"
@@ -1610,27 +1571,11 @@ AST_EXT_LIB_CHECK([POPT], [popt], [poptStrerror], [popt.h])
 
 AST_EXT_LIB_CHECK([PORTAUDIO], [portaudio], [Pa_GetDeviceCount], [portaudio.h])
 
-AST_EXT_LIB_CHECK([PRI], [pri], [pri_connected_line_update], [libpri.h])
-AST_EXT_LIB_CHECK([PRI_MWI], [pri], [pri_mwi_indicate], [libpri.h])
-AST_EXT_LIB_CHECK([PRI_MCID], [pri], [pri_mcid_enable], [libpri.h])
-AST_EXT_LIB_CHECK([PRI_CALL_WAITING], [pri], [pri_connect_ack_enable], [libpri.h])
-AST_EXT_LIB_CHECK([PRI_AOC_EVENTS], [pri], [pri_aoc_events_enable], [libpri.h])
-AST_EXT_LIB_CHECK([PRI_TRANSFER], [pri], [pri_transfer_enable], [libpri.h])
-AST_EXT_LIB_CHECK([PRI_CCSS], [pri], [pri_cc_enable], [libpri.h])
-AST_EXT_LIB_CHECK([PRI_HANGUP_FIX], [pri], [pri_hangup_fix_enable], [libpri.h])
-AST_EXT_LIB_CHECK([PRI_SUBADDR], [pri], [pri_sr_set_called_subaddress], [libpri.h])
-AST_EXT_LIB_CHECK([PRI_CALL_HOLD], [pri], [pri_hold_enable], [libpri.h])
-AST_EXT_LIB_CHECK([PRI_CALL_REROUTING], [pri], [pri_reroute_enable], [libpri.h])
-AST_EXT_LIB_CHECK([PRI_SETUP_KEYPAD], [pri], [pri_sr_set_keypad_digits], [libpri.h])
+AST_EXT_LIB_CHECK([PRI], [pri], [pri_new_bri], [libpri.h])
 
-# ------------------------------------v
-# TODO: The code can be changed to always include these features now.
-# These features will always be present if pri_connected_line_update is available.
 AST_EXT_LIB_CHECK([PRI_PROG_W_CAUSE], [pri], [pri_progress_with_cause], [libpri.h])
+
 AST_EXT_LIB_CHECK([PRI_INBANDDISCONNECT], [pri], [pri_set_inbanddisconnect], [libpri.h])
-AST_EXT_LIB_CHECK([PRI_SERVICE_MESSAGES], [pri], [pri_maintenance_service], [libpri.h])
-AST_EXT_LIB_CHECK([PRI_REVERSE_CHARGE], [pri], [pri_sr_set_reversecharge], [libpri.h])
-# ------------------------------------^
 
 AST_EXT_LIB_CHECK([RESAMPLE], [resample], [resample_open], [libresample.h], [-lm])
 
@@ -1651,6 +1596,10 @@ if test "x${PBX_SPANDSP}" = "x1" ; then
 	# We also need t38_terminal_init()
 	PBX_SPANDSP=0
 	AST_EXT_LIB_CHECK([SPANDSP], [spandsp], [t38_terminal_init], [spandsp.h], [-ltiff])
+fi
+
+if test "x${PBX_SPANDSP}" = "x1" ; then
+	AC_CHECK_HEADER([spandsp/expose.h], [AC_DEFINE_UNQUOTED([HAVE_SPANDSP_EXPOSE_H], 1, [Define to 1 if spandsp/expose.h is available.])], [], [#include <spandsp.h>])
 fi
 
 AST_EXT_LIB_CHECK([SS7], [ss7], [ss7_pollflags], [libss7.h])
@@ -1681,7 +1630,7 @@ if test "${PBX_PWLIB}" = "1" -a "${USE_OPENH323}" != "no" ; then
 		OPENH323DIR="${OPENH323_DIR}"
 	fi
 	AST_CHECK_OPENH323()
-	AST_CHECK_PWLIB_VERSION([OpenH323], [OPENH323], [openh323buildopts.h], [1], [17], [3])
+	AST_CHECK_PWLIB_VERSION([OpenH323], [OPENH323], [openh323buildopts.h], [1], [17], [3], [], [1], [19], [0])
 	AST_CHECK_OPENH323_BUILD()
 	PLATFORM_OPENH323="h323_${PWLIB_PLATFORM}_${OPENH323_SUFFIX}"
 	AST_CHECK_PWLIB_BUILD([OpenH323], [OPENH323],
@@ -1761,12 +1710,25 @@ fi
 
 if test "$PBX_OPENSSL" = "1";
 then
-    AST_CHECK_OSPTK([3], [6], [0])
+    AST_CHECK_OSPTK([3], [5], [0])
 fi
 
-AST_EXT_LIB_CHECK([SRTP], [srtp], [srtp_init], [srtp/srtp.h])
-
 AST_EXT_TOOL_CHECK([GMIME], [gmime-config], [], [], [#include <gmime/gmime.h>], [gboolean q = g_mime_check_version(0,0,0);])
+if test "x${PBX_GMIME}" = "x0"; then
+	# Later versions of GMime use pkg-config
+	if test "x${PKGCONFIG}" = xNo; then :; else
+		GMIME_INCLUDE=$(${PKGCONFIG} gmime-2.0 --cflags 2>/dev/null)
+		GMIME_LIB=$(${PKGCONFIG} gmime-2.0 --libs)
+		if test "x${GMIME_INCLUDE}${GMIME_LIB}" = "x"; then 
+			GMIME_INCLUDE=$(${PKGCONFIG} gmime-2.2 --cflags 2>/dev/null)
+			GMIME_LIB=$(${PKGCONFIG} gmime-2.2 --libs)
+		fi
+		if test "x${GMIME_INCLUDE}${GMIME_LIB}" != "x"; then
+			PBX_GMIME=1
+			AC_DEFINE([HAVE_GMIME], 1, [Define if your system has the GMIME libraries.])
+		fi
+	fi
+fi
 
 AST_EXT_LIB_CHECK([HOARD], [hoard], [malloc], [])
 
@@ -1882,11 +1844,7 @@ AC_CHECK_HEADER([linux/ixjuser.h], [PBX_IXJUSER=1], [PBX_IXJUSER=0], [
 				   ])
 AC_SUBST(PBX_IXJUSER)
 
-# Used in res/res_pktccops
-AST_C_DEFINE_CHECK([MSG_NOSIGNAL], [MSG_NOSIGNAL], [sys/socket.h])
-AST_C_DEFINE_CHECK([SO_NOSIGPIPE], [SO_NOSIGPIPE], [sys/socket.h])
-
-AST_EXT_TOOL_CHECK([SDL], [sdl-config])
+AST_EXT_TOOL_CHECK([SDL], [sdl])
 AST_EXT_LIB_CHECK([SDL_IMAGE], [SDL_image], [IMG_Load], [SDL_image.h], [${SDL_LIB}], [${SDL_INCLUDE}])
 AST_EXT_LIB_CHECK([FFMPEG], [avcodec], [sws_getContext], [ffmpeg/avcodec.h], [${PTHREAD_LIBS} -lz -lm], [${PTHREAD_CFLAGS}])
 
@@ -1903,8 +1861,10 @@ then
   AC_CHECK_FILE(/sbin/launchd, AC_DEFINE([HAVE_SBIN_LAUNCHD], 1, [Define to 1 if your system has /sbin/launchd.]))
 fi
 
+PBX_GTK=0
+AST_EXT_TOOL_CHECK([GTK], [gtk], [--cflags gthread], [--libs gthread])
+
 PBX_GTK2=0
-AC_CHECK_TOOL(PKGCONFIG, pkg-config, No)
 if test ! "x${PKGCONFIG}" = xNo; then
    GTK2_INCLUDE=$(${PKGCONFIG} gtk+-2.0 --cflags 2>/dev/null)
    GTK2_LIB=$(${PKGCONFIG} gtk+-2.0 --libs)
@@ -1934,25 +1894,11 @@ AC_SUBST([GENERIC_ODBC_LIB])
 AC_SUBST([GENERIC_ODBC_INCLUDE])
 AC_SUBST([PBX_GENERIC_ODBC])
 
-PBX_SYSLOG=0
-
-if test "${ac_cv_header_syslog_h}" = "yes"; then
-   # syslog facilities
-   AST_C_DEFINE_CHECK([SYSLOG_FACILITY_LOG_AUTH],     [LOG_AUTH],     [syslog.h])
-   AST_C_DEFINE_CHECK([SYSLOG_FACILITY_LOG_AUTHPRIV], [LOG_AUTHPRIV], [syslog.h])
-   AST_C_DEFINE_CHECK([SYSLOG_FACILITY_LOG_CRON],     [LOG_CRON],     [syslog.h])
-   AST_C_DEFINE_CHECK([SYSLOG_FACILITY_LOG_DAEMON],   [LOG_DAEMON],   [syslog.h])
-   AST_C_DEFINE_CHECK([SYSLOG_FACILITY_LOG_FTP],      [LOG_FTP],      [syslog.h])
-   AST_C_DEFINE_CHECK([SYSLOG_FACILITY_LOG_KERN],     [LOG_KERN],     [syslog.h])
-   AST_C_DEFINE_CHECK([SYSLOG_FACILITY_LOG_LPR],      [LOG_LPR],      [syslog.h])
-   AST_C_DEFINE_CHECK([SYSLOG_FACILITY_LOG_MAIL],     [LOG_MAIL],     [syslog.h])
-   AST_C_DEFINE_CHECK([SYSLOG_FACILITY_LOG_NEWS],     [LOG_NEWS],     [syslog.h])
-   AST_C_DEFINE_CHECK([SYSLOG_FACILITY_LOG_SYSLOG],   [LOG_SYSLOG],   [syslog.h])
-   AST_C_DEFINE_CHECK([SYSLOG_FACILITY_LOG_UUCP],     [LOG_UUCP],     [syslog.h])
-   PBX_SYSLOG=1
+if test -f makeopts; then
+	${ac_cv_path_EGREP} 'CURSES|GTK2|OSARCH|NEWT' makeopts > makeopts.acbak
+else
+	touch makeopts.acbak
 fi
-
-AC_SUBST([PBX_SYSLOG])
 
 AC_CONFIG_FILES([build_tools/menuselect-deps makeopts channels/h323/Makefile])
 AST_CHECK_MANDATORY
@@ -1968,6 +1914,16 @@ if test -f build_tools/menuselect-deps; then
 fi
 
 AC_OUTPUT
+
+${ac_cv_path_EGREP} 'CURSES|GTK2|OSARCH|NEWT' makeopts > makeopts.acbak2
+if test "x${ac_cv_path_CMP}" = "x:"; then
+	( cd `pwd`/menuselect && ./configure )
+else if ${ac_cv_path_CMP} -s makeopts.acbak makeopts.acbak2; then : ; else
+	( cd `pwd`/menuselect && ./configure )
+fi ; fi
+
+rm makeopts.acbak makeopts.acbak2
+
 
 if test "x${silent}" != "xyes" ; then
 echo

@@ -31,7 +31,7 @@
 
 #include "asterisk.h"
 
-ASTERISK_FILE_VERSION(__FILE__, "$Revision: 227580 $")
+ASTERISK_FILE_VERSION(__FILE__, "$Revision: 211580 $")
 
 #include <math.h>
 #include <sys/wait.h>
@@ -62,7 +62,7 @@ struct event_node{
 
 typedef struct event_node event_node_t;
 
-static const char app[] = "AlarmReceiver";
+static char *app = "AlarmReceiver";
 /*** DOCUMENTATION
 	<application name="AlarmReceiver" language="en_US">
 		<synopsis>
@@ -191,7 +191,7 @@ static int send_tone_burst(struct ast_channel *chan, float freq, int duration, i
 
 		if (f->frametype == AST_FRAME_VOICE) {
 			wf.frametype = AST_FRAME_VOICE;
-			wf.subclass.codec = AST_FORMAT_ULAW;
+			wf.subclass = AST_FORMAT_ULAW;
 			wf.offset = AST_FRIENDLY_OFFSET;
 			wf.mallocd = 0;
 			wf.data.ptr = tone_block.buf;
@@ -260,7 +260,7 @@ static int receive_dtmf_digits(struct ast_channel *chan, char *digit_string, int
 		}
 
 		/* If they hung up, leave */
-		if ((f->frametype == AST_FRAME_CONTROL) && (f->subclass.integer == AST_CONTROL_HANGUP)) {
+		if ((f->frametype == AST_FRAME_CONTROL) && (f->subclass == AST_CONTROL_HANGUP)) {
 			if (f->data.uint32) {
 				chan->hangupcause = f->data.uint32;
 			}
@@ -275,7 +275,7 @@ static int receive_dtmf_digits(struct ast_channel *chan, char *digit_string, int
 			continue;
 		}
 
-		digit_string[i++] = f->subclass.integer;  /* save digit */
+		digit_string[i++] = f->subclass;  /* save digit */
 
 		ast_frfree(f);
 
@@ -416,7 +416,7 @@ static int log_events(struct ast_channel *chan,  char *signalling_type, event_no
 *
 * The function will return 0 when the caller hangs up, else a -1 if there was a problem.
 */
-static int receive_ademco_contact_id(struct ast_channel *chan, const void *data, int fdto, int sdto, int tldn, event_node_t **ehead)
+static int receive_ademco_contact_id( struct ast_channel *chan, void *data, int fdto, int sdto, int tldn, event_node_t **ehead)
 {
 	int i, j;
 	int res = 0;
@@ -564,7 +564,7 @@ static int receive_ademco_contact_id(struct ast_channel *chan, const void *data,
 * This is the main function called by Asterisk Core whenever the App is invoked in the extension logic.
 * This function will always return 0.
 */
-static int alarmreceiver_exec(struct ast_channel *chan, const char *data)
+static int alarmreceiver_exec(struct ast_channel *chan, void *data)
 {
 	int res = 0;
 	event_node_t *elp, *efree;

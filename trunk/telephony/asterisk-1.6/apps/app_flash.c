@@ -31,7 +31,7 @@
 
 #include "asterisk.h"
 
-ASTERISK_FILE_VERSION(__FILE__, "$Revision: 196072 $")
+ASTERISK_FILE_VERSION(__FILE__, "$Revision: 153543 $")
 
 #include <dahdi/user.h>
 
@@ -72,7 +72,7 @@ static inline int dahdi_wait_event(int fd)
 	return j;
 }
 
-static int flash_exec(struct ast_channel *chan, const char *data)
+static int flash_exec(struct ast_channel *chan, void *data)
 {
 	int res = -1;
 	int x;

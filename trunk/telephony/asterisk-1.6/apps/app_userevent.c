@@ -23,7 +23,7 @@
 
 #include "asterisk.h"
 
-ASTERISK_FILE_VERSION(__FILE__, "$Revision: 253345 $")
+ASTERISK_FILE_VERSION(__FILE__, "$Revision: 253346 $")
 
 #include "asterisk/pbx.h"
 #include "asterisk/module.h"
@@ -56,7 +56,7 @@ ASTERISK_FILE_VERSION(__FILE__, "$Revision: 253345 $")
 
 static char *app = "UserEvent";
 
-static int userevent_exec(struct ast_channel *chan, const char *data)
+static int userevent_exec(struct ast_channel *chan, void *data)
 {
 	char *parse;
 	int x;

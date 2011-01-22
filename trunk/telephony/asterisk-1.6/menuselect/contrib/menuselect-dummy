@@ -443,6 +443,21 @@ sub apply_default_enabled() {
 	}
 }
 
+# We found a dependency we don't know about. Warn the user, and add
+# information about it:
+sub handle_unknown_dep($$) {
+	my ($dep_mod, $mod) = @_;
+
+	my $mod_info = {
+		Type => 'Unknown',
+		Avail => 0,
+		Checked => 0,
+	};
+	$ModInfo{$dep_mod} = $mod_info;
+
+	warning "Unknown dependency module $dep_mod (for e.g. $mod)\n";
+}
+
 # recursively check dependency for a module.
 #
 # We run a scan for modules. Modules marked as 'Checked' are ones we
@@ -481,9 +496,8 @@ sub check_module($) {
 
 	foreach my $dep_mod (@{$ModInfo{$mod}{Depend}} ) {
 		if (!exists ${ModInfo}{$dep_mod}) {
-			# TODO: die here? This should never happen.
-			warning "module $mod depends on $dep_mod that does not exist.";
-			next;
+			handle_unknown_dep($dep_mod, $mod);
+			return 0;
 		}
 		$deps_checked &= check_module($dep_mod);
 		last if(!$deps_checked) # no point testing further if we failed.

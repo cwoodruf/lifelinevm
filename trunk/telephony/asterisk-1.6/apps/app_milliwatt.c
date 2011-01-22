@@ -27,7 +27,7 @@
 
 #include "asterisk.h"
 
-ASTERISK_FILE_VERSION(__FILE__, "$Revision: 227580 $")
+ASTERISK_FILE_VERSION(__FILE__, "$Revision: 209842 $")
 
 #include "asterisk/module.h"
 #include "asterisk/channel.h"
@@ -56,9 +56,9 @@ ASTERISK_FILE_VERSION(__FILE__, "$Revision: 227580 $")
 	</application>
  ***/
 
-static const char app[] = "Milliwatt";
+static char *app = "Milliwatt";
 
-static const char digital_milliwatt[] = {0x1e,0x0b,0x0b,0x1e,0x9e,0x8b,0x8b,0x9e} ;
+static char digital_milliwatt[] = {0x1e,0x0b,0x0b,0x1e,0x9e,0x8b,0x8b,0x9e} ;
 
 static void *milliwatt_alloc(struct ast_channel *chan, void *params)
 {
@@ -78,7 +78,7 @@ static int milliwatt_generate(struct ast_channel *chan, void *data, int len, int
 	int i, *indexp = (int *) data;
 	struct ast_frame wf = {
 		.frametype = AST_FRAME_VOICE,
-		.subclass.codec = AST_FORMAT_ULAW,
+		.subclass = AST_FORMAT_ULAW,
 		.offset = AST_FRIENDLY_OFFSET,
 		.src = __FUNCTION__,
 	};
@@ -140,7 +140,7 @@ static int old_milliwatt_exec(struct ast_channel *chan)
 	return -1;
 }
 
-static int milliwatt_exec(struct ast_channel *chan, const char *data)
+static int milliwatt_exec(struct ast_channel *chan, void *data)
 {
 	const char *options = data;
 	int res = -1;

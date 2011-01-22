@@ -28,7 +28,7 @@
 
 #include "asterisk.h"
 
-ASTERISK_FILE_VERSION(__FILE__, "$Revision: 255281 $")
+ASTERISK_FILE_VERSION(__FILE__, "$Revision: 249894 $")
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -112,7 +112,7 @@ ASTERISK_FILE_VERSION(__FILE__, "$Revision: 255281 $")
  * bridge lock if it is important.
  */
 
-static const char app[] = "ConfBridge";
+static const char *app = "ConfBridge";
 
 enum {
 	OPTION_ADMIN = (1 << 0),             /*!< Set if the caller is an administrator */
@@ -463,11 +463,6 @@ static struct conference_bridge *join_conference_bridge(const char *name, struct
 		conference_bridge->markedusers++;
 	}
 
-	/* Set the device state for this conference */
-	if (conference_bridge->users == 1) {
-		ast_devstate_changed(AST_DEVICE_INUSE, "confbridge:%s", conference_bridge->name);
-	}
-
 	/* If the caller is a marked user or is waiting for a marked user to enter pass 'em off, otherwise pass them off to do regular joining stuff */
 	if (ast_test_flag(&conference_bridge_user->flags, OPTION_MARKEDUSER | OPTION_WAITMARKED)) {
 		post_join_marked(conference_bridge, conference_bridge_user);
@@ -538,9 +533,6 @@ static void  leave_conference_bridge(struct conference_bridge *conference_bridge
 			}
 		}
 	} else {
-		/* Set device state to "not in use" */
-		ast_devstate_changed(AST_DEVICE_NOT_INUSE, "confbridge:%s", conference_bridge->name);
-
 		ao2_unlink(conference_bridges, conference_bridge);
 	}
 
@@ -568,7 +560,7 @@ static int play_sound_file(struct conference_bridge *conference_bridge, const ch
 	if (!(conference_bridge->playback_chan)) {
 		int cause;
 
-		if (!(conference_bridge->playback_chan = ast_request("Bridge", AST_FORMAT_SLINEAR, NULL, "", &cause))) {
+		if (!(conference_bridge->playback_chan = ast_request("Bridge", AST_FORMAT_SLINEAR, "", &cause))) {
 			ast_mutex_unlock(&conference_bridge->playback_lock);
 			return -1;
 		}
@@ -692,7 +684,7 @@ static int menu_callback(struct ast_bridge *bridge, struct ast_bridge_channel *b
 }
 
 /*! \brief The ConfBridge application */
-static int confbridge_exec(struct ast_channel *chan, const char *data)
+static int confbridge_exec(struct ast_channel *chan, void *data)
 {
 	int res = 0, volume_adjustments[2];
 	char *parse;

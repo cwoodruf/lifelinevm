@@ -23,7 +23,7 @@
 
 #include "asterisk.h"
 
-ASTERISK_FILE_VERSION(__FILE__, "$Revision: 263541 $")
+ASTERISK_FILE_VERSION(__FILE__, "$Revision: 280812 $")
 
 #include "asterisk/module.h"
 #include "asterisk/channel.h"
@@ -44,18 +44,11 @@ ASTERISK_FILE_VERSION(__FILE__, "$Revision: 263541 $")
 					<enum name="all" />
 					<enum name="num" />
 					<enum name="name" />
-					<enum name="tag" />
 					<enum name="ANI" />
 					<enum name="DNID" />
 					<enum name="RDNIS" />
 					<enum name="pres" />
 					<enum name="ton" />
-					<enum name="subaddr[-valid]|[-type]|[-odd]">
-						<para>ISDN Calling Subaddress</para>
-					</enum>
-					<enum name="dnid-subaddr[-valid]|[-type]|[-odd]">
-						<para>ISDN Called Subaddress</para>
-					</enum>
 				</enumlist>
 			</parameter>
 			<parameter name="CID">
@@ -162,10 +155,6 @@ static int callerid_read(struct ast_channel *chan, const char *cmd, char *data,
 			if (chan->cid.cid_name) {
 				ast_copy_string(buf, chan->cid.cid_name, len);
 			}
-		} else if (!strncasecmp("tag", data, 3)) {
-			if (chan->cid.cid_tag) {
-				ast_copy_string(buf, chan->cid.cid_tag, len);
-			}
 		} else if (!strncasecmp("num", data, 3)) {
 			/* also matches "number" */
 			if (chan->cid.cid_num) {
@@ -178,44 +167,12 @@ static int callerid_read(struct ast_channel *chan, const char *cmd, char *data,
 				ast_copy_string(buf, chan->cid.cid_ani, len);
 			}
 		} else if (!strncasecmp("dnid", data, 4)) {
-			/* Called parties info */
-
-			/* also matches dnid-subaddr-valid, dnid-subaddr-type, dnid-subaddr-odd, dnid-subaddr */
-			if (!strncasecmp(data + 4 ,"-subaddr", 8)) {
-				if (!strncasecmp(data + 12 ,"-valid", 6)) {		/* dnid-subaddr-valid */
-					snprintf(buf, len, "%d", chan->cid.dialed_subaddress.valid);
-				} else if (!strncasecmp(data + 12 ,"-type", 5)) {	/* dnid-subaddr-type */
-					snprintf(buf, len, "%d", chan->cid.dialed_subaddress.type);
-				} else if (!strncasecmp(data + 12 ,"-odd", 4)) {	/* dnid-subaddr-odd */
-					snprintf(buf, len, "%d", chan->cid.dialed_subaddress.odd_even_indicator);
-				} else {						/* dnid-subaddr */
-					if (chan->cid.dialed_subaddress.str) {
-						ast_copy_string(buf, chan->cid.dialed_subaddress.str, len);
-					}
-				}
-			} else {							/* dnid */
-				if (chan->cid.cid_dnid) {
-					ast_copy_string(buf, chan->cid.cid_dnid, len);
-				}
-			}
-		} else if (!strncasecmp("subaddr", data, 7)) {
-			/* Calling parties info */
-
-			/* also matches subaddr-valid, subaddr-type, subaddr-odd, subaddr */
-			if (!strncasecmp(data + 7 ,"-valid", 6)) {		/* subaddr-valid */
-				snprintf(buf, len, "%d", chan->cid.subaddress.valid);
-			} else if (!strncasecmp(data + 7 ,"-type", 5)) {	/* subaddr-type */
-				snprintf(buf, len, "%d", chan->cid.subaddress.type);
-			} else if (!strncasecmp(data + 7 ,"-odd", 4)) {		/* subaddr-odd */
-				snprintf(buf, len, "%d", chan->cid.subaddress.odd_even_indicator);
-			} else {						/* subaddr */
-				if (chan->cid.subaddress.str) {
-					ast_copy_string(buf, chan->cid.subaddress.str, len);
-				}
+			if (chan->cid.cid_dnid) {
+				ast_copy_string(buf, chan->cid.cid_dnid, len);
 			}
 		} else if (!strncasecmp("rdnis", data, 5)) {
-			if (chan->redirecting.from.number) {
-				ast_copy_string(buf, chan->redirecting.from.number, len);
+			if (chan->cid.cid_rdnis) {
+				ast_copy_string(buf, chan->cid.cid_rdnis, len);
 			}
 		} else if (!strncasecmp("pres", data, 4)) {
 			ast_copy_string(buf, ast_named_caller_presentation(chan->cid.cid_pres), len);
@@ -234,6 +191,7 @@ static int callerid_read(struct ast_channel *chan, const char *cmd, char *data,
 static int callerid_write(struct ast_channel *chan, const char *cmd, char *data,
 			  const char *value)
 {
+	int valid = 1;
 	if (!value || !chan)
 		return -1;
 
@@ -259,13 +217,6 @@ static int callerid_write(struct ast_channel *chan, const char *cmd, char *data,
 		if (chan->cdr) {
 			ast_cdr_setcid(chan->cdr, chan);
 		}
-	} else if (!strncasecmp("tag", data, 3)) {
-		ast_channel_lock(chan);
-		if (chan->cid.cid_tag) {
-			ast_free(chan->cid.cid_tag);
-		}
-		chan->cid.cid_tag = ast_strdup(value);
-		ast_channel_unlock(chan);
 	} else if (!strncasecmp("ani", data, 3)) {
 		if (!strncasecmp(data + 3, "2", 1)) {
 			chan->cid.cid_ani2 = atoi(value);
@@ -277,54 +228,20 @@ static int callerid_write(struct ast_channel *chan, const char *cmd, char *data,
 		}
 	} else if (!strncasecmp("dnid", data, 4)) {
 		ast_channel_lock(chan);
-		/* also matches dnid-subaddr-valid, dnid-subaddr-type, dnid-subaddr-odd, dnid-subaddr */
-		if (!strncasecmp(data + 4 ,"-subaddr", 8)) {
-			if (!strncasecmp(data + 12 ,"-valid", 6)) {		/* dnid-subaddr-valid */
-				chan->cid.dialed_subaddress.valid = atoi(value) ? 1 : 0;
-			} else if (!strncasecmp(data + 12 ,"-type", 5)) {	/* dnid-subaddr-type */
-				chan->cid.dialed_subaddress.type = atoi(value) ? 2 : 0;
-			} else if (!strncasecmp(data + 12 ,"-odd", 4)) {	/* dnid-subaddr-odd */
-				chan->cid.dialed_subaddress.odd_even_indicator = atoi(value) ? 1 : 0;
-			} else {						/* dnid-subaddr */
-				if (chan->cid.dialed_subaddress.str) {
-					ast_free(chan->cid.dialed_subaddress.str);
-				}
-				chan->cid.dialed_subaddress.str = ast_strdup(value);
-			}
-		} else {							/* dnid */
-			if (chan->cid.cid_dnid) {
-				ast_free(chan->cid.cid_dnid);
-			}
-			chan->cid.cid_dnid = ast_strdup(value);
+		if (chan->cid.cid_dnid) {
+			ast_free(chan->cid.cid_dnid);
 		}
-
-		if (chan->cdr) {
-			ast_cdr_setcid(chan->cdr, chan);
-		}
-		ast_channel_unlock(chan);
-	} else if (!strncasecmp("subaddr", data, 7)) {
-		ast_channel_lock(chan);
-		/* also matches subaddr-valid, subaddr-type, subaddr-odd, subaddr */
-		if (!strncasecmp(data + 7 ,"-valid", 6)) {		/* subaddr-valid */
-			chan->cid.subaddress.valid = atoi(value) ? 1 : 0;
-		} else if (!strncasecmp(data + 7 ,"-type", 5)) {	/* subaddr-type */
-			chan->cid.subaddress.type = atoi(value) ? 2 : 0;
-		} else if (!strncasecmp(data + 7 ,"-odd", 4)) {		/* subaddr-odd */
-			chan->cid.subaddress.odd_even_indicator = atoi(value) ? 1 : 0;
-		} else {						/* subaddr */
-			if (chan->cid.subaddress.str) {
-				ast_free(chan->cid.subaddress.str);
-			}
-			chan->cid.subaddress.str = ast_strdup(value);
-		}
+		chan->cid.cid_dnid = ast_strdup(value);
 		if (chan->cdr) {
 			ast_cdr_setcid(chan->cdr, chan);
 		}
 		ast_channel_unlock(chan);
 	} else if (!strncasecmp("rdnis", data, 5)) {
 		ast_channel_lock(chan);
-		ast_free(chan->redirecting.from.number);
-		chan->redirecting.from.number = ast_strdup(value);
+		if (chan->cid.cid_rdnis) {
+			ast_free(chan->cid.cid_rdnis);
+		}
+		chan->cid.cid_rdnis = ast_strdup(value);
 		if (chan->cdr) {
 			ast_cdr_setcid(chan->cdr, chan);
 		}
@@ -351,6 +268,11 @@ static int callerid_write(struct ast_channel *chan, const char *cmd, char *data,
 		chan->cid.cid_ton = atoi(value);
 	} else {
 		ast_log(LOG_ERROR, "Unknown callerid data type '%s'.\n", data);
+		valid = 0;
+	}
+
+	if (valid) {
+		chan->cid.cid_tns = 1;
 	}
 
 	return 0;
@@ -359,14 +281,12 @@ static int callerid_write(struct ast_channel *chan, const char *cmd, char *data,
 static struct ast_custom_function callerid_function = {
 	.name = "CALLERID",
 	.read = callerid_read,
-	.read_max = 256,
 	.write = callerid_write,
 };
 
 static struct ast_custom_function callerpres_function = {
 	.name = "CALLERPRES",
 	.read = callerpres_read,
-	.read_max = 50,
 	.write = callerpres_write,
 };
 

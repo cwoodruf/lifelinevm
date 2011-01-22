@@ -37,7 +37,7 @@
 
 #include "asterisk.h"
 
-ASTERISK_FILE_VERSION(__FILE__, "$Revision: 258557 $")
+ASTERISK_FILE_VERSION(__FILE__, "$Revision: 222187 $")
 
 #include "asterisk/file.h"
 #include "asterisk/channel.h"
@@ -133,7 +133,7 @@ struct odbc_class
 	struct ao2_container *obj_container;
 };
 
-static struct ao2_container *class_container;
+struct ao2_container *class_container;
 
 static AST_RWLIST_HEAD_STATIC(odbc_tables, odbc_cache_tables);
 
@@ -1049,7 +1049,7 @@ int ast_odbc_backslash_is_escape(struct odbc_obj *obj)
 	return obj->parent->backslash_is_escape;
 }
 
-static int commit_exec(struct ast_channel *chan, const char *data)
+static int commit_exec(struct ast_channel *chan, void *data)
 {
 	struct odbc_txn_frame *tx;
 	SQLINTEGER nativeerror=0, numfields=0;
@@ -1086,7 +1086,7 @@ static int commit_exec(struct ast_channel *chan, const char *data)
 	return 0;
 }
 
-static int rollback_exec(struct ast_channel *chan, const char *data)
+static int rollback_exec(struct ast_channel *chan, void *data)
 {
 	struct odbc_txn_frame *tx;
 	SQLINTEGER nativeerror=0, numfields=0;
@@ -1150,7 +1150,11 @@ static int aoro2_obj_cb(void *vobj, void *arg, int flags)
 	return 0;
 }
 
+#ifdef DEBUG_THREADS
 struct odbc_obj *_ast_odbc_request_obj2(const char *name, struct ast_flags flags, const char *file, const char *function, int lineno)
+#else
+struct odbc_obj *ast_odbc_request_obj2(const char *name, struct ast_flags flags)
+#endif
 {
 	struct odbc_obj *obj = NULL;
 	struct odbc_class *class;
@@ -1321,10 +1325,18 @@ struct odbc_obj *_ast_odbc_request_obj2(const char *name, struct ast_flags flags
 	return obj;
 }
 
+#ifdef DEBUG_THREADS
 struct odbc_obj *_ast_odbc_request_obj(const char *name, int check, const char *file, const char *function, int lineno)
+#else
+struct odbc_obj *ast_odbc_request_obj(const char *name, int check)
+#endif
 {
 	struct ast_flags flags = { check ? RES_ODBC_SANITY_CHECK : 0 };
+#ifdef DEBUG_THREADS
 	return _ast_odbc_request_obj2(name, flags, file, function, lineno);
+#else
+	return ast_odbc_request_obj2(name, flags);
+#endif
 }
 
 struct odbc_obj *ast_odbc_retrieve_transaction_obj(struct ast_channel *chan, const char *objname)
@@ -1586,8 +1598,8 @@ static struct ast_custom_function odbc_function = {
 	.write = acf_transaction_write,
 };
 
-static const char * const app_commit = "ODBC_Commit";
-static const char * const app_rollback = "ODBC_Rollback";
+static const char *app_commit = "ODBC_Commit";
+static const char *app_rollback = "ODBC_Rollback";
 
 static int reload(void)
 {

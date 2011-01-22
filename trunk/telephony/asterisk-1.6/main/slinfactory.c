@@ -26,7 +26,7 @@
 
 #include "asterisk.h"
 
-ASTERISK_FILE_VERSION(__FILE__, "$Revision: 227580 $")
+ASTERISK_FILE_VERSION(__FILE__, "$Revision: 201097 $")
 
 #include "asterisk/frame.h"
 #include "asterisk/slinfactory.h"
@@ -85,19 +85,19 @@ int ast_slinfactory_feed(struct ast_slinfactory *sf, struct ast_frame *f)
 		return 0;
 	}
 
-	if (f->subclass.codec != sf->output_format) {
-		if (sf->trans && f->subclass.codec != sf->format) {
+	if (f->subclass != sf->output_format) {
+		if (sf->trans && f->subclass != sf->format) {
 			ast_translator_free_path(sf->trans);
 			sf->trans = NULL;
 		}
 
 		if (!sf->trans) {
-			if (!(sf->trans = ast_translator_build_path(sf->output_format, f->subclass.codec))) {
-				ast_log(LOG_WARNING, "Cannot build a path from %s to %s\n", ast_getformatname(f->subclass.codec),
+			if (!(sf->trans = ast_translator_build_path(sf->output_format, f->subclass))) {
+				ast_log(LOG_WARNING, "Cannot build a path from %s to %s\n", ast_getformatname(f->subclass),
 					ast_getformatname(sf->output_format));
 				return 0;
 			}
-			sf->format = f->subclass.codec;
+			sf->format = f->subclass;
 		}
 
 		if (!(begin_frame = ast_translate(sf->trans, f, 0))) {

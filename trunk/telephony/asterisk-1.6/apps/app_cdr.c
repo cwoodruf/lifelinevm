@@ -27,7 +27,7 @@
 
 #include "asterisk.h"
 
-ASTERISK_FILE_VERSION(__FILE__, "$Revision: 196072 $")
+ASTERISK_FILE_VERSION(__FILE__, "$Revision: 153365 $")
 
 #include "asterisk/channel.h"
 #include "asterisk/module.h"
@@ -44,9 +44,9 @@ ASTERISK_FILE_VERSION(__FILE__, "$Revision: 196072 $")
 	</application>
  ***/
 
-static const char nocdr_app[] = "NoCDR";
+static char *nocdr_app = "NoCDR";
 
-static int nocdr_exec(struct ast_channel *chan, const char *data)
+static int nocdr_exec(struct ast_channel *chan, void *data)
 {
 	if (chan->cdr)
 		ast_set_flag(chan->cdr, AST_CDR_FLAG_POST_DISABLED);

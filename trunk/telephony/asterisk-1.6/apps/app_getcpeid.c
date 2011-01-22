@@ -27,7 +27,7 @@
 
 #include "asterisk.h"
 
-ASTERISK_FILE_VERSION(__FILE__, "$Revision: 196072 $")
+ASTERISK_FILE_VERSION(__FILE__, "$Revision: 153365 $")
 
 #include "asterisk/lock.h"
 #include "asterisk/file.h"
@@ -61,7 +61,7 @@ static int cpeid_setstatus(struct ast_channel *chan, char *stuff[], int voice)
 	return ast_adsi_print(chan, tmp, justify, voice);
 }
 
-static int cpeid_exec(struct ast_channel *chan, const char *idata)
+static int cpeid_exec(struct ast_channel *chan, void *idata)
 {
 	int res=0;
 	unsigned char cpeid[4];

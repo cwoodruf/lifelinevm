@@ -41,13 +41,13 @@
  *
  * \par Possible improvement
  * \todo Implement a caching mechanism for multile enum lookups
- * - See https://issues.asterisk.org/view.php?id=6739
+ * - See http://bugs.digium.com/view.php?id=6739
  * \todo The service type selection needs to be redone.
  */
 
 #include "asterisk.h"
 
-ASTERISK_FILE_VERSION(__FILE__, "$Revision: 241143 $")
+ASTERISK_FILE_VERSION(__FILE__, "$Revision: 211580 $")
 
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -851,7 +851,7 @@ int ast_get_enum(struct ast_channel *chan, const char *number, char *dst, int ds
 	ret = ast_search_dns(context, tmp, C_IN, T_NAPTR, enum_callback);
 	time_end = ast_tvnow();
 
-	ast_verb(2, "ast_get_enum() profiling: %s, %s, %" PRIi64 " ms\n", 
+	ast_verb(2, "ast_get_enum() profiling: %s, %s, %d ms\n", 
 			(ret == 0) ? "OK" : "FAIL", tmp, ast_tvdiff_ms(time_end, time_start));
 
 	if (ret < 0) {

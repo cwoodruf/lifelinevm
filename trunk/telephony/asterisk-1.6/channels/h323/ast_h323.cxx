@@ -26,7 +26,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * Version Info: $Id: ast_h323.cxx 265451 2010-05-24 22:05:15Z mmichelson $
+ * Version Info: $Id: ast_h323.cxx 265452 2010-05-24 22:07:11Z mmichelson $
  */
 
 #define VERSION(a,b,c) ((a)*10000+(b)*100+(c))

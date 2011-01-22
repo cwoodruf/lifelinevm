@@ -30,7 +30,7 @@ extern "C" {
 /* these two are used in struct ast_audiohook */
 #include "asterisk/lock.h"
 #include "asterisk/linkedlists.h"
-#include "asterisk/frame_defs.h"
+
 #include "asterisk/slinfactory.h"
 
 enum ast_audiohook_type {
@@ -62,8 +62,6 @@ enum ast_audiohook_flags {
 	 * slinfactories. We will flush the factories if they contain too many samples.
 	 */
 	AST_AUDIOHOOK_SMALL_QUEUE = (1 << 3),
-	AST_AUDIOHOOK_MUTE_READ = (1 << 4),     /*!< audiohook should be mute frames read */
-	AST_AUDIOHOOK_MUTE_WRITE = (1 << 5),    /*!< audiohook should be mute frames written */
 };
 
 #define AST_AUDIOHOOK_SYNC_TOLERANCE 100 /*< Tolerance in milliseconds for audiohooks synchronization */
@@ -142,7 +140,7 @@ int ast_audiohook_write_frame(struct ast_audiohook *audiohook, enum ast_audiohoo
  * \param format Format of frame remote side wants back
  * \return Returns frame on success, NULL on failure
  */
-struct ast_frame *ast_audiohook_read_frame(struct ast_audiohook *audiohook, size_t samples, enum ast_audiohook_direction direction, format_t format);
+struct ast_frame *ast_audiohook_read_frame(struct ast_audiohook *audiohook, size_t samples, enum ast_audiohook_direction direction, int format);
 
 /*! \brief Attach audiohook to channel
  * \param chan Channel
@@ -201,6 +199,13 @@ int ast_audiohook_detach_source(struct ast_channel *chan, const char *source);
  * \note The channel does not need to be locked before calling this function
  */
 int ast_audiohook_remove(struct ast_channel *chan, struct ast_audiohook *audiohook);
+
+/*!
+ * \brief determines if a audiohook_list is empty or not.
+ *
+ * retval 0 false, 1 true
+ */
+int ast_audiohook_write_list_empty(struct ast_audiohook_list *audiohook_list);
 
 /*! \brief Pass a frame off to be handled by the audiohook core
  * \param chan Channel that the list is coming off of
@@ -285,16 +290,6 @@ int ast_audiohook_volume_get(struct ast_channel *chan, enum ast_audiohook_direct
  * \since 1.6.1
  */
 int ast_audiohook_volume_adjust(struct ast_channel *chan, enum ast_audiohook_direction direction, int volume);
-
-/*! \brief Mute frames read from or written to a channel
- * \param chan Channel to muck with
- * \param source Type of audiohook
- * \param flag which direction to set / clear
- * \param clear set or clear muted frames on direction based on flag parameter
- * \retval 0 success
- * \retval -1 failure
- */
-int ast_audiohook_set_mute(struct ast_channel *chan, const char *source, enum ast_audiohook_flags flag, int clear);
 
 #if defined(__cplusplus) || defined(c_plusplus)
 }

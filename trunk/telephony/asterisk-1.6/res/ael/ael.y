@@ -24,7 +24,7 @@
 
 #include "asterisk.h"
 
-ASTERISK_FILE_VERSION(__FILE__, "$Revision: 189464 $")
+ASTERISK_FILE_VERSION(__FILE__, "$Revision: 272262 $")
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -854,7 +854,7 @@ struct pval *npval(pvaltype type, int first_line, int last_line,
 	z->endline = last_line;
 	z->startcol = first_column;
 	z->endcol = last_column;
-	z->filename = strdup(my_file);
+	z->filename = strdup(S_OR(my_file, "<none>"));
 	return z;
 }
 

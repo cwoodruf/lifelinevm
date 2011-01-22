@@ -2,7 +2,7 @@
  * Asterisk -- An open source telephony toolkit.
  *
  * Copyright (c) 2005, 2006 Tilghman Lesher
- * Copyright (c) 2008, 2009 Digium, Inc.
+ * Copyright (c) 2008 Digium, Inc.
  *
  * Tilghman Lesher <func_odbc__200508@the-tilghman.com>
  *
@@ -33,7 +33,7 @@
 
 #include "asterisk.h"
 
-ASTERISK_FILE_VERSION(__FILE__, "$Revision: 267669 $")
+ASTERISK_FILE_VERSION(__FILE__, "$Revision: 267670 $")
 
 #include "asterisk/module.h"
 #include "asterisk/file.h"
@@ -99,10 +99,10 @@ ASTERISK_FILE_VERSION(__FILE__, "$Revision: 267669 $")
 
 static char *config = "func_odbc.conf";
 
-enum odbc_option_flags {
+enum {
 	OPT_ESCAPECOMMAS =	(1 << 0),
 	OPT_MULTIROW     =	(1 << 1),
-};
+} odbc_option_flags;
 
 struct acf_odbc_query {
 	AST_RWLIST_ENTRY(acf_odbc_query) list;
@@ -118,7 +118,7 @@ struct acf_odbc_query {
 
 static void odbc_datastore_free(void *data);
 
-static struct ast_datastore_info odbc_info = {
+struct ast_datastore_info odbc_info = {
 	.type = "FUNC_ODBC",
 	.destroy = odbc_datastore_free,
 };
@@ -135,7 +135,7 @@ struct odbc_datastore {
 	char names[0];
 };
 
-static AST_RWLIST_HEAD_STATIC(queries, acf_odbc_query);
+AST_RWLIST_HEAD_STATIC(queries, acf_odbc_query);
 
 static int resultcount = 0;
 
@@ -143,8 +143,6 @@ AST_THREADSTORAGE(sql_buf);
 AST_THREADSTORAGE(sql2_buf);
 AST_THREADSTORAGE(coldata_buf);
 AST_THREADSTORAGE(colnames_buf);
-
-static int acf_fetch(struct ast_channel *chan, const char *cmd, char *data, char *buf, size_t len);
 
 static void odbc_datastore_free(void *data)
 {
@@ -235,23 +233,17 @@ static int acf_odbc_write(struct ast_channel *chan, const char *cmd, char *s, co
 	if (!query) {
 		ast_log(LOG_ERROR, "No such function '%s'\n", cmd);
 		AST_RWLIST_UNLOCK(&queries);
-		if (chan) {
-			pbx_builtin_setvar_helper(chan, "ODBCSTATUS", status);
-		}
+		pbx_builtin_setvar_helper(chan, "ODBCSTATUS", status);
 		return -1;
 	}
 
 	if (!chan) {
-		if (!(chan = ast_dummy_channel_alloc())) {
-			AST_RWLIST_UNLOCK(&queries);
-			return -1;
-		}
-		bogus_chan = 1;
+		if ((chan = ast_channel_alloc(0, 0, "", "", "", "", "", 0, "Bogus/func_odbc")))
+			bogus_chan = 1;
 	}
 
-	if (!bogus_chan) {
+	if (chan)
 		ast_autoservice_start(chan);
-	}
 
 	ast_str_make_space(&buf, strlen(query->sql_write) * 2 + 300);
 	ast_str_make_space(&insertbuf, strlen(query->sql_insert) * 2 + 300);
@@ -262,11 +254,12 @@ static int acf_odbc_write(struct ast_channel *chan, const char *cmd, char *s, co
 	if (!s || !t) {
 		ast_log(LOG_ERROR, "Out of memory\n");
 		AST_RWLIST_UNLOCK(&queries);
-		if (!bogus_chan) {
+		if (chan)
 			ast_autoservice_stop(chan);
-			pbx_builtin_setvar_helper(chan, "ODBCSTATUS", status);
+		if (bogus_chan) {
+			ast_channel_free(chan);
 		} else {
-			ast_channel_release(chan);
+			pbx_builtin_setvar_helper(chan, "ODBCSTATUS", status);
 		}
 		return -1;
 	}
@@ -290,49 +283,45 @@ static int acf_odbc_write(struct ast_channel *chan, const char *cmd, char *s, co
 	ast_str_substitute_variables(&buf, 0, chan, query->sql_write);
 	ast_str_substitute_variables(&insertbuf, 0, chan, query->sql_insert);
 
-	if (bogus_chan) {
-		chan = ast_channel_release(chan);
-	} else {
-		/* Restore prior values */
-		for (i = 0; i < args.argc; i++) {
-			snprintf(varname, sizeof(varname), "ARG%d", i + 1);
-			pbx_builtin_setvar_helper(chan, varname, NULL);
+	/* Restore prior values */
+	for (i = 0; i < args.argc; i++) {
+		snprintf(varname, sizeof(varname), "ARG%d", i + 1);
+		pbx_builtin_setvar_helper(chan, varname, NULL);
+	}
+
+	for (i = 0; i < values.argc; i++) {
+		snprintf(varname, sizeof(varname), "VAL%d", i + 1);
+		pbx_builtin_setvar_helper(chan, varname, NULL);
+	}
+	pbx_builtin_setvar_helper(chan, "VALUE", NULL);
+
+	/*!\note
+	 * Okay, this part is confusing.  Transactions belong to a single database
+	 * handle.  Therefore, when working with transactions, we CANNOT failover
+	 * to multiple DSNs.  We MUST have a single handle all the way through the
+	 * transaction, or else we CANNOT enforce atomicity.
+	 */
+	for (dsn = 0; dsn < 5; dsn++) {
+		if (transactional) {
+			/* This can only happen second time through or greater. */
+			ast_log(LOG_WARNING, "Transactions do not work well with multiple DSNs for 'writehandle'\n");
 		}
 
-		for (i = 0; i < values.argc; i++) {
-			snprintf(varname, sizeof(varname), "VAL%d", i + 1);
-			pbx_builtin_setvar_helper(chan, varname, NULL);
+		if (!ast_strlen_zero(query->writehandle[dsn])) {
+			if ((obj = ast_odbc_retrieve_transaction_obj(chan, query->writehandle[dsn]))) {
+				transactional = 1;
+			} else {
+				obj = ast_odbc_request_obj(query->writehandle[dsn], 0);
+				transactional = 0;
+			}
+			if (obj && (stmt = ast_odbc_direct_execute(obj, generic_execute, ast_str_buffer(buf)))) {
+				break;
+			}
 		}
-		pbx_builtin_setvar_helper(chan, "VALUE", NULL);
 
-		/*!\note
-		 * Okay, this part is confusing.  Transactions belong to a single database
-		 * handle.  Therefore, when working with transactions, we CANNOT failover
-		 * to multiple DSNs.  We MUST have a single handle all the way through the
-		 * transaction, or else we CANNOT enforce atomicity.
-		 */
-		for (dsn = 0; dsn < 5; dsn++) {
-			if (transactional) {
-				/* This can only happen second time through or greater. */
-				ast_log(LOG_WARNING, "Transactions do not work well with multiple DSNs for 'writehandle'\n");
-			}
-
-			if (!ast_strlen_zero(query->writehandle[dsn])) {
-				if ((obj = ast_odbc_retrieve_transaction_obj(chan, query->writehandle[dsn]))) {
-					transactional = 1;
-				} else {
-					obj = ast_odbc_request_obj(query->writehandle[dsn], 0);
-					transactional = 0;
-				}
-				if (obj && (stmt = ast_odbc_direct_execute(obj, generic_execute, ast_str_buffer(buf)))) {
-					break;
-				}
-			}
-
-			if (obj && !transactional) {
-				ast_odbc_release_obj(obj);
-				obj = NULL;
-			}
+		if (obj && !transactional) {
+			ast_odbc_release_obj(obj);
+			obj = NULL;
 		}
 	}
 
@@ -351,8 +340,10 @@ static int acf_odbc_write(struct ast_channel *chan, const char *cmd, char *s, co
 				SQLRowCount(stmt, &rows);
 				break;
 			}
-			ast_odbc_release_obj(obj);
-			obj = NULL;
+			if (obj) {
+				ast_odbc_release_obj(obj);
+				obj = NULL;
+			}
 		}
 	} else if (stmt) {
 		status = "SUCCESS";
@@ -365,11 +356,9 @@ static int acf_odbc_write(struct ast_channel *chan, const char *cmd, char *s, co
 	 * flag this as -1 rows.  Note that this is different from 0 affected rows
 	 * which would be the case if we succeeded in our query, but the values did
 	 * not change. */
-	if (!bogus_chan) {
-		snprintf(varname, sizeof(varname), "%d", (int)rows);
-		pbx_builtin_setvar_helper(chan, "ODBCROWS", varname);
-		pbx_builtin_setvar_helper(chan, "ODBCSTATUS", status);
-	}
+	snprintf(varname, sizeof(varname), "%d", (int)rows);
+	pbx_builtin_setvar_helper(chan, "ODBCROWS", varname);
+	pbx_builtin_setvar_helper(chan, "ODBCSTATUS", status);
 
 	if (stmt) {
 		SQLCloseCursor(stmt);
@@ -380,9 +369,10 @@ static int acf_odbc_write(struct ast_channel *chan, const char *cmd, char *s, co
 		obj = NULL;
 	}
 
-	if (!bogus_chan) {
+	if (chan)
 		ast_autoservice_stop(chan);
-	}
+	if (bogus_chan)
+		ast_channel_free(chan);
 
 	return 0;
 }
@@ -393,7 +383,7 @@ static int acf_odbc_read(struct ast_channel *chan, const char *cmd, char *s, cha
 	struct acf_odbc_query *query;
 	char varname[15], rowcount[12] = "-1";
 	struct ast_str *colnames = ast_str_thread_get(&colnames_buf, 16);
-	int res, x, y, buflen = 0, escapecommas, rowlimit = 1, multirow = 0, dsn, bogus_chan = 0;
+	int res, x, y, buflen = 0, escapecommas, rowlimit = 1, dsn, bogus_chan = 0;
 	AST_DECLARE_APP_ARGS(args,
 		AST_APP_ARG(field)[100];
 	);
@@ -407,9 +397,7 @@ static int acf_odbc_read(struct ast_channel *chan, const char *cmd, char *s, cha
 	const char *status = "FAILURE";
 
 	if (!sql || !colnames) {
-		if (chan) {
-			pbx_builtin_setvar_helper(chan, "ODBCSTATUS", status);
-		}
+		pbx_builtin_setvar_helper(chan, "ODBCSTATUS", status);
 		return -1;
 	}
 
@@ -425,22 +413,18 @@ static int acf_odbc_read(struct ast_channel *chan, const char *cmd, char *s, cha
 	if (!query) {
 		ast_log(LOG_ERROR, "No such function '%s'\n", cmd);
 		AST_RWLIST_UNLOCK(&queries);
-		if (chan) {
-			pbx_builtin_setvar_helper(chan, "ODBCROWS", rowcount);
-			pbx_builtin_setvar_helper(chan, "ODBCSTATUS", status);
-		}
+		pbx_builtin_setvar_helper(chan, "ODBCROWS", rowcount);
+		pbx_builtin_setvar_helper(chan, "ODBCSTATUS", status);
 		return -1;
 	}
 
 	if (!chan) {
-		if (!(chan = ast_dummy_channel_alloc())) {
-			AST_RWLIST_UNLOCK(&queries);
-			return -1;
+		if ((chan = ast_channel_alloc(0, 0, "", "", "", "", "", 0, "Bogus/func_odbc"))) {
+			bogus_chan = 1;
 		}
-		bogus_chan = 1;
 	}
 
-	if (!bogus_chan) {
+	if (chan) {
 		ast_autoservice_start(chan);
 	}
 
@@ -452,42 +436,21 @@ static int acf_odbc_read(struct ast_channel *chan, const char *cmd, char *s, cha
 
 	ast_str_substitute_variables(&sql, 0, chan, query->sql_read);
 
-	if (bogus_chan) {
-		chan = ast_channel_release(chan);
-	} else {
-		/* Restore prior values */
-		for (x = 0; x < args.argc; x++) {
-			snprintf(varname, sizeof(varname), "ARG%d", x + 1);
-			pbx_builtin_setvar_helper(chan, varname, NULL);
-		}
+	/* Restore prior values */
+	for (x = 0; x < args.argc; x++) {
+		snprintf(varname, sizeof(varname), "ARG%d", x + 1);
+		pbx_builtin_setvar_helper(chan, varname, NULL);
 	}
 
 	/* Save these flags, so we can release the lock */
 	escapecommas = ast_test_flag(query, OPT_ESCAPECOMMAS);
-	if (!bogus_chan && ast_test_flag(query, OPT_MULTIROW)) {
-		if (!(resultset = ast_calloc(1, sizeof(*resultset)))) {
-			pbx_builtin_setvar_helper(chan, "ODBCROWS", rowcount);
-			pbx_builtin_setvar_helper(chan, "ODBCSTATUS", status);
-			ast_autoservice_stop(chan);
-			return -1;
-		}
+	if (ast_test_flag(query, OPT_MULTIROW)) {
+		resultset = ast_calloc(1, sizeof(*resultset));
 		AST_LIST_HEAD_INIT(resultset);
 		if (query->rowlimit) {
 			rowlimit = query->rowlimit;
 		} else {
 			rowlimit = INT_MAX;
-		}
-		multirow = 1;
-	} else if (!bogus_chan) {
-		if (query->rowlimit > 1) {
-			rowlimit = query->rowlimit;
-			if (!(resultset = ast_calloc(1, sizeof(*resultset)))) {
-				pbx_builtin_setvar_helper(chan, "ODBCROWS", rowcount);
-				pbx_builtin_setvar_helper(chan, "ODBCSTATUS", status);
-				ast_autoservice_stop(chan);
-				return -1;
-			}
-			AST_LIST_HEAD_INIT(resultset);
 		}
 	}
 	AST_RWLIST_UNLOCK(&queries);
@@ -502,8 +465,10 @@ static int acf_odbc_read(struct ast_channel *chan, const char *cmd, char *s, cha
 		if (stmt) {
 			break;
 		}
-		ast_odbc_release_obj(obj);
-		obj = NULL;
+		if (obj) {
+			ast_odbc_release_obj(obj);
+			obj = NULL;
+		}
 	}
 
 	if (!stmt) {
@@ -512,9 +477,12 @@ static int acf_odbc_read(struct ast_channel *chan, const char *cmd, char *s, cha
 			ast_odbc_release_obj(obj);
 			obj = NULL;
 		}
-		if (!bogus_chan) {
-			pbx_builtin_setvar_helper(chan, "ODBCROWS", rowcount);
+		pbx_builtin_setvar_helper(chan, "ODBCROWS", rowcount);
+		if (chan) {
 			ast_autoservice_stop(chan);
+		}
+		if (bogus_chan) {
+			ast_channel_free(chan);
 		}
 		return -1;
 	}
@@ -526,9 +494,12 @@ static int acf_odbc_read(struct ast_channel *chan, const char *cmd, char *s, cha
 		SQLFreeHandle (SQL_HANDLE_STMT, stmt);
 		ast_odbc_release_obj(obj);
 		obj = NULL;
-		if (!bogus_chan) {
-			pbx_builtin_setvar_helper(chan, "ODBCROWS", rowcount);
+		pbx_builtin_setvar_helper(chan, "ODBCROWS", rowcount);
+		if (chan) {
 			ast_autoservice_stop(chan);
+		}
+		if (bogus_chan) {
+			ast_channel_free(chan);
 		}
 		return -1;
 	}
@@ -550,11 +521,12 @@ static int acf_odbc_read(struct ast_channel *chan, const char *cmd, char *s, cha
 		SQLFreeHandle(SQL_HANDLE_STMT, stmt);
 		ast_odbc_release_obj(obj);
 		obj = NULL;
-		if (!bogus_chan) {
-			pbx_builtin_setvar_helper(chan, "ODBCROWS", rowcount);
-			pbx_builtin_setvar_helper(chan, "ODBCSTATUS", status);
+		pbx_builtin_setvar_helper(chan, "ODBCROWS", rowcount);
+		pbx_builtin_setvar_helper(chan, "ODBCSTATUS", status);
+		if (chan)
 			ast_autoservice_stop(chan);
-		}
+		if (bogus_chan)
+			ast_channel_free(chan);
 		return res1;
 	}
 
@@ -577,7 +549,7 @@ static int acf_odbc_read(struct ast_channel *chan, const char *cmd, char *s, cha
 				if (chan)
 					ast_autoservice_stop(chan);
 				if (bogus_chan) {
-					ast_channel_release(chan);
+					ast_channel_free(chan);
 				}
 				return -1;
 			}
@@ -610,7 +582,10 @@ static int acf_odbc_read(struct ast_channel *chan, const char *cmd, char *s, cha
 						obj = NULL;
 						pbx_builtin_setvar_helper(chan, "ODBCROWS", rowcount);
 						pbx_builtin_setvar_helper(chan, "ODBCSTATUS", "MEMERROR");
-						ast_autoservice_stop(chan);
+						if (chan)
+							ast_autoservice_stop(chan);
+						if (bogus_chan)
+							ast_channel_free(chan);
 						return -1;
 					}
 					resultset = tmp;
@@ -685,59 +660,41 @@ static int acf_odbc_read(struct ast_channel *chan, const char *cmd, char *s, cha
 	}
 
 end_acf_read:
-	if (!bogus_chan) {
-		snprintf(rowcount, sizeof(rowcount), "%d", y);
-		pbx_builtin_setvar_helper(chan, "ODBCROWS", rowcount);
-		pbx_builtin_setvar_helper(chan, "ODBCSTATUS", status);
-		pbx_builtin_setvar_helper(chan, "~ODBCFIELDS~", ast_str_buffer(colnames));
-		if (resultset) {
-			int uid;
-			struct ast_datastore *odbc_store;
-			if (multirow) {
-				uid = ast_atomic_fetchadd_int(&resultcount, +1) + 1;
-				snprintf(buf, len, "%d", uid);
-			} else {
-				/* Name of the query is name of the resultset */
-				ast_copy_string(buf, cmd, len);
-
-				/* If there's one with the same name already, free it */
-				ast_channel_lock(chan);
-				if ((odbc_store = ast_channel_datastore_find(chan, &odbc_info, buf))) {
-					ast_channel_datastore_remove(chan, odbc_store);
-					odbc_datastore_free(odbc_store->data);
-					ast_free(odbc_store);
-				}
-				ast_channel_unlock(chan);
-			}
-			odbc_store = ast_datastore_alloc(&odbc_info, buf);
-			if (!odbc_store) {
-				ast_log(LOG_ERROR, "Rows retrieved, but unable to store it in the channel.  Results fail.\n");
-				odbc_datastore_free(resultset);
-				SQLCloseCursor(stmt);
-				SQLFreeHandle(SQL_HANDLE_STMT, stmt);
-				ast_odbc_release_obj(obj);
-				obj = NULL;
-				pbx_builtin_setvar_helper(chan, "ODBCSTATUS", "MEMERROR");
+	snprintf(rowcount, sizeof(rowcount), "%d", y);
+	pbx_builtin_setvar_helper(chan, "ODBCROWS", rowcount);
+	pbx_builtin_setvar_helper(chan, "ODBCSTATUS", status);
+	pbx_builtin_setvar_helper(chan, "~ODBCFIELDS~", ast_str_buffer(colnames));
+	if (resultset) {
+		int uid;
+		struct ast_datastore *odbc_store;
+		uid = ast_atomic_fetchadd_int(&resultcount, +1) + 1;
+		snprintf(buf, len, "%d", uid);
+		odbc_store = ast_datastore_alloc(&odbc_info, buf);
+		if (!odbc_store) {
+			ast_log(LOG_ERROR, "Rows retrieved, but unable to store it in the channel.  Results fail.\n");
+			pbx_builtin_setvar_helper(chan, "ODBCSTATUS", "MEMERROR");
+			odbc_datastore_free(resultset);
+			SQLCloseCursor(stmt);
+			SQLFreeHandle(SQL_HANDLE_STMT, stmt);
+			ast_odbc_release_obj(obj);
+			obj = NULL;
+			if (chan)
 				ast_autoservice_stop(chan);
-				return -1;
-			}
-			odbc_store->data = resultset;
-			ast_channel_datastore_add(chan, odbc_store);
+			if (bogus_chan)
+				ast_channel_free(chan);
+			return -1;
 		}
+		odbc_store->data = resultset;
+		ast_channel_datastore_add(chan, odbc_store);
 	}
 	SQLCloseCursor(stmt);
 	SQLFreeHandle(SQL_HANDLE_STMT, stmt);
 	ast_odbc_release_obj(obj);
 	obj = NULL;
-	if (resultset && !multirow) {
-		/* Fetch the first resultset */
-		if (!acf_fetch(chan, "", buf, buf, len)) {
-			buf[0] = '\0';
-		}
-	}
-	if (!bogus_chan) {
+	if (chan)
 		ast_autoservice_stop(chan);
-	}
+	if (bogus_chan)
+		ast_channel_free(chan);
 	return 0;
 }
 
@@ -799,7 +756,7 @@ static struct ast_custom_function fetch_function = {
 
 static char *app_odbcfinish = "ODBCFinish";
 
-static int exec_odbcfinish(struct ast_channel *chan, const char *data)
+static int exec_odbcfinish(struct ast_channel *chan, void *data)
 {
 	struct ast_datastore *store = ast_channel_datastore_find(chan, &odbc_info, data);
 	if (!store) /* Already freed; no big deal. */
@@ -1118,7 +1075,7 @@ static char *cli_odbc_read(struct ast_cli_entry *e, int cmd, struct ast_cli_args
 	/* Evaluate function */
 	char_args = ast_strdupa(a->argv[3]);
 
-	chan = ast_dummy_channel_alloc();
+	chan = ast_channel_alloc(0, 0, "", "", "", "", "", 0, "Bogus/func_odbc");
 
 	AST_STANDARD_APP_ARGS(args, char_args);
 	for (i = 0; i < args.argc; i++) {
@@ -1127,7 +1084,7 @@ static char *cli_odbc_read(struct ast_cli_entry *e, int cmd, struct ast_cli_args
 	}
 
 	ast_str_substitute_variables(&sql, 0, chan, query->sql_read);
-	chan = ast_channel_release(chan);
+	ast_channel_free(chan);
 
 	if (a->argc == 5 && !strcmp(a->argv[4], "exec")) {
 		/* Execute the query */
@@ -1326,7 +1283,7 @@ static char *cli_odbc_write(struct ast_cli_entry *e, int cmd, struct ast_cli_arg
 	char_args = ast_strdupa(a->argv[3]);
 	char_values = ast_strdupa(a->argv[4]);
 
-	chan = ast_dummy_channel_alloc();
+	chan = ast_channel_alloc(0, 0, "", "", "", "", "", 0, "Bogus/func_odbc");
 
 	AST_STANDARD_APP_ARGS(args, char_args);
 	for (i = 0; i < args.argc; i++) {
@@ -1345,7 +1302,7 @@ static char *cli_odbc_write(struct ast_cli_entry *e, int cmd, struct ast_cli_arg
 	pbx_builtin_pushvar_helper(chan, "VALUE", S_OR(a->argv[4], ""));
 	ast_str_substitute_variables(&sql, 0, chan, query->sql_write);
 	ast_debug(1, "SQL is %s\n", ast_str_buffer(sql));
-	chan = ast_channel_release(chan);
+	ast_channel_free(chan);
 
 	if (a->argc == 6 && !strcmp(a->argv[5], "exec")) {
 		/* Execute the query */

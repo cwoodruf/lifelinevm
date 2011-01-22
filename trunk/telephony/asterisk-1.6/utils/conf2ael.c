@@ -27,7 +27,7 @@
  ***/
 
 #include "asterisk.h"
-ASTERISK_FILE_VERSION(__FILE__, "$Revision: 201678 $")
+ASTERISK_FILE_VERSION(__FILE__, "$Revision: 201679 $")
 
 #include "asterisk/paths.h"	/* CONFIG_DIR */
 #include <locale.h>
@@ -569,7 +569,7 @@ int main(int argc, char **argv)
 
 /* ==================================== for linking internal stuff to external stuff */
 
-int pbx_builtin_setvar(struct ast_channel *chan, const char *data)
+int pbx_builtin_setvar(struct ast_channel *chan, void *data)
 {
 	return localized_pbx_builtin_setvar(chan, data);
 }

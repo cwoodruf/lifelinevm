@@ -32,7 +32,7 @@
 
 #include "asterisk.h"
 
-ASTERISK_FILE_VERSION(__FILE__, "$Revision: 211539 $")
+ASTERISK_FILE_VERSION(__FILE__, "$Revision: 280556 $")
 
 #include <curl/curl.h>
 
@@ -43,10 +43,6 @@ ASTERISK_FILE_VERSION(__FILE__, "$Revision: 211539 $")
 #include "asterisk/module.h"
 #include "asterisk/lock.h"
 #include "asterisk/utils.h"
-#include "asterisk/threadstorage.h"
-
-AST_THREADSTORAGE(query_buf);
-AST_THREADSTORAGE(result_buf);
 
 /*!
  * \brief Execute a curl query and return ast_variable list
@@ -59,24 +55,25 @@ AST_THREADSTORAGE(result_buf);
 */
 static struct ast_variable *realtime_curl(const char *url, const char *unused, va_list ap)
 {
-	struct ast_str *query, *buffer;
-	char buf1[256], buf2[256];
+	struct ast_str *query;
+	char buf1[200], buf2[200];
 	const char *newparam, *newval;
 	char *stringp, *pair, *key;
 	int i;
-	struct ast_variable *var = NULL, *prev = NULL;
-	const int EncodeSpecialChars = 1;
+	struct ast_variable *var=NULL, *prev=NULL;
+	const int EncodeSpecialChars = 1, bufsize = 64000;
+	char *buffer;
 
 	if (!ast_custom_function_find("CURL")) {
 		ast_log(LOG_ERROR, "func_curl.so must be loaded in order to use res_config_curl.so!!\n");
 		return NULL;
 	}
 
-	if (!(query = ast_str_thread_get(&query_buf, 16))) {
+	if (!(query = ast_str_create(1000)))
 		return NULL;
-	}
 
-	if (!(buffer = ast_str_thread_get(&result_buf, 16))) {
+	if (!(buffer = ast_malloc(bufsize))) {
+		ast_free(query);
 		return NULL;
 	}
 
@@ -91,33 +88,31 @@ static struct ast_variable *realtime_curl(const char *url, const char *unused, v
 	va_end(ap);
 
 	ast_str_append(&query, 0, ")}");
-	ast_str_substitute_variables(&buffer, 0, NULL, ast_str_buffer(query));
+	pbx_substitute_variables_helper(NULL, ast_str_buffer(query), buffer, bufsize - 1);
 
 	/* Remove any trailing newline characters */
-	if ((stringp = strchr(ast_str_buffer(buffer), '\r')) || (stringp = strchr(ast_str_buffer(buffer), '\n'))) {
+	if ((stringp = strchr(buffer, '\r')) || (stringp = strchr(buffer, '\n')))
 		*stringp = '\0';
-	}
 
-	stringp = ast_str_buffer(buffer);
+	stringp = buffer;
 	while ((pair = strsep(&stringp, "&"))) {
 		key = strsep(&pair, "=");
 		ast_uri_decode(key);
-		if (pair) {
+		if (pair)
 			ast_uri_decode(pair);
-		}
 
 		if (!ast_strlen_zero(key)) {
 			if (prev) {
 				prev->next = ast_variable_new(key, S_OR(pair, ""), "");
-				if (prev->next) {
+				if (prev->next)
 					prev = prev->next;
-				}
-			} else {
+			} else 
 				prev = var = ast_variable_new(key, S_OR(pair, ""), "");
-			}
 		}
 	}
 
+	ast_free(buffer);
+	ast_free(query);
 	return var;
 }
 
@@ -132,26 +127,27 @@ static struct ast_variable *realtime_curl(const char *url, const char *unused, v
 */
 static struct ast_config *realtime_multi_curl(const char *url, const char *unused, va_list ap)
 {
-	struct ast_str *query, *buffer;
-	char buf1[256], buf2[256];
+	struct ast_str *query;
+	char buf1[200], buf2[200];
 	const char *newparam, *newval;
 	char *stringp, *line, *pair, *key, *initfield = NULL;
 	int i;
-	const int EncodeSpecialChars = 1;
-	struct ast_variable *var = NULL;
-	struct ast_config *cfg = NULL;
-	struct ast_category *cat = NULL;
+	const int EncodeSpecialChars = 1, bufsize = 256000;
+	struct ast_variable *var=NULL;
+	struct ast_config *cfg=NULL;
+	struct ast_category *cat=NULL;
+	char *buffer;
 
 	if (!ast_custom_function_find("CURL")) {
 		ast_log(LOG_ERROR, "func_curl.so must be loaded in order to use res_config_curl.so!!\n");
 		return NULL;
 	}
 
-	if (!(query = ast_str_thread_get(&query_buf, 16))) {
+	if (!(query = ast_str_create(1000)))
 		return NULL;
-	}
 
-	if (!(buffer = ast_str_thread_get(&result_buf, 16))) {
+	if (!(buffer = ast_malloc(bufsize))) {
+		ast_free(query);
 		return NULL;
 	}
 
@@ -174,33 +170,28 @@ static struct ast_config *realtime_multi_curl(const char *url, const char *unuse
 	ast_str_append(&query, 0, ")}");
 
 	/* Do the CURL query */
-	ast_str_substitute_variables(&buffer, 0, NULL, ast_str_buffer(query));
+	pbx_substitute_variables_helper(NULL, ast_str_buffer(query), buffer, bufsize - 1);
 
-	if (!(cfg = ast_config_new())) {
-		return NULL;
-	}
+	if (!(cfg = ast_config_new()))
+		goto exit_multi;
 
 	/* Line oriented output */
-	stringp = ast_str_buffer(buffer);
+	stringp = buffer;
 	while ((line = strsep(&stringp, "\r\n"))) {
-		if (ast_strlen_zero(line)) {
+		if (ast_strlen_zero(line))
 			continue;
-		}
 
-		if (!(cat = ast_category_new("", "", 99999))) {
+		if (!(cat = ast_category_new("", "", 99999)))
 			continue;
-		}
 
 		while ((pair = strsep(&line, "&"))) {
 			key = strsep(&pair, "=");
 			ast_uri_decode(key);
-			if (pair) {
+			if (pair)
 				ast_uri_decode(pair);
-			}
 
-			if (!strcasecmp(key, initfield) && pair) {
+			if (!strcasecmp(key, initfield) && pair)
 				ast_category_rename(cat, pair);
-			}
 
 			if (!ast_strlen_zero(key)) {
 				var = ast_variable_new(key, S_OR(pair, ""), "");
@@ -210,6 +201,9 @@ static struct ast_config *realtime_multi_curl(const char *url, const char *unuse
 		ast_category_append(cfg, cat);
 	}
 
+exit_multi:
+	ast_free(buffer);
+	ast_free(query);
 	return cfg;
 }
 
@@ -230,23 +224,24 @@ static struct ast_config *realtime_multi_curl(const char *url, const char *unuse
 */
 static int update_curl(const char *url, const char *unused, const char *keyfield, const char *lookup, va_list ap)
 {
-	struct ast_str *query, *buffer;
-	char buf1[256], buf2[256];
+	struct ast_str *query;
+	char buf1[200], buf2[200];
 	const char *newparam, *newval;
 	char *stringp;
 	int i, rowcount = -1;
-	const int EncodeSpecialChars = 1;
+	const int EncodeSpecialChars = 1, bufsize = 100;
+	char *buffer;
 
 	if (!ast_custom_function_find("CURL")) {
 		ast_log(LOG_ERROR, "func_curl.so must be loaded in order to use res_config_curl.so!!\n");
 		return -1;
 	}
 
-	if (!(query = ast_str_thread_get(&query_buf, 16))) {
+	if (!(query = ast_str_create(1000)))
 		return -1;
-	}
 
-	if (!(buffer = ast_str_thread_get(&result_buf, 16))) {
+	if (!(buffer = ast_malloc(bufsize))) {
+		ast_free(query);
 		return -1;
 	}
 
@@ -263,40 +258,43 @@ static int update_curl(const char *url, const char *unused, const char *keyfield
 	va_end(ap);
 
 	ast_str_append(&query, 0, ")}");
-	ast_str_substitute_variables(&buffer, 0, NULL, ast_str_buffer(query));
+	pbx_substitute_variables_helper(NULL, ast_str_buffer(query), buffer, bufsize - 1);
 
 	/* Line oriented output */
-	stringp = ast_str_buffer(buffer);
-	while (*stringp <= ' ') {
+	stringp = buffer;
+	while (*stringp <= ' ')
 		stringp++;
-	}
 	sscanf(stringp, "%30d", &rowcount);
 
-	if (rowcount >= 0) {
+	ast_free(buffer);
+	ast_free(query);
+
+	if (rowcount >= 0)
 		return (int)rowcount;
-	}
 
 	return -1;
 }
 
 static int update2_curl(const char *url, const char *unused, va_list ap)
 {
-	struct ast_str *query, *buffer;
+	struct ast_str *query;
 	char buf1[200], buf2[200];
 	const char *newparam, *newval;
 	char *stringp;
 	int rowcount = -1, lookup = 1, first = 1;
-	const int EncodeSpecialChars = 1;
+	const int EncodeSpecialChars = 1, bufsize = 100;
+	char *buffer;
 
 	if (!ast_custom_function_find("CURL")) {
 		ast_log(LOG_ERROR, "func_curl.so must be loaded in order to use res_config_curl.so!!\n");
 		return -1;
 	}
 
-	if (!(query = ast_str_thread_get(&query_buf, 1000)))
+	if (!(query = ast_str_create(1000)))
 		return -1;
 
-	if (!(buffer = ast_str_thread_get(&result_buf, 16))) {
+	if (!(buffer = ast_malloc(bufsize))) {
+		ast_free(query);
 		return -1;
 	}
 
@@ -318,27 +316,24 @@ static int update2_curl(const char *url, const char *unused, va_list ap)
 		ast_uri_encode(newparam, buf1, sizeof(buf1), EncodeSpecialChars);
 		ast_uri_encode(newval, buf2, sizeof(buf2), EncodeSpecialChars);
 		ast_str_append(&query, 0, "%s%s=%s", first ? "" : "&", buf1, buf2);
-		first = 0;
 	}
 	va_end(ap);
 
 	ast_str_append(&query, 0, ")}");
-	/* Proxies work, by setting CURLOPT options in the [globals] section of
-	 * extensions.conf.  Unfortunately, this means preloading pbx_config.so
-	 * so that they have an opportunity to be set prior to startup realtime
-	 * queries. */
-	ast_str_substitute_variables(&buffer, 0, NULL, ast_str_buffer(query));
+	/* TODO: Make proxies work */
+	pbx_substitute_variables_helper(NULL, ast_str_buffer(query), buffer, bufsize - 1);
 
 	/* Line oriented output */
-	stringp = ast_str_buffer(buffer);
-	while (*stringp <= ' ') {
+	stringp = buffer;
+	while (*stringp <= ' ')
 		stringp++;
-	}
 	sscanf(stringp, "%30d", &rowcount);
 
-	if (rowcount >= 0) {
+	ast_free(buffer);
+	ast_free(query);
+
+	if (rowcount >= 0)
 		return (int)rowcount;
-	}
 
 	return -1;
 }
@@ -358,23 +353,24 @@ static int update2_curl(const char *url, const char *unused, va_list ap)
 */
 static int store_curl(const char *url, const char *unused, va_list ap)
 {
-	struct ast_str *query, *buffer;
-	char buf1[256], buf2[256];
+	struct ast_str *query;
+	char buf1[200], buf2[200];
 	const char *newparam, *newval;
 	char *stringp;
 	int i, rowcount = -1;
-	const int EncodeSpecialChars = 1;
+	const int EncodeSpecialChars = 1, bufsize = 100;
+	char *buffer;
 
 	if (!ast_custom_function_find("CURL")) {
 		ast_log(LOG_ERROR, "func_curl.so must be loaded in order to use res_config_curl.so!!\n");
 		return -1;
 	}
 
-	if (!(query = ast_str_thread_get(&query_buf, 1000))) {
+	if (!(query = ast_str_create(1000)))
 		return -1;
-	}
 
-	if (!(buffer = ast_str_thread_get(&result_buf, 16))) {
+	if (!(buffer = ast_malloc(bufsize))) {
+		ast_free(query);
 		return -1;
 	}
 
@@ -389,17 +385,18 @@ static int store_curl(const char *url, const char *unused, va_list ap)
 	va_end(ap);
 
 	ast_str_append(&query, 0, ")}");
-	ast_str_substitute_variables(&buffer, 0, NULL, ast_str_buffer(query));
+	pbx_substitute_variables_helper(NULL, ast_str_buffer(query), buffer, bufsize - 1);
 
-	stringp = ast_str_buffer(buffer);
-	while (*stringp <= ' ') {
+	stringp = buffer;
+	while (*stringp <= ' ')
 		stringp++;
-	}
 	sscanf(stringp, "%30d", &rowcount);
 
-	if (rowcount >= 0) {
-		return rowcount;
-	}
+	ast_free(buffer);
+	ast_free(query);
+
+	if (rowcount >= 0)
+		return (int)rowcount;
 
 	return -1;
 }
@@ -421,23 +418,24 @@ static int store_curl(const char *url, const char *unused, va_list ap)
 */
 static int destroy_curl(const char *url, const char *unused, const char *keyfield, const char *lookup, va_list ap)
 {
-	struct ast_str *query, *buffer;
+	struct ast_str *query;
 	char buf1[200], buf2[200];
 	const char *newparam, *newval;
 	char *stringp;
 	int i, rowcount = -1;
-	const int EncodeSpecialChars = 1;
+	const int EncodeSpecialChars = 1, bufsize = 100;
+	char *buffer;
 
 	if (!ast_custom_function_find("CURL")) {
 		ast_log(LOG_ERROR, "func_curl.so must be loaded in order to use res_config_curl.so!!\n");
 		return -1;
 	}
 
-	if (!(query = ast_str_thread_get(&query_buf, 1000))) {
+	if (!(query = ast_str_create(1000)))
 		return -1;
-	}
 
-	if (!(buffer = ast_str_thread_get(&result_buf, 16))) {
+	if (!(buffer = ast_malloc(bufsize))) {
+		ast_free(query);
 		return -1;
 	}
 
@@ -454,26 +452,27 @@ static int destroy_curl(const char *url, const char *unused, const char *keyfiel
 	va_end(ap);
 
 	ast_str_append(&query, 0, ")}");
-	ast_str_substitute_variables(&buffer, 0, NULL, ast_str_buffer(query));
+	pbx_substitute_variables_helper(NULL, ast_str_buffer(query), buffer, bufsize - 1);
 
 	/* Line oriented output */
-	stringp = ast_str_buffer(buffer);
-	while (*stringp <= ' ') {
+	stringp = buffer;
+	while (*stringp <= ' ')
 		stringp++;
-	}
 	sscanf(stringp, "%30d", &rowcount);
 
-	if (rowcount >= 0) {
+	ast_free(buffer);
+	ast_free(query);
+
+	if (rowcount >= 0)
 		return (int)rowcount;
-	}
 
 	return -1;
 }
 
 static int require_curl(const char *url, const char *unused, va_list ap)
 {
-	struct ast_str *query, *buffer;
-	char *elm, field[256];
+	struct ast_str *query;
+	char *elm, field[256], buffer[128];
 	int type, size;
 	const int EncodeSpecialChars = 1;
 
@@ -482,11 +481,7 @@ static int require_curl(const char *url, const char *unused, va_list ap)
 		return -1;
 	}
 
-	if (!(query = ast_str_thread_get(&query_buf, 100))) {
-		return -1;
-	}
-
-	if (!(buffer = ast_str_thread_get(&result_buf, 16))) {
+	if (!(query = ast_str_create(100))) {
 		return -1;
 	}
 
@@ -516,19 +511,19 @@ static int require_curl(const char *url, const char *unused, va_list ap)
 	va_end(ap);
 
 	ast_str_append(&query, 0, ")}");
-	ast_str_substitute_variables(&buffer, 0, NULL, ast_str_buffer(query));
-	return atoi(ast_str_buffer(buffer));
+	pbx_substitute_variables_helper(NULL, ast_str_buffer(query), buffer, sizeof(buffer) - 1);
+	return atoi(buffer);
 }
 
 static struct ast_config *config_curl(const char *url, const char *unused, const char *file, struct ast_config *cfg, struct ast_flags flags, const char *sugg_incl, const char *who_asked)
 {
-	struct ast_str *query, *buffer;
+	struct ast_str *query;
 	char buf1[200];
 	char *stringp, *line, *pair, *key;
-	const int EncodeSpecialChars = 1;
+	const int EncodeSpecialChars = 1, bufsize = 256000;
 	int last_cat_metric = -1, cat_metric = -1;
-	struct ast_category *cat = NULL;
-	char *cur_cat = "";
+	struct ast_category *cat=NULL;
+	char *buffer, *cur_cat = "";
 	char *category = "", *var_name = "", *var_val = "";
 	struct ast_flags loader_flags = { 0 };
 
@@ -537,11 +532,11 @@ static struct ast_config *config_curl(const char *url, const char *unused, const
 		return NULL;
 	}
 
-	if (!(query = ast_str_thread_get(&query_buf, 100))) {
+	if (!(query = ast_str_create(1000)))
 		return NULL;
-	}
 
-	if (!(buffer = ast_str_thread_get(&result_buf, 16))) {
+	if (!(buffer = ast_malloc(bufsize))) {
+		ast_free(query);
 		return NULL;
 	}
 
@@ -549,33 +544,30 @@ static struct ast_config *config_curl(const char *url, const char *unused, const
 	ast_str_set(&query, 0, "${CURL(%s/static?file=%s)}", url, buf1);
 
 	/* Do the CURL query */
-	ast_str_substitute_variables(&buffer, 0, NULL, ast_str_buffer(query));
+	pbx_substitute_variables_helper(NULL, ast_str_buffer(query), buffer, bufsize - 1);
 
 	/* Line oriented output */
-	stringp = ast_str_buffer(buffer);
+	stringp = buffer;
 	cat = ast_config_get_current_category(cfg);
 
 	while ((line = strsep(&stringp, "\r\n"))) {
-		if (ast_strlen_zero(line)) {
+		if (ast_strlen_zero(line))
 			continue;
-		}
 
 		while ((pair = strsep(&line, "&"))) {
 			key = strsep(&pair, "=");
 			ast_uri_decode(key);
-			if (pair) {
+			if (pair)
 				ast_uri_decode(pair);
-			}
 
-			if (!strcasecmp(key, "category")) {
+			if (!strcasecmp(key, "category"))
 				category = S_OR(pair, "");
-			} else if (!strcasecmp(key, "var_name")) {
+			else if (!strcasecmp(key, "var_name"))
 				var_name = S_OR(pair, "");
-			} else if (!strcasecmp(key, "var_val")) {
+			else if (!strcasecmp(key, "var_val"))
 				var_val = S_OR(pair, "");
-			} else if (!strcasecmp(key, "cat_metric")) {
+			else if (!strcasecmp(key, "cat_metric"))
 				cat_metric = pair ? atoi(pair) : 0;
-			}
 		}
 
 		if (!strcmp(var_name, "#include")) {
@@ -593,6 +585,8 @@ static struct ast_config *config_curl(const char *url, const char *unused, const
 		ast_variable_append(cat, ast_variable_new(var_name, var_val, ""));
 	}
 
+	ast_free(buffer);
+	ast_free(query);
 	return cfg;
 }
 

@@ -27,7 +27,7 @@
 
 #include "asterisk.h"
 
-ASTERISK_FILE_VERSION(__FILE__, "$Revision: 196072 $")
+ASTERISK_FILE_VERSION(__FILE__, "$Revision: 156756 $")
 
 #include "asterisk/pbx.h"
 #include "asterisk/module.h"
@@ -186,7 +186,7 @@ static int find_matching_endwhile(struct ast_channel *chan)
 	return res;
 }
 
-static int _while_exec(struct ast_channel *chan, const char *data, int end)
+static int _while_exec(struct ast_channel *chan, void *data, int end)
 {
 	int res=0;
 	const char *while_pri = NULL;
@@ -296,19 +296,19 @@ static int _while_exec(struct ast_channel *chan, const char *data, int end)
 	return res;
 }
 
-static int while_start_exec(struct ast_channel *chan, const char *data) {
+static int while_start_exec(struct ast_channel *chan, void *data) {
 	return _while_exec(chan, data, 0);
 }
 
-static int while_end_exec(struct ast_channel *chan, const char *data) {
+static int while_end_exec(struct ast_channel *chan, void *data) {
 	return _while_exec(chan, data, 1);
 }
 
-static int while_exit_exec(struct ast_channel *chan, const char *data) {
+static int while_exit_exec(struct ast_channel *chan, void *data) {
 	return _while_exec(chan, data, 2);
 }
 
-static int while_continue_exec(struct ast_channel *chan, const char *data)
+static int while_continue_exec(struct ast_channel *chan, void *data)
 {
 	int x;
 	const char *prefix = "WHILE", *while_pri=NULL;

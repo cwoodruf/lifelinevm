@@ -24,8 +24,8 @@
 #ifndef _ASTERISK_TRANSLATE_H
 #define _ASTERISK_TRANSLATE_H
 
-#define MAX_AUDIO_FORMAT 47 /* Do not include video here */
-#define MAX_FORMAT 64	/* Do include video here */
+#define MAX_AUDIO_FORMAT 15 /* Do not include video here */
+#define MAX_FORMAT 32	/* Do include video here */
 
 #if defined(__cplusplus) || defined(c_plusplus)
 extern "C" {
@@ -69,35 +69,35 @@ struct ast_trans_pvt;	/* declared below */
  * Generic plc is only available for dstfmt = SLINEAR
  */
 struct ast_translator {
-	const char name[80];                   /*!< Name of translator */
-	format_t srcfmt;                       /*!< Source format (note: bit position,
-	                                        *   converted to index during registration) */
-	format_t dstfmt;                       /*!< Destination format (note: bit position,
-	                                        *   converted to index during registration) */
+	const char name[80];		/*!< Name of translator */
+	int srcfmt;			/*!< Source format (note: bit position,
+					  converted to index during registration) */
+	int dstfmt;			/*!< Destination format (note: bit position,
+					  converted to index during registration) */
 
 	int (*newpvt)(struct ast_trans_pvt *); /*!< initialize private data 
-                                            *   associated with the translator */
+					associated with the translator */
 
 	int (*framein)(struct ast_trans_pvt *pvt, struct ast_frame *in);
-	                                       /*!< Input frame callback. Store 
-	                                        *   (and possibly convert) input frame. */
+					/*!< Input frame callback. Store 
+					     (and possibly convert) input frame. */
 
 	struct ast_frame * (*frameout)(struct ast_trans_pvt *pvt);
-	                                       /*!< Output frame callback. Generate a frame 
-	                                        *   with outbuf content. */
+					/*!< Output frame callback. Generate a frame 
+					    with outbuf content. */
 
 	void (*destroy)(struct ast_trans_pvt *pvt);
-	                                       /*!< cleanup private data, if needed 
-	                                        *   (often unnecessary). */
+					/*!< cleanup private data, if needed 
+						(often unnecessary). */
 
-	struct ast_frame * (*sample)(void);    /*!< Generate an example frame */
+	struct ast_frame * (*sample)(void);	/*!< Generate an example frame */
 
-	/*!\brief size of outbuf, in samples. Leave it 0 if you want the framein
+	/*! \brief size of outbuf, in samples. Leave it 0 if you want the framein
 	 * callback deal with the frame. Set it appropriately if you
 	 * want the code to checks if the incoming frame fits the
 	 * outbuf (this is e.g. required for plc).
 	 */
-	int buffer_samples;                    /*< size of outbuf, in samples */
+	int buffer_samples;	/*< size of outbuf, in samples */
 
 	/*! \brief size of outbuf, in bytes. Mandatory. The wrapper code will also
 	 * allocate an AST_FRIENDLY_OFFSET space before.
@@ -105,13 +105,15 @@ struct ast_translator {
 	int buf_size;
 
 	int desc_size;                         /*!< size of private descriptor in pvt->pvt, if any */
+	int plc_samples; /* Unused. Here for ABI purposes */
+	int useplc; /* Unused. Here for ABI purposes */
 	int native_plc;                        /*!< true if the translator can do native plc */
 
-	struct ast_module *module;             /*!< opaque reference to the parent module */
+	struct ast_module *module;	/* opaque reference to the parent module */
 
-	int cost;                              /*!< Cost in milliseconds for encoding/decoding 1 second of sound */
-	int active;                            /*!< Whether this translator should be used or not */
-	AST_LIST_ENTRY(ast_translator) list;   /*!< link field */
+	int cost;			/*!< Cost in milliseconds for encoding/decoding 1 second of sound */
+	int active;			/*!< Whether this translator should be used or not */
+	AST_LIST_ENTRY(ast_translator) list;	/*!< link field */
 };
 
 /*! \brief
@@ -149,6 +151,7 @@ struct ast_trans_pvt {
 	struct ast_trans_pvt *next; /*!< next in translator chain */
 	struct timeval nextin;
 	struct timeval nextout;
+	unsigned int destroy:1;
 };
 
 /*! \brief generic frameout function */
@@ -203,7 +206,7 @@ void ast_translator_deactivate(struct ast_translator *t);
  * \return Returns 0 on success, -1 if no path could be found.  
  * \note Modifies dests and srcs in place 
  */
-format_t ast_translator_best_choice(format_t *dsts, format_t *srcs);
+int ast_translator_best_choice(int *dsts, int *srcs);
 
 /*! 
  * \brief Builds a translator path
@@ -212,7 +215,7 @@ format_t ast_translator_best_choice(format_t *dsts, format_t *srcs);
  * \param source source format
  * \return ast_trans_pvt on success, NULL on failure
  * */
-struct ast_trans_pvt *ast_translator_build_path(format_t dest, format_t source);
+struct ast_trans_pvt *ast_translator_build_path(int dest, int source);
 
 /*!
  * \brief Frees a translator path
@@ -238,7 +241,7 @@ struct ast_frame *ast_translate(struct ast_trans_pvt *tr, struct ast_frame *f, i
  * \param src source format
  * \return the number of translation steps required, or -1 if no path is available
  */
-unsigned int ast_translate_path_steps(format_t dest, format_t src);
+unsigned int ast_translate_path_steps(unsigned int dest, unsigned int src);
 
 /*!
  * \brief Mask off unavailable formats from a format bitmask
@@ -252,7 +255,21 @@ unsigned int ast_translate_path_steps(format_t dest, format_t src);
  * \note Only a single audio format and a single video format can be
  * present in 'src', or the function will produce unexpected results.
  */
-format_t ast_translate_available_formats(format_t dest, format_t src);
+unsigned int ast_translate_available_formats(unsigned int dest, unsigned int src);
+
+/*!
+ * \brief Hint that a frame from a translator has been freed
+ *
+ * This is sort of a hack.  This function gets called when ast_frame_free() gets
+ * called on a frame that has the AST_FRFLAG_FROM_TRANSLATOR flag set.  This is
+ * because it is possible for a translation path to be destroyed while a frame
+ * from a translator is still in use.  Specifically, this happens if a masquerade
+ * happens after a call to ast_read() but before the frame is done being processed, 
+ * since the frame processing is generally done without the channel lock held.
+ *
+ * \return nothing
+ */
+void ast_translate_frame_freed(struct ast_frame *fr);
 
 #if defined(__cplusplus) || defined(c_plusplus)
 }

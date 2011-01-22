@@ -29,7 +29,7 @@
 
 #include "asterisk.h"
 
-ASTERISK_FILE_VERSION(__FILE__, "$Revision: 227580 $")
+ASTERISK_FILE_VERSION(__FILE__, "$Revision: 174945 $")
 
 #include <sys/stat.h>
 
@@ -55,7 +55,7 @@ ASTERISK_FILE_VERSION(__FILE__, "$Revision: 227580 $")
 	</application>
  ***/
 
-static const char app[] = "Dictate";
+static char *app = "Dictate";
 
 typedef enum {
 	DFLAG_RECORD = (1 << 0),
@@ -81,7 +81,7 @@ static int play_and_wait(struct ast_channel *chan, char *file, char *digits)
 	return res;
 }
 
-static int dictate_exec(struct ast_channel *chan, const char *data)
+static int dictate_exec(struct ast_channel *chan, void *data)
 {
 	char *path = NULL, filein[256], *filename = "";
 	char *parse;
@@ -165,7 +165,7 @@ static int dictate_exec(struct ast_channel *chan, const char *data)
 		samples = 0;
 		while (!done && ((res = ast_waitfor(chan, -1)) > -1) && fs && (f = ast_read(chan))) {
 			if (digit) {
-				struct ast_frame fr = {AST_FRAME_DTMF, { .integer = digit } };
+				struct ast_frame fr = {AST_FRAME_DTMF, digit};
 				ast_queue_frame(chan, &fr);
 				digit = 0;
 			}
@@ -173,7 +173,7 @@ static int dictate_exec(struct ast_channel *chan, const char *data)
 				int got = 1;
 				switch(mode) {
 				case DMODE_PLAY:
-					switch (f->subclass.integer) {
+					switch(f->subclass) {
 					case '1':
 						ast_set_flag(&flags, DFLAG_PAUSE);
 						mode = DMODE_RECORD;
@@ -202,7 +202,7 @@ static int dictate_exec(struct ast_channel *chan, const char *data)
 					}
 					break;
 				case DMODE_RECORD:
-					switch (f->subclass.integer) {
+					switch(f->subclass) {
 					case '1':
 						ast_set_flag(&flags, DFLAG_PAUSE);
 						mode = DMODE_PLAY;
@@ -219,7 +219,7 @@ static int dictate_exec(struct ast_channel *chan, const char *data)
 					got = 0;
 				}
 				if (!got) {
-					switch (f->subclass.integer) {
+					switch(f->subclass) {
 					case '#':
 						done = 1;
 						continue;

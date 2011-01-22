@@ -19,13 +19,11 @@
  * \brief XML Documentation API
  *
  * \author Eliel C. Sardanons (LU1ALY) <eliels@gmail.com>
- *
- * \extref libxml2 http://www.xmlsoft.org/
  */
 
 #include "asterisk.h"
 
-ASTERISK_FILE_VERSION(__FILE__, "$Revision: 253032 $")
+ASTERISK_FILE_VERSION(__FILE__, "$Revision: 278709 $")
 
 #include "asterisk/_private.h"
 #include "asterisk/paths.h"
@@ -986,77 +984,19 @@ static char *xmldoc_get_syntax_cmd(struct ast_xml_node *fixnode, const char *nam
 	return ret;
 }
 
-/*! \internal
- *  \brief Generate an AMI action syntax.
- *  \param fixnode The manager action node pointer.
- *  \param name The name of the manager action.
- *  \retval The generated syntax.
- *  \retval NULL on error.
- */
-static char *xmldoc_get_syntax_manager(struct ast_xml_node *fixnode, const char *name)
-{
-	struct ast_str *syntax;
-	struct ast_xml_node *node = fixnode;
-	const char *paramtype, *attrname;
-	int required;
-	char *ret;
-
-	syntax = ast_str_create(128);
-	if (!syntax) {
-		return ast_strdup(name);
-	}
-
-	ast_str_append(&syntax, 0, "Action: %s", name);
-
-	for (node = ast_xml_node_get_children(node); node; node = ast_xml_node_get_next(node)) {
-		if (strcasecmp(ast_xml_node_get_name(node), "parameter")) {
-			continue;
-		}
-
-		/* Is this parameter required? */
-		required = 0;
-		paramtype = ast_xml_get_attribute(node, "required");
-		if (paramtype) {
-			required = ast_true(paramtype);
-			ast_xml_free_attr(paramtype);
-		}
-
-		attrname = ast_xml_get_attribute(node, "name");
-		if (!attrname) {
-			/* ignore this bogus parameter and continue. */
-			continue;
-		}
-
-		ast_str_append(&syntax, 0, "\n%s%s:%s <value>",
-			(required ? "" : "["),
-			attrname,
-			(required ? "" : "]"));
-
-		ast_xml_free_attr(attrname);
-	}
-
-	/* return a common string. */
-	ret = ast_strdup(ast_str_buffer(syntax));
-	ast_free(syntax);
-
-	return ret;
-}
-
 /*! \brief Types of syntax that we are able to generate. */
 enum syntaxtype {
 	FUNCTION_SYNTAX,
-	MANAGER_SYNTAX,
 	COMMAND_SYNTAX
 };
 
 /*! \brief Mapping between type of node and type of syntax to generate. */
-static struct strsyntaxtype {
+struct strsyntaxtype {
 	const char *type;
 	enum syntaxtype stxtype;
 } stxtype[] = {
 	{ "function",		FUNCTION_SYNTAX	},
 	{ "application",	FUNCTION_SYNTAX	},
-	{ "manager",		MANAGER_SYNTAX  },
 	{ "agi",		COMMAND_SYNTAX	}
 };
 
@@ -1094,18 +1034,10 @@ char *ast_xmldoc_build_syntax(const char *type, const char *name)
 	}
 
 	if (node) {
-		switch (xmldoc_get_syntax_type(type)) {
-		case FUNCTION_SYNTAX:
+		if (xmldoc_get_syntax_type(type) == FUNCTION_SYNTAX) {
 			syntax = xmldoc_get_syntax_fun(node, name, "parameter", 1, 1);
-			break;
-		case COMMAND_SYNTAX:
+		} else {
 			syntax = xmldoc_get_syntax_cmd(node, name, 1);
-			break;
-		case MANAGER_SYNTAX:
-			syntax = xmldoc_get_syntax_manager(node, name);
-			break;
-		default:
-			syntax = xmldoc_get_syntax_fun(node, name, "parameter", 1, 1);
 		}
 	}
 	return syntax;
@@ -1611,7 +1543,6 @@ static void xmldoc_parse_optionlist(struct ast_xml_node *fixnode, const char *ta
 		if (!xmldoc_parse_option(node, tabs, buffer)) {
 			ast_str_append(buffer, 0, "\n");
 		}
-		ast_str_append(buffer, 0, "\n");
 		ast_xml_free_attr(optname);
 		ast_xml_free_attr(hasparams);
 	}
@@ -1816,6 +1747,49 @@ char *ast_xmldoc_build_description(const char *type, const char *name)
 	return xmldoc_build_field(type, name, "description", 0);
 }
 
+#if !defined(HAVE_GLOB_NOMAGIC) || !defined(HAVE_GLOB_BRACE) || defined(DEBUG_NONGNU)
+static int xml_pathmatch(char *xmlpattern, int xmlpattern_maxlen, glob_t *globbuf)
+{
+	int globret;
+
+	snprintf(xmlpattern, xmlpattern_maxlen, "%s/documentation/thirdparty/*-%s.xml",
+		ast_config_AST_DATA_DIR, documentation_language);
+	if((globret = glob(xmlpattern, GLOB_NOCHECK, NULL, globbuf))) {
+		return globret;
+	}
+
+	snprintf(xmlpattern, xmlpattern_maxlen, "%s/documentation/thirdparty/*-%.2s_??.xml",
+		ast_config_AST_DATA_DIR, documentation_language);
+	if((globret = glob(xmlpattern, GLOB_APPEND | GLOB_NOCHECK, NULL, globbuf))) {
+		return globret;
+	}
+
+	snprintf(xmlpattern, xmlpattern_maxlen, "%s/documentation/thirdparty/*-%s.xml",
+		ast_config_AST_DATA_DIR, default_documentation_language);
+	if((globret = glob(xmlpattern, GLOB_APPEND | GLOB_NOCHECK, NULL, globbuf))) {
+		return globret;
+	}
+
+	snprintf(xmlpattern, xmlpattern_maxlen, "%s/documentation/*-%s.xml",
+		ast_config_AST_DATA_DIR, documentation_language);
+	if((globret = glob(xmlpattern, GLOB_APPEND | GLOB_NOCHECK, NULL, globbuf))) {
+		return globret;
+	}
+
+	snprintf(xmlpattern, xmlpattern_maxlen, "%s/documentation/*-%.2s_??.xml",
+		ast_config_AST_DATA_DIR, documentation_language);
+	if((globret = glob(xmlpattern, GLOB_APPEND | GLOB_NOCHECK, NULL, globbuf))) {
+		return globret;
+	}
+
+	snprintf(xmlpattern, xmlpattern_maxlen, "%s/documentation/*-%s.xml",
+		ast_config_AST_DATA_DIR, default_documentation_language);
+	globret = glob(xmlpattern, GLOB_APPEND | GLOB_NOCHECK, NULL, globbuf);
+
+	return globret;
+}
+#endif
+
 /*! \brief Close and unload XML documentation. */
 static void xmldoc_unload_documentation(void)
 {
@@ -1842,6 +1816,9 @@ int ast_xmldoc_load_documentation(void)
 	struct ast_flags cnfflags = { 0 };
 	int globret, i, dup, duplicate;
 	glob_t globbuf;
+#if !defined(HAVE_GLOB_NOMAGIC) || !defined(HAVE_GLOB_BRACE) || defined(DEBUG_NONGNU)
+	int xmlpattern_maxlen;
+#endif
 
 	/* setup default XML documentation language */
 	snprintf(documentation_language, sizeof(documentation_language), default_documentation_language);
@@ -1863,17 +1840,26 @@ int ast_xmldoc_load_documentation(void)
 	/* register function to be run when asterisk finish. */
 	ast_register_atexit(xmldoc_unload_documentation);
 
+	globbuf.gl_offs = 0;    /* slots to reserve in gl_pathv */
+
+#if !defined(HAVE_GLOB_NOMAGIC) || !defined(HAVE_GLOB_BRACE) || defined(DEBUG_NONGNU)
+	xmlpattern_maxlen = strlen(ast_config_AST_DATA_DIR) + strlen("/documentation/thirdparty") + strlen("/*-??_??.xml") + 1;
+	xmlpattern = ast_malloc(xmlpattern_maxlen);
+	globret = xml_pathmatch(xmlpattern, xmlpattern_maxlen, &globbuf);
+#else
 	/* Get every *-LANG.xml file inside $(ASTDATADIR)/documentation */
 	ast_asprintf(&xmlpattern, "%s/documentation{/thirdparty/,/}*-{%s,%.2s_??,%s}.xml", ast_config_AST_DATA_DIR,
-			documentation_language, documentation_language, default_documentation_language);
-	globbuf.gl_offs = 0;    /* initialize it to silence gcc */
+		documentation_language, documentation_language, default_documentation_language);
 	globret = glob(xmlpattern, MY_GLOB_FLAGS, NULL, &globbuf);
+#endif
+
+	ast_debug(3, "gl_pathc %zd\n", globbuf.gl_pathc);
 	if (globret == GLOB_NOSPACE) {
-		ast_log(LOG_WARNING, "Glob Expansion of pattern '%s' failed: Not enough memory\n", xmlpattern);
+		ast_log(LOG_WARNING, "XML load failure, glob expansion of pattern '%s' failed: Not enough memory\n", xmlpattern);
 		ast_free(xmlpattern);
 		return 1;
 	} else if (globret  == GLOB_ABORTED) {
-		ast_log(LOG_WARNING, "Glob Expansion of pattern '%s' failed: Read error\n", xmlpattern);
+		ast_log(LOG_WARNING, "XML load failure, glob expansion of pattern '%s' failed: Read error\n", xmlpattern);
 		ast_free(xmlpattern);
 		return 1;
 	}
@@ -1890,7 +1876,9 @@ int ast_xmldoc_load_documentation(void)
 				break;
 			}
 		}
-		if (duplicate) {
+		if (duplicate || strchr(globbuf.gl_pathv[i], '*')) {
+		/* skip duplicates as well as pathnames not found 
+		 * (due to use of GLOB_NOCHECK in xml_pathmatch) */
 			continue;
 		}
 		tmpdoc = NULL;

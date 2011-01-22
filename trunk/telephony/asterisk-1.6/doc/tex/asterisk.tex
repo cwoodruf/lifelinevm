@@ -8,6 +8,7 @@
 \documentclass[12pt,a4]{report}
 
 \usepackage{hyperref}
+\usepackage{underscore}
 
 \usepackage{url}
 \makeatletter
@@ -99,8 +100,6 @@ reference purposes.
   \input{misdn.tex}
   \section{Local}
   \input{localchannel.tex}
-  \section{Mobile}
-  \input{chan_mobile.tex}
 
 \chapter{Distributed Universal Number Discovery (DUNDi)}
   \section{Introduction}
@@ -118,10 +117,6 @@ reference purposes.
 \chapter{CDR: Call Detail Records}
 \input{billing.tex}
 \input{cdrdriver.tex}
-
-\chapter{CEL: Channel Event Logging}
-\input{cel-doc.tex}
-\input{celdriver.tex}
 
 \chapter{Voicemail}
   \section{ODBC Storage}
@@ -141,20 +136,11 @@ reference purposes.
 \chapter{Phone Provisioning}
   \input{phoneprov.tex}
 
-\chapter{Calendaring}
-  \input{calendaring.tex}
-
-\chapter{Security Framework}
-  \input{security-events.tex}
-
-\chapter{Secure Calls}
-  \input{secure-calls.tex}
-
-\chapter{Call Completion Supplementary Services}
-  \input{ccss.tex}
-
 \chapter{Packet Loss Concealment}
   \input{plc.tex}
+
+\chapter{Sounds Packages}
+  \input{sounds.tex}
 
 \chapter{Development}
   \section{Backtrace}

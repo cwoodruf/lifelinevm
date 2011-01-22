@@ -27,7 +27,7 @@
  
 #include "asterisk.h"
 
-ASTERISK_FILE_VERSION(__FILE__, "$Revision: 227580 $")
+ASTERISK_FILE_VERSION(__FILE__, "$Revision: 211580 $")
 
 #include "asterisk/lock.h"
 #include "asterisk/file.h"
@@ -73,7 +73,7 @@ ASTERISK_FILE_VERSION(__FILE__, "$Revision: 227580 $")
 
 static char *app = "BackgroundDetect";
 
-static int background_detect_exec(struct ast_channel *chan, const char *data)
+static int background_detect_exec(struct ast_channel *chan, void *data)
 {
 	int res = 0;
 	char *tmp;
@@ -173,15 +173,15 @@ static int background_detect_exec(struct ast_channel *chan, const char *data)
 					break;
 				} else if (fr->frametype == AST_FRAME_DTMF) {
 					char t[2];
-					t[0] = fr->subclass.integer;
+					t[0] = fr->subclass;
 					t[1] = '\0';
 					if (ast_canmatch_extension(chan, chan->context, t, 1, chan->cid.cid_num)) {
 						/* They entered a valid  extension, or might be anyhow */
-						res = fr->subclass.integer;
+						res = fr->subclass;
 						ast_frfree(fr);
 						break;
 					}
-				} else if ((fr->frametype == AST_FRAME_VOICE) && (fr->subclass.codec == AST_FORMAT_SLINEAR) && continue_analysis) {
+				} else if ((fr->frametype == AST_FRAME_VOICE) && (fr->subclass == AST_FORMAT_SLINEAR) && continue_analysis) {
 					int totalsilence;
 					int ms;
 					res = ast_dsp_silence(dsp, fr, &totalsilence);

@@ -2,6 +2,18 @@
     On some systems, that is considered an error.  In any such cases, convert the usage
 	over to use nanosleep(), instead.
 
+ -- There a bunch of places where the result of pbx_builtin_getvar_helper()
+    gets stored and used.  This is not threadsafe.  This code should be replaced
+	with the following thread-safe version:
+
+	const char *var;
+
+	ast_channel_lock(chan);
+	if ((var = pbx_builtin_getvar_helper(chan, "MYVAR"))) {
+		var = ast_strdupa(var);
+	}
+	ast_channel_unlock(chan);
+
  -- Convert all existing uses of astobj.h to astobj2.h
     -- (chan_sip already in progress in a branch)
 
@@ -20,9 +32,3 @@
  -- Audit all channel/res/app/etc. modules to ensure that they do not register any entrypoints with the Asterisk core until after they are ready to service requests; all config file reading/processing, structure allocation, etc. must be completed before Asterisk is made aware of any services the module offers.
 
  -- Ensure that Realtime-enabled modules do not depend on the order of columns returned by the database lookup (example: outboundproxy and host settings in chan_sip).
-
- -- Convert all usage of the signal(2) system API to the more portable sigaction(2) system API.
-
- -- Find options and arguments in Asterisk which specify a time period in seconds or milliseconds and convert them to use the new ast_app_parse_timelen() function.
-
- -- Find applications and functions in Asterisk that would benefit from being able to encode control characters and extended ASCII and embed calls to ast_get_encoded_char, ast_get_encoded_str, and ast_str_get_encoded_str.

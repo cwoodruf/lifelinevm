@@ -31,6 +31,7 @@
 #include <stdarg.h>
 #include <getopt.h>
 
+#include "autoconfig.h"
 #include "mxml/mxml.h"
 #include "linkedlists.h"
 #include "menuselect.h"
@@ -344,6 +345,27 @@ static int parse_tree(const char *tree_file)
 			     cur3 && cur3->child;
 			     cur3 = mxmlFindElement(cur3, cur2, "use", NULL, NULL, MXML_NO_DESCEND))
 			{
+#if !defined(HAVE_ATTRIBUTE_weak_import) && !defined(HAVE_ATTRIBUTE_weakref)
+				/* If the compiler won't support the functionality required for "use", then "use" -> "depend" */
+				if (!(dep = calloc(1, sizeof(*dep)))) {
+					free_member(mem);
+					return -1;
+				}
+				if ((tmp = mxmlElementGetAttr(cur3, "name"))) {
+					if (!strlen_zero(tmp)) {
+						dep->name = tmp;
+					}
+				}
+				if (!strlen_zero(cur3->child->value.opaque)) {
+					dep->displayname = cur3->child->value.opaque;
+					if (!dep->name) {
+						dep->name = dep->displayname;
+					}
+					AST_LIST_INSERT_TAIL(&mem->deps, dep, list);
+				} else {
+					free(dep);
+				}
+#else
 				if (!(use = calloc(1, sizeof(*use)))) {
 					free_member(mem);
 					return -1;
@@ -361,6 +383,7 @@ static int parse_tree(const char *tree_file)
 					AST_LIST_INSERT_TAIL(&mem->uses, use, list);
 				} else
 					free(use);
+#endif
 			}
 
 			if (add_member(mem, cat))

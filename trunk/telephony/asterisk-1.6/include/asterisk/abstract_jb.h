@@ -32,8 +32,6 @@
 
 #include <sys/time.h>
 
-#include "asterisk/frame_defs.h"
-
 #if defined(__cplusplus) || defined(c_plusplus)
 extern "C" {
 #endif
@@ -89,7 +87,7 @@ struct ast_jb
 	/*! \brief Jitterbuffer configuration. */
 	struct ast_jb_conf conf;
 	/*! \brief Jitterbuffer implementation to be used. */
-	const struct ast_jb_impl *impl;
+	struct ast_jb_impl *impl;
 	/*! \brief Jitterbuffer object, passed to the implementation. */
 	void *jbobj;
 	/*! \brief The time the jitterbuffer was created. */
@@ -97,7 +95,7 @@ struct ast_jb
 	/*! \brief The time the next frame should be played. */
 	long next;
 	/*! \brief Voice format of the last frame in. */
-	format_t last_format;
+	int last_format;
 	/*! \brief File for frame timestamp tracing. */
 	FILE *logfile;
 	/*! \brief Jitterbuffer internal state flags. */

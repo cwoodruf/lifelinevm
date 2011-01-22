@@ -27,7 +27,7 @@
 
 #include "asterisk.h"
 
-ASTERISK_FILE_VERSION(__FILE__, "$Revision: 254159 $");
+ASTERISK_FILE_VERSION(__FILE__, "$Revision: 286024 $");
 
 #include "asterisk/_private.h"
 
@@ -547,6 +547,11 @@ static struct ast_test *test_alloc(ast_test_cb_t *cb)
 		return test_free(test);
 	}
 
+	if (test->info.category[0] != '/' || test->info.category[strlen(test->info.category) - 1] != '/') {
+		ast_log(LOG_WARNING, "Test category is missing a leading or trailing backslash for test %s%s\n",
+				test->info.category, test->info.name);
+	}
+
 	if (ast_strlen_zero(test->info.summary)) {
 		ast_log(LOG_WARNING, "Test %s/%s has no summary, test registration refused.\n",
 				test->info.category, test->info.name);
@@ -606,8 +611,8 @@ static char *complete_test_name(const char *line, const char *word, int pos, int
 static char *test_cli_show_registered(struct ast_cli_entry *e, int cmd, struct ast_cli_args *a)
 {
 #define FORMAT "%-25.25s %-30.30s %-40.40s %-13.13s\n"
-	static const char * const option1[] = { "all", "category", NULL };
-	static const char * const option2[] = { "name", NULL };
+	static char * const option1[] = { "all", "category", NULL };
+	static char * const option2[] = { "name", NULL };
 	struct ast_test *test = NULL;
 	int count = 0;
 	switch (cmd) {
@@ -667,8 +672,8 @@ static char *test_cli_show_registered(struct ast_cli_entry *e, int cmd, struct a
 
 static char *test_cli_execute_registered(struct ast_cli_entry *e, int cmd, struct ast_cli_args *a)
 {
-	static const char * const option1[] = { "all", "category", NULL };
-	static const char * const option2[] = { "name", NULL };
+	static char * const option1[] = { "all", "category", NULL };
+	static char * const option2[] = { "name", NULL };
 
 	switch (cmd) {
 	case CLI_INIT:
@@ -734,7 +739,7 @@ static char *test_cli_show_results(struct ast_cli_entry *e, int cmd, struct ast_
 {
 #define FORMAT_RES_ALL1 "%s%s %-30.30s %-25.25s %-10.10s\n"
 #define FORMAT_RES_ALL2 "%s%s %-30.30s %-25.25s %s%ums\n"
-	static const char * const option1[] = { "all", "failed", "passed", NULL };
+	static char * const option1[] = { "all", "failed", "passed", NULL };
 	char result_buf[32] = { 0 };
 	struct ast_test *test = NULL;
 	int failed = 0;
@@ -803,7 +808,7 @@ static char *test_cli_show_results(struct ast_cli_entry *e, int cmd, struct ast_
 
 static char *test_cli_generate_results(struct ast_cli_entry *e, int cmd, struct ast_cli_args *a)
 {
-	static const char * const option[] = { "xml", "txt", NULL };
+	static char * const option[] = { "xml", "txt", NULL };
 	const char *file = NULL;
 	const char *type = "";
 	int isxml = 0;
@@ -881,7 +886,7 @@ static struct ast_cli_entry test_cli[] = {
 };
 #endif /* TEST_FRAMEWORK */
 
-int ast_test_init()
+int ast_test_init(void)
 {
 #ifdef TEST_FRAMEWORK
 	/* Register cli commands */

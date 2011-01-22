@@ -28,7 +28,7 @@
 
 #include "asterisk.h"
 
-ASTERISK_FILE_VERSION(__FILE__, "$Revision: 227580 $")
+ASTERISK_FILE_VERSION(__FILE__, "$Revision: 153365 $")
 
 #include "asterisk/module.h"
 #include "asterisk/channel.h"
@@ -68,7 +68,7 @@ static void destroy_callback(void *data)
 
 	/* Destroy the audiohook, and destroy ourselves */
 	ast_audiohook_destroy(&vi->audiohook);
-	ast_free(vi);
+	free(vi);
 
 	return;
 }
@@ -100,10 +100,10 @@ static int volume_callback(struct ast_audiohook *audiohook, struct ast_channel *
 		/* Only use DTMF coming from the source... not going to it */
 		if (direction != AST_AUDIOHOOK_DIRECTION_READ)
 			return 0;
-		if (frame->subclass.integer == '*') {
+		if (frame->subclass == '*') {
 			vi->tx_gain += 1;
 			vi->rx_gain += 1;
-		} else if (frame->subclass.integer == '#') {
+		} else if (frame->subclass == '#') {
 			vi->tx_gain -= 1;
 			vi->rx_gain -= 1;
 		}

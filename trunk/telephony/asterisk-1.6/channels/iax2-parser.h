@@ -20,7 +20,6 @@
 
 #include "asterisk/linkedlists.h"
 #include "asterisk/aes.h"
-#include "asterisk/frame_defs.h"
 
 struct iax_ies {
 	char *called_number;
@@ -33,8 +32,8 @@ struct iax_ies {
 	char *called_context;
 	char *username;
 	char *password;
-	format_t capability;
-	format_t format;
+	unsigned int capability;
+	unsigned int format;
 	char *codec_prefs;
 	char *language;
 	int version;
@@ -159,7 +158,6 @@ const char *iax_ie2str(int ie);
 
 int iax_ie_append_raw(struct iax_ie_data *ied, unsigned char ie, const void *data, int datalen);
 int iax_ie_append_addr(struct iax_ie_data *ied, unsigned char ie, const struct sockaddr_in *sin);
-int iax_ie_append_versioned_uint64(struct iax_ie_data *ied, unsigned char ie, unsigned char version, uint64_t value);
 int iax_ie_append_int(struct iax_ie_data *ied, unsigned char ie, unsigned int value);
 int iax_ie_append_short(struct iax_ie_data *ied, unsigned char ie, unsigned short value);
 int iax_ie_append_str(struct iax_ie_data *ied, unsigned char ie, const char *str);

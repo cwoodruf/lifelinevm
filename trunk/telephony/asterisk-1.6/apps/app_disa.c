@@ -28,7 +28,7 @@
 
 #include "asterisk.h"
 
-ASTERISK_FILE_VERSION(__FILE__, "$Revision: 227580 $")
+ASTERISK_FILE_VERSION(__FILE__, "$Revision: 220292 $")
 
 #include <math.h>
 #include <sys/time.h>
@@ -110,12 +110,12 @@ ASTERISK_FILE_VERSION(__FILE__, "$Revision: 227580 $")
 		</see-also>
 	</application>
  ***/
-static const char app[] = "DISA";
+static char *app = "DISA";
 
 enum {
 	NOANSWER_FLAG = (1 << 0),
 	POUND_TO_END_FLAG = (1 << 1),
-};
+} option_flags;
 
 AST_APP_OPTIONS(app_opts, {
 	AST_APP_OPTION('n', NOANSWER_FLAG),
@@ -140,7 +140,7 @@ static void play_dialtone(struct ast_channel *chan, char *mailbox)
 	}
 }
 
-static int disa_exec(struct ast_channel *chan, const char *data)
+static int disa_exec(struct ast_channel *chan, void *data)
 {
 	int i = 0, j, k = 0, did_ignore = 0, special_noanswer = 0;
 	int firstdigittimeout = (chan->pbx ? chan->pbx->rtimeoutms : 20000);
@@ -220,7 +220,7 @@ static int disa_exec(struct ast_channel *chan, const char *data)
 			return -1;
 		}
 
-		if ((f->frametype == AST_FRAME_CONTROL) && (f->subclass.integer == AST_CONTROL_HANGUP)) {
+		if ((f->frametype == AST_FRAME_CONTROL) && (f->subclass == AST_CONTROL_HANGUP)) {
 			if (f->data.uint32)
 				chan->hangupcause = f->data.uint32;
 			ast_frfree(f);
@@ -234,7 +234,7 @@ static int disa_exec(struct ast_channel *chan, const char *data)
 			continue;
 		}
 
-		j = f->subclass.integer;  /* save digit */
+		j = f->subclass;  /* save digit */
 		ast_frfree(f);
 
 		if (!i) {

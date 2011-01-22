@@ -76,7 +76,7 @@
  ***/
 
 #include "asterisk.h"
-ASTERISK_FILE_VERSION(__FILE__, "$Revision: 268969 $")
+ASTERISK_FILE_VERSION(__FILE__, "$Revision: 268934 $")
 
 #include <sqlite.h>
 
@@ -272,7 +272,6 @@ static int add_cfg_entry(void *arg, int argc, char **argv, char **columnNames);
  * \param cfg the struct ast_config object to use when storing variables
  * \param flags Optional flags.  Not used.
  * \param suggested_incl suggest include.
- * \param who_asked
  * \retval cfg object
  * \retval NULL if an error occurred
  * \see add_cfg_entry()
@@ -299,7 +298,6 @@ static struct ast_config * config_handler(const char *database, const char *tabl
  * \param ap the va_list object to parse
  * \param params_ptr where the address of the params array is stored
  * \param vals_ptr where the address of the vals array is stored
- * \param warn
  * \retval the number of elements in the arrays (which have the same size).
  * \retval 0 if an error occurred.
  */
@@ -1866,7 +1864,7 @@ static int load_module(void)
 	return 0;
 }
 
-AST_MODULE_INFO(ASTERISK_GPL_KEY, AST_MODFLAG_DEFAULT, "Realtime SQLite configuration",
+AST_MODULE_INFO(ASTERISK_GPL_KEY, AST_MODFLAG_GLOBAL_SYMBOLS, "Realtime SQLite configuration",
 		.load = load_module,
 		.unload = unload_module,
 );

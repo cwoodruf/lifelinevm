@@ -29,7 +29,7 @@
 
 #include "asterisk.h"
 
-ASTERISK_FILE_VERSION(__FILE__, "$Revision: 256104 $")
+ASTERISK_FILE_VERSION(__FILE__, "$Revision: 277188 $")
 
 #include "asterisk/module.h"
 #include "asterisk/lock.h"
@@ -124,7 +124,7 @@ ASTERISK_FILE_VERSION(__FILE__, "$Revision: 256104 $")
 
  ***/
 
-static const char app[] = "AMD";
+static char *app = "AMD";
 
 #define STATE_IN_WORD       1
 #define STATE_IN_SILENCE    2
@@ -143,7 +143,7 @@ static int dfltMaximumWordLength    = 5000; /* Setting this to a large default s
 /* Set to the lowest ms value provided in amd.conf or application parameters */
 static int dfltMaxWaitTimeForFrame  = 50;
 
-static void isAnsweringMachine(struct ast_channel *chan, const char *data)
+static void isAnsweringMachine(struct ast_channel *chan, void *data)
 {
 	int res = 0;
 	struct ast_frame *f = NULL;
@@ -188,8 +188,7 @@ static void isAnsweringMachine(struct ast_channel *chan, const char *data)
 		AST_APP_ARG(argMaximumWordLength);
 	);
 
-	ast_verb(3, "AMD: %s %s %s (Fmt: %s)\n", chan->name, chan->cid.cid_ani,
-		chan->redirecting.from.number, ast_getformatname(chan->readformat));
+	ast_verb(3, "AMD: %s %s %s (Fmt: %d)\n", chan->name ,chan->cid.cid_ani, chan->cid.cid_rdnis, chan->readformat);
 
 	/* Lets parse the arguments. */
 	if (!ast_strlen_zero(parse)) {
@@ -271,10 +270,11 @@ static void isAnsweringMachine(struct ast_channel *chan, const char *data)
 
 		if (f->frametype == AST_FRAME_VOICE || f->frametype == AST_FRAME_NULL || f->frametype == AST_FRAME_CNG) {
 			/* If the total time exceeds the analysis time then give up as we are not too sure */
-			if (f->frametype == AST_FRAME_VOICE)
+			if (f->frametype == AST_FRAME_VOICE) {
 				framelength = (ast_codec_get_samples(f) / DEFAULT_SAMPLES_PER_MS);
-			else
-				framelength += 2 * maxWaitTimeForFrame;
+			} else {
+				framelength = 2 * maxWaitTimeForFrame;
+			}
 
 			iTotalTime += framelength;
 			if (iTotalTime >= totalAnalysisTime) {
@@ -406,7 +406,7 @@ static void isAnsweringMachine(struct ast_channel *chan, const char *data)
 }
 
 
-static int amd_exec(struct ast_channel *chan, const char *data)
+static int amd_exec(struct ast_channel *chan, void *data)
 {
 	isAnsweringMachine(chan, data);
 

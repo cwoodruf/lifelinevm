@@ -29,7 +29,7 @@
 
 #include "asterisk.h"
 
-ASTERISK_FILE_VERSION(__FILE__, "$Revision: 246299 $")
+ASTERISK_FILE_VERSION(__FILE__, "$Revision: 272882 $")
 
 #include "asterisk/utils.h"
 #include "asterisk/module.h"
@@ -63,14 +63,6 @@ static int all_but_one_cb(void *obj, void *arg, int flag)
 	return (test_obj->i > 1) ? CMP_MATCH : 0;
 }
 
-static int multiple_cb(void *obj, void *arg, int flag)
-{
-	int *i = (int *) arg;
-	struct test_obj *test_obj = (struct test_obj *) obj;
-
-	return (test_obj->i <= *i) ? CMP_MATCH : 0;
-}
-
 static int test_cmp_cb(void *obj, void *arg, int flags)
 {
 	struct test_obj *cmp_obj = (struct test_obj *) obj;
@@ -95,7 +87,6 @@ static int astobj2_test_helper(int use_hash, int use_cmp, unsigned int lim, stru
 	struct ao2_container *c1;
 	struct ao2_container *c2;
 	struct ao2_iterator it;
-	struct ao2_iterator *mult_it;
 	struct test_obj *obj;
 	struct test_obj tmp_obj;
 	int bucket_size;
@@ -222,47 +213,6 @@ static int astobj2_test_helper(int use_hash, int use_cmp, unsigned int lim, stru
 	if (increment != lim) {
 		ast_test_status_update(test, "callback with OBJ_NODATA failed. Increment is %d\n", increment);
 		res = AST_TEST_FAIL;
-	}
-
-	/* Test OBJ_MULTIPLE with OBJ_UNLINK*/
-	num = lim < 25 ? lim : 25;
-	if (!(mult_it = ao2_t_callback(c1, OBJ_MULTIPLE | OBJ_UNLINK, multiple_cb, &num, "test multiple"))) {
-		ast_test_status_update(test, "OBJ_MULTIPLE iwth OBJ_UNLINK test failed.\n");
-		res = AST_TEST_FAIL;
-	} else {
-		/* make sure num items unlinked is as expected */
-		if ((lim - ao2_container_count(c1)) != num) {
-			ast_test_status_update(test, "OBJ_MULTIPLE | OBJ_UNLINK test failed, did not unlink correct number of objects.\n");
-			res = AST_TEST_FAIL;
-		}
-
-		/* link what was unlinked back into c1 */
-		while ((obj = ao2_t_iterator_next(mult_it, "test"))) {
-			ao2_t_link(c1, obj, "test");
-			ao2_t_ref(obj, -1, "test"); /* remove ref from iterator */
-		}
-		ao2_iterator_destroy(mult_it);
-	}
-
-	/* Test OBJ_MULTIPLE without unlink, add items back afterwards */
-	num = lim < 25 ? lim : 25;
-	if (!(mult_it = ao2_t_callback(c1, OBJ_MULTIPLE, multiple_cb, &num, "test multiple"))) {
-		ast_test_status_update(test, "OBJ_MULTIPLE without OBJ_UNLINK test failed.\n");
-		res = AST_TEST_FAIL;
-	} else {
-		while ((obj = ao2_t_iterator_next(mult_it, "test"))) {
-			ao2_t_ref(obj, -1, "test"); /* remove ref from iterator */
-		}
-		ao2_iterator_destroy(mult_it);
-	}
-
-	/* Test OBJ_MULTIPLE without unlink and no iterating */
-	num = lim < 5 ? lim : 5;
-	if (!(mult_it = ao2_t_callback(c1, OBJ_MULTIPLE, multiple_cb, &num, "test multiple"))) {
-		ast_test_status_update(test, "OBJ_MULTIPLE with no OBJ_UNLINK and no iterating failed.\n");
-		res = AST_TEST_FAIL;
-	} else {
-		ao2_iterator_destroy(mult_it);
 	}
 
 	/* Is the container count what we expect after all the finds and unlinks?*/

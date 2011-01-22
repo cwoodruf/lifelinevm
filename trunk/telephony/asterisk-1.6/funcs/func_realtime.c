@@ -26,7 +26,7 @@
 
 #include "asterisk.h"
 
-ASTERISK_FILE_VERSION(__FILE__, "$Revision: 206808 $")
+ASTERISK_FILE_VERSION(__FILE__, "$Revision: 206811 $")
 
 #include "asterisk/file.h"
 #include "asterisk/channel.h"
@@ -413,29 +413,29 @@ static int function_realtime_readdestroy(struct ast_channel *chan, const char *c
 	return 0;
 }
 
-static struct ast_custom_function realtime_function = {
+struct ast_custom_function realtime_function = {
 	.name = "REALTIME",
 	.read = function_realtime_read,
 	.write = function_realtime_write,
 };
 
-static struct ast_custom_function realtimefield_function = {
+struct ast_custom_function realtimefield_function = {
 	.name = "REALTIME_FIELD",
 	.read = realtimefield_read,
 	.write = function_realtime_write,
 };
 
-static struct ast_custom_function realtimehash_function = {
+struct ast_custom_function realtimehash_function = {
 	.name = "REALTIME_HASH",
 	.read = realtimefield_read,
 };
 
-static struct ast_custom_function realtime_store_function = {
+struct ast_custom_function realtime_store_function = {
 	.name = "REALTIME_STORE",
 	.write = function_realtime_store,
 };
 
-static struct ast_custom_function realtime_destroy_function = {
+struct ast_custom_function realtime_destroy_function = {
 	.name = "REALTIME_DESTROY",
 	.read = function_realtime_readdestroy,
 };

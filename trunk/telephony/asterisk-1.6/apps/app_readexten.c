@@ -26,7 +26,7 @@
  
 #include "asterisk.h"
 
-ASTERISK_FILE_VERSION(__FILE__, "$Revision: 234776 $")
+ASTERISK_FILE_VERSION(__FILE__, "$Revision: 281722 $")
 
 #include "asterisk/file.h"
 #include "asterisk/pbx.h"
@@ -55,8 +55,7 @@ ASTERISK_FILE_VERSION(__FILE__, "$Revision: 234776 $")
 					</option>
 					<option name="i">
 						<para>Play <replaceable>filename</replaceable> as an indication tone from your
-						<filename>indications.conf</filename> or a directly specified list of
-						frequencies and durations.</para>
+						<filename>indications.conf</filename></para>
 					</option>
 					<option name="n">
 						<para>Read digits even if the channel is not answered.</para>
@@ -112,11 +111,11 @@ ASTERISK_FILE_VERSION(__FILE__, "$Revision: 234776 $")
 	</function>
  ***/
 
-enum readexten_option_flags {
+enum {
 	OPT_SKIP = (1 << 0),
 	OPT_INDICATION = (1 << 1),
 	OPT_NOANSWER = (1 << 2),
-};
+} readexten_option_flags;
 
 AST_APP_OPTIONS(readexten_app_options, {
 	AST_APP_OPTION('s', OPT_SKIP),
@@ -126,7 +125,7 @@ AST_APP_OPTIONS(readexten_app_options, {
 
 static char *app = "ReadExten";
 
-static int readexten_exec(struct ast_channel *chan, const char *data)
+static int readexten_exec(struct ast_channel *chan, void *data)
 {
 	int res = 0;
 	char exten[256] = "";
@@ -205,21 +204,10 @@ static int readexten_exec(struct ast_channel *chan, const char *data)
 		ast_playtones_stop(chan);
 		ast_stopstream(chan);
 
-		if (ts && ts->data[0]) {
+		if (ts && ts->data[0])
 			res = ast_playtones_start(chan, 0, ts->data, 0);
-		} else if (arglist.filename) {
-			if (ast_test_flag(&flags, OPT_INDICATION) && ast_fileexists(arglist.filename, NULL, chan->language) <= 0) {
-				/*
-				 * We were asked to play an indication that did not exist in the config.
-				 * If no such file exists, play it as a tonelist.  With any luck they won't
-				 * have a file named "350+440.ulaw"
-				 * (but honestly, who would do something so silly?)
-				 */
-				res = ast_playtones_start(chan, 0, arglist.filename, 0);
-			} else {
-				res = ast_streamfile(chan, arglist.filename, chan->language);
-			}
-		}
+		else if (arglist.filename)
+			res = ast_streamfile(chan, arglist.filename, chan->language);
 
 		for (x = 0; x < maxdigits; x++) {
 			ast_debug(3, "extension so far: '%s', timeout: %d\n", exten, timeout);
@@ -232,7 +220,7 @@ static int readexten_exec(struct ast_channel *chan, const char *data)
 			if (res < 1) {		/* timeout expired or hangup */
 				if (ast_check_hangup(chan)) {
 					status = "HANGUP";
-				} else {
+				} else if (x == 0) {
 					pbx_builtin_setvar_helper(chan, arglist.variable, "t");
 					status = "TIMEOUT";
 				}

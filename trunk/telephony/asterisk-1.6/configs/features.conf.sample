@@ -9,12 +9,12 @@ parkpos => 701-720		; What extensions to park calls on. (defafult parking lot)
 				; and increments with one for the next parked call.
 context => parkedcalls		; Which context parked calls are in (default parking lot)
 ;parkinghints = no		; Add hints priorities automatically for parking slots (default is no).
-;parkingtime => 45		; Number of seconds a call can be parked for
+;parkingtime => 45		; Number of seconds a call can be parked for 
 				; (default is 45 seconds)
 ;comebacktoorigin = yes	; Whether to return to the original calling extension upon parking
 				; timeout or to send the call to context 'parkedcallstimeout' at
 				; extension 's', priority '1' (default is yes).
-;courtesytone = beep		; Sound file to play to the parked caller
+;courtesytone = beep		; Sound file to play to the parked caller 
 				; when someone dials a parked call
 				; or the Touch Monitor is activated/deactivated.
 ;parkedplay = caller		; Who to play the courtesy tone to when picking up a parked call
@@ -27,9 +27,8 @@ context => parkedcalls		; Which context parked calls are in (default parking lot
                                 ; one of: callee, caller, both, no (default is no)
 ;parkedcallrecording = caller   ; Enables or disables DTMF based one-touch recording when picking up a parked call.
                                 ; one of: callee, caller, both, no (default is no)
-;parkeddynamic = yes            ; Enables dynamically created parkinglots. (default is no)
 ;adsipark = yes			; if you want ADSI parking announcements
-;findslot => next		; Continue to the 'next' free parking space.
+;findslot => next		; Continue to the 'next' free parking space. 
 				; Defaults to 'first' available
 ;parkedmusicclass=default	; This is the MOH class to use for the parked channel
 				; as long as the class is not set on the channel directly
@@ -42,7 +41,7 @@ context => parkedcalls		; Which context parked calls are in (default parking lot
 ;pickupexten = *8		; Configure the pickup extension. (default is *8)
 ;pickupsound = beep		; to indicate a successful pickup (default: no sound)
 ;pickupfailsound = beeperr	; to indicate that the pickup failed (default: no sound)
-;featuredigittimeout = 1000	; Max time (ms) between digits for
+;featuredigittimeout = 1000	; Max time (ms) between digits for 
                             ; feature activation  (default is 1000 ms)
 ;atxfernoanswertimeout = 15 ; Timeout for answer on attended transfer default is 15 seconds.
 ;atxferdropcall = no        ; If someone does an attended transfer, then hangs up before the transferred
@@ -52,6 +51,17 @@ context => parkedcalls		; Which context parked calls are in (default parking lot
 ;atxferloopdelay = 10       ; Number of seconds to sleep between retries (if atxferdropcall = no)
 ;atxfercallbackretries = 2  ; Number of times to attempt to send the call back to the transferer.
                             ; By default, this is 2.
+
+;
+;*** Define another parking lot
+;
+; You can set parkinglot with the CHANNEL dialplan function
+; or by setting 'parkinglot' directly in the channel configuration file.
+;
+;[parkinglot_edvina]
+;context => edvinapark
+;parkpos => 800-850
+;findslot => next
 
 ; Note that the DTMF features listed below only work when two channels have answered and are bridged together.
 ; They can not be used while the remote party is ringing or in progress. If you require this feature you can use
@@ -82,6 +92,7 @@ context => parkedcalls		; Which context parked calls are in (default parking lot
 ;<FeatureName> => <DTMF_sequence>,<ActivateOn>[/<ActivatedBy>],<Application>[,<AppArguments>[,MOH_Class]]
 ;<FeatureName> => <DTMF_sequence>,<ActivateOn>[/<ActivatedBy>],<Application>[,"<AppArguments>"[,MOH_Class]]
 ;<FeatureName> => <DTMF_sequence>,<ActivateOn>[/<ActivatedBy>],<Application>([<AppArguments>])[,MOH_Class]
+
 ;
 ;  FeatureName   -> This is the name of the feature used in when setting the
 ;                   DYNAMIC_FEATURES variable to enable usage of this feature.
@@ -128,22 +139,14 @@ context => parkedcalls		; Which context parked calls are in (default parking lot
 ;                                                  ;on their channel
 ;unpauseMonitor => #3,self/callee,UnPauseMonitor   ;Allow the callee to unpause monitoring
 ;                                                  ;on their channel
-;
-;*** Define another parking lot
-;
-; You can set parkinglot with the CHANNEL dialplan function
-; or by setting 'parkinglot' directly in the channel configuration file.
-;
-;[parkinglot_edvina]
-;context => edvinapark
-;parkpos => 800-850
-;findslot => next
 
-; GROUPS
-;   Groups are groupings of features defined in [applicationmap]
-;   that can have their own key mappings.
+; Dynamic Feature Groups:
+;   Dynamic feature groups are groupings of features defined in [applicationmap]
+;   that can have their own custom key mappings.  To give a channel access to a dynamic
+;   feature group, add the group name to the value of the DYNAMIC_FEATURES variable.
 ;
 ; example:
 ; [myGroupName]        ; defines the group named myGroupName
-; testfeature => #9    ; associates testfeature with the group and the keycode #9
-; pauseMonitor         ; associates pauseMonitor with the group and the keycode
+; testfeature => #9    ; associates testfeature with the group and the keycode '#9'.
+; pauseMonitor =>      ; associates pauseMonitor with the group and uses the keycode specified
+;                      ; in the [applicationmap].

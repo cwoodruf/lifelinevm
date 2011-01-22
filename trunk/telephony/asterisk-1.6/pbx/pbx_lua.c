@@ -30,7 +30,7 @@
 
 #include "asterisk.h"
 
-ASTERISK_FILE_VERSION(__FILE__, "$Revision: 265747 $")
+ASTERISK_FILE_VERSION(__FILE__, "$Revision: 265748 $")
 
 #include "asterisk/logger.h"
 #include "asterisk/channel.h"
@@ -93,8 +93,8 @@ static int matchmore(struct ast_channel *chan, const char *context, const char *
 static int exec(struct ast_channel *chan, const char *context, const char *exten, int priority, const char *callerid, const char *data);
 
 AST_MUTEX_DEFINE_STATIC(config_file_lock);
-static char *config_file_data = NULL;
-static long config_file_size = 0;
+char *config_file_data = NULL;
+long config_file_size = 0;
 
 static struct ast_context *local_contexts = NULL;
 static struct ast_hashtab *local_table = NULL;

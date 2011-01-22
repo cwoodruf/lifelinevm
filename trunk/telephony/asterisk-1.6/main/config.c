@@ -28,7 +28,7 @@
 
 #include "asterisk.h"
 
-ASTERISK_FILE_VERSION(__FILE__, "$Revision: 241016 $")
+ASTERISK_FILE_VERSION(__FILE__, "$Revision: 273888 $")
 
 #include "asterisk/paths.h"	/* use ast_config_AST_CONFIG_DIR */
 #include "asterisk/network.h"	/* we do some sockaddr manipulation here */
@@ -746,14 +746,6 @@ int ast_variable_update(struct ast_category *category, const char *variable,
 	
 		newer->next = cur->next;
 		newer->object = cur->object || object;
-
-		/* Preserve everything */
-		newer->lineno = cur->lineno;
-		newer->blanklines = cur->blanklines;
-		newer->precomments = cur->precomments; cur->precomments = NULL;
-		newer->sameline = cur->sameline; cur->sameline = NULL;
-		newer->trailing = cur->trailing; cur->trailing = NULL;
-
 		if (prev)
 			prev->next = newer;
 		else
@@ -1031,12 +1023,13 @@ static int process_text_line(struct ast_config *cfg, struct ast_category **cat,
 		if (*c) {
 			*c = '\0';
 			/* Find real argument */
-			c = ast_skip_blanks(c + 1);
+			c = ast_strip(c + 1);
 			if (!(*c)) {
 				c = NULL;
 			}
-		} else 
+		} else {
 			c = NULL;
+		}
 		if (!strcasecmp(cur, "include")) {
 			do_include = 1;
 		} else if (!strcasecmp(cur, "exec")) {
@@ -1060,20 +1053,14 @@ static int process_text_line(struct ast_config *cfg, struct ast_category **cat,
 
 		cur = c;
 		/* Strip off leading and trailing "'s and <>'s */
-		if (*c == '"') {
-			/* Dequote */
-			while (*c) {
-				if (*c == '"') {
-					strcpy(c, c + 1); /* SAFE */
-					c--;
-				} else if (*c == '\\') {
-					strcpy(c, c + 1); /* SAFE */
-				}
-				c++;
+		/* Dequote */
+		if ((*c == '"') || (*c == '<')) {
+			char quote_char = *c;
+			if (quote_char == '<') {
+				quote_char = '>';
 			}
-		} else if (*c == '<') {
-			/* C-style include */
-			if (*(c + strlen(c) - 1) == '>') {
+
+			if (*(c + strlen(c) - 1) == quote_char) {
 				cur++;
 				*(c + strlen(c) - 1) = '\0';
 			}
@@ -1584,22 +1571,11 @@ static void insert_leading_blank_lines(FILE *fp, struct inclfile *fi, struct ast
 	   the ;! header comments were not also deleted in the process */
 	if (lineno - precomment_lines - fi->lineno < 0) { /* insertions can mess up the line numbering and produce negative numbers that mess things up */
 		return;
-	} else if (lineno == 0) {
-		/* Line replacements also mess things up */
-		return;
- 	} else if (lineno - precomment_lines - fi->lineno < 5) {
- 		/* Only insert less than 5 blank lines; if anything more occurs,
- 		 * it's probably due to context deletion. */
- 		for (i = fi->lineno; i < lineno - precomment_lines; i++) {
- 			fprintf(fp, "\n");
- 		}
- 	} else {
- 		/* Deletion occurred - insert a single blank line, for separation of
- 		 * contexts. */
- 		fprintf(fp, "\n");
- 	}
- 
- 	fi->lineno = lineno + 1; /* Advance the file lineno */
+	}
+	for (i=fi->lineno; i<lineno - precomment_lines; i++) {
+		fprintf(fp,"\n");
+	}
+	fi->lineno = lineno+1; /* Advance the file lineno */
 }
 
 int config_text_file_save(const char *configfile, const struct ast_config *cfg, const char *generator)
@@ -1907,7 +1883,9 @@ int read_config_maps(void)
 	configtmp = ast_config_new();
 	configtmp->max_include_level = 1;
 	config = ast_config_internal_load(extconfig_conf, configtmp, flags, "", "extconfig");
-	if (!config) {
+	if (config == CONFIG_STATUS_FILEINVALID) {
+		return -1;
+	} else if (!config) {
 		ast_config_destroy(configtmp);
 		return 0;
 	}
@@ -2464,9 +2442,8 @@ static char *handle_cli_core_show_config_mappings(struct ast_cli_entry *e, int c
 	if (!config_engine_list) {
 		ast_cli(a->fd, "No config mappings found.\n");
 	} else {
-		ast_cli(a->fd, "\n\n");
 		for (eng = config_engine_list; eng; eng = eng->next) {
-			ast_cli(a->fd, "\nConfig Engine: %s\n", eng->name);
+			ast_cli(a->fd, "Config Engine: %s\n", eng->name);
 			for (map = config_maps; map; map = map->next) {
 				if (!strcasecmp(map->driver, eng->name)) {
 					ast_cli(a->fd, "===> %s (db=%s, table=%s)\n", map->name, map->database,
@@ -2474,7 +2451,6 @@ static char *handle_cli_core_show_config_mappings(struct ast_cli_entry *e, int c
 				}
 			}
 		}
-		ast_cli(a->fd,"\n\n");
 	}
 	
 	ast_mutex_unlock(&config_lock);

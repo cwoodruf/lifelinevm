@@ -23,7 +23,7 @@
 
 #include "asterisk.h"
 
-ASTERISK_FILE_VERSION(__FILE__, "$Revision: 200620 $")
+ASTERISK_FILE_VERSION(__FILE__, "$Revision: 142992 $")
 
 #include "asterisk/channel.h"
 #include "asterisk/module.h"
@@ -34,7 +34,7 @@ ASTERISK_FILE_VERSION(__FILE__, "$Revision: 200620 $")
 
 int res_snmp_agentx_subagent;
 int res_snmp_dont_stop;
-static int res_snmp_enabled;
+int res_snmp_enabled;
 
 static pthread_t thread = AST_PTHREADT_NULL;
 
@@ -115,7 +115,7 @@ static int unload_module(void)
 	return ((thread != AST_PTHREADT_NULL) ? pthread_join(thread, NULL) : 0);
 }
 
-AST_MODULE_INFO(ASTERISK_GPL_KEY, AST_MODFLAG_DEFAULT, "SNMP [Sub]Agent for Asterisk",
+AST_MODULE_INFO(ASTERISK_GPL_KEY, AST_MODFLAG_GLOBAL_SYMBOLS, "SNMP [Sub]Agent for Asterisk",
 		.load = load_module,
 		.unload = unload_module,
 		);

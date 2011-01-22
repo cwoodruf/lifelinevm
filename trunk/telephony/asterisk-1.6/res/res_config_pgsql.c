@@ -1,8 +1,8 @@
 /*
  * Asterisk -- A telephony toolkit for Linux.
  *
- * Copyright (C) 1999-2005, Digium, Inc.
- * 
+ * Copyright (C) 1999-2010, Digium, Inc.
+ *
  * Manuel Guesdon <mguesdon@oxymium.net> - PostgreSQL RealTime Driver Author/Adaptor
  * Mark Spencer <markster@digium.com>  - Asterisk Author
  * Matthew Boehm <mboehm@cytelcom.com> - MySQL RealTime Driver Author
@@ -19,7 +19,7 @@
  * \author Mark Spencer <markster@digium.com>
  * \author Manuel Guesdon <mguesdon@oxymium.net> - PostgreSQL RealTime Driver Author/Adaptor
  *
- * \extref PostgreSQL http://www.postgresql.org
+ * \arg http://www.postgresql.org
  */
 
 /*** MODULEINFO
@@ -28,7 +28,7 @@
 
 #include "asterisk.h"
 
-ASTERISK_FILE_VERSION(__FILE__, "$Revision: 265923 $")
+ASTERISK_FILE_VERSION(__FILE__, "$Revision: 284472 $")
 
 #include <libpq-fe.h>			/* PostgreSQL */
 
@@ -46,10 +46,11 @@ AST_THREADSTORAGE(sql_buf);
 AST_THREADSTORAGE(findtable_buf);
 AST_THREADSTORAGE(where_buf);
 AST_THREADSTORAGE(escapebuf_buf);
+AST_THREADSTORAGE(semibuf_buf);
 
 #define RES_CONFIG_PGSQL_CONF "res_pgsql.conf"
 
-static PGconn *pgsqlConn = NULL;
+PGconn *pgsqlConn = NULL;
 static int version;
 #define has_schema_support	(version > 70300 ? 1 : 0)
 
@@ -86,7 +87,7 @@ static int pgsql_reconnect(const char *database);
 static char *handle_cli_realtime_pgsql_status(struct ast_cli_entry *e, int cmd, struct ast_cli_args *a);
 static char *handle_cli_realtime_pgsql_cache(struct ast_cli_entry *e, int cmd, struct ast_cli_args *a);
 
-static enum { RQ_WARN, RQ_CREATECLOSE, RQ_CREATECHAR } requirements;
+enum { RQ_WARN, RQ_CREATECLOSE, RQ_CREATECHAR } requirements;
 
 static struct ast_cli_entry cli_realtime[] = {
 	AST_CLI_DEFINE(handle_cli_realtime_pgsql_status, "Shows connection information for the PostgreSQL RealTime driver"),
@@ -95,11 +96,21 @@ static struct ast_cli_entry cli_realtime[] = {
 
 #define ESCAPE_STRING(buffer, stringname) \
 	do { \
-		int len; \
-		if ((len = strlen(stringname)) > (ast_str_size(buffer) - 1) / 2) { \
-			ast_str_make_space(&buffer, len * 2 + 1); \
+		int len = strlen(stringname); \
+		struct ast_str *semi = ast_str_thread_get(&semibuf_buf, len * 3 + 1); \
+		const char *chunk = stringname; \
+		ast_str_reset(semi); \
+		for (; *chunk; chunk++) { \
+			if (strchr(";^", *chunk)) { \
+				ast_str_append(&semi, 0, "^%02hhX", *chunk); \
+			} else { \
+				ast_str_append(&semi, 0, "%c", *chunk); \
+			} \
 		} \
-		PQescapeStringConn(pgsqlConn, ast_str_buffer(buffer), stringname, len, &pgresult); \
+		if (ast_str_strlen(semi) > (ast_str_size(buffer) - 1) / 2) { \
+			ast_str_make_space(&buffer, ast_str_strlen(semi) * 2 + 1); \
+		} \
+		PQescapeStringConn(pgsqlConn, ast_str_buffer(buffer), ast_str_buffer(semi), ast_str_size(buffer), &pgresult); \
 	} while (0)
 
 static void destroy_table(struct tables *table)
@@ -280,6 +291,18 @@ static struct columns *find_column(struct tables *t, const char *colname)
 	return NULL;
 }
 
+static char *decode_chunk(char *chunk)
+{
+	char *orig = chunk;
+	for (; *chunk; chunk++) {
+		if (*chunk == '^' && strchr("0123456789ABCDEFabcdef", chunk[1]) && strchr("0123456789ABCDEFabcdef", chunk[2])) {
+			sscanf(chunk + 1, "%02hhX", chunk);
+			memmove(chunk + 1, chunk + 3, strlen(chunk + 3) + 1);
+		}
+	}
+	return orig;
+}
+
 static struct ast_variable *realtime_pgsql(const char *database, const char *tablename, va_list ap)
 {
 	PGresult *result = NULL;
@@ -391,7 +414,7 @@ static struct ast_variable *realtime_pgsql(const char *database, const char *tab
 				stringp = PQgetvalue(result, rowIndex, i);
 				while (stringp) {
 					chunk = strsep(&stringp, ";");
-					if (!ast_strlen_zero(ast_strip(chunk))) {
+					if (chunk && !ast_strlen_zero(decode_chunk(ast_strip(chunk)))) {
 						if (prev) {
 							prev->next = ast_variable_new(fieldnames[i], chunk, "");
 							if (prev->next) {
@@ -550,7 +573,7 @@ static struct ast_config *realtime_multi_pgsql(const char *database, const char 
 				stringp = PQgetvalue(result, rowIndex, i);
 				while (stringp) {
 					chunk = strsep(&stringp, ";");
-					if (!ast_strlen_zero(ast_strip(chunk))) {
+					if (chunk && !ast_strlen_zero(decode_chunk(ast_strip(chunk)))) {
 						if (initfield && !strcmp(initfield, fieldnames[i])) {
 							ast_category_rename(cat, chunk);
 						}
@@ -744,7 +767,7 @@ static int update2_pgsql(const char *database, const char *tablename, va_list ap
 			release_table(table);
 			return -1;
 		}
-			
+
 		newval = va_arg(ap, const char *);
 		ESCAPE_STRING(escapebuf, newval);
 		if (pgresult) {
@@ -1168,9 +1191,16 @@ static int require_pgsql(const char *database, const char *tablename, va_list ap
 							size, column->type);
 						res = -1;
 					}
-				} else if (strncmp(column->type, "float", 5) == 0 && !ast_rq_is_int(type) && type != RQ_FLOAT) {
-					ast_log(LOG_WARNING, "Column %s cannot be a %s\n", column->name, column->type);
-					res = -1;
+				} else if (strncmp(column->type, "float", 5) == 0) {
+					if (!ast_rq_is_int(type) && type != RQ_FLOAT) {
+						ast_log(LOG_WARNING, "Column %s cannot be a %s\n", column->name, column->type);
+						res = -1;
+					}
+				} else if (strncmp(column->type, "timestamp", 9) == 0) {
+					if (type != RQ_DATETIME && type != RQ_DATE) {
+						ast_log(LOG_WARNING, "Column %s cannot be a %s\n", column->name, column->type);
+						res = -1;
+					}
 				} else { /* There are other types that no module implements yet */
 					ast_log(LOG_WARNING, "Possibly unsupported column type '%s' on column '%s'\n", column->type, column->name);
 					res = -1;
@@ -1588,7 +1618,7 @@ static char *handle_cli_realtime_pgsql_status(struct ast_cli_entry *e, int cmd, 
 }
 
 /* needs usecount semantics defined */
-AST_MODULE_INFO(ASTERISK_GPL_KEY, AST_MODFLAG_DEFAULT, "PostgreSQL RealTime Configuration Driver",
+AST_MODULE_INFO(ASTERISK_GPL_KEY, AST_MODFLAG_GLOBAL_SYMBOLS, "PostgreSQL RealTime Configuration Driver",
 		.load = load_module,
 		.unload = unload_module,
 		.reload = reload

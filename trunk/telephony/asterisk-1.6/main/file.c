@@ -25,7 +25,7 @@
 
 #include "asterisk.h"
 
-ASTERISK_FILE_VERSION(__FILE__, "$Revision: 268578 $")
+ASTERISK_FILE_VERSION(__FILE__, "$Revision: 290575 $")
 
 #include <dirent.h>
 #include <sys/stat.h>
@@ -45,7 +45,6 @@ ASTERISK_FILE_VERSION(__FILE__, "$Revision: 268578 $")
 #include "asterisk/linkedlists.h"
 #include "asterisk/module.h"
 #include "asterisk/astobj2.h"
-#include "asterisk/test.h"
 
 /*
  * The following variable controls the layout of localized sound files.
@@ -129,7 +128,7 @@ int ast_stopstream(struct ast_channel *tmp)
 		ast_closestream(tmp->stream);
 		tmp->stream = NULL;
 		if (tmp->oldwriteformat && ast_set_write_format(tmp, tmp->oldwriteformat))
-			ast_log(LOG_WARNING, "Unable to restore format back to %s\n", ast_getformatname(tmp->oldwriteformat));
+			ast_log(LOG_WARNING, "Unable to restore format back to %d\n", tmp->oldwriteformat);
 	}
 	/* Stop the video stream too */
 	if (tmp->vstream != NULL) {
@@ -150,7 +149,7 @@ int ast_writestream(struct ast_filestream *fs, struct ast_frame *f)
 		if (fs->fmt->format & AST_FORMAT_AUDIO_MASK) {
 			/* This is the audio portion.  Call the video one... */
 			if (!fs->vfs && fs->filename) {
-				const char *type = ast_getformatname(f->subclass.codec & ~0x1);
+				const char *type = ast_getformatname(f->subclass & ~0x1);
 				fs->vfs = ast_writefile(fs->filename, type, NULL, fs->flags, 0, fs->mode);
 				ast_debug(1, "Opened video output file\n");
 			}
@@ -166,7 +165,7 @@ int ast_writestream(struct ast_filestream *fs, struct ast_frame *f)
 		ast_log(LOG_WARNING, "Tried to write non-voice frame\n");
 		return -1;
 	}
-	if (((fs->fmt->format | alt) & f->subclass.codec) == f->subclass.codec) {
+	if (((fs->fmt->format | alt) & f->subclass) == f->subclass) {
 		res =  fs->fmt->write(fs, f);
 		if (res < 0) 
 			ast_log(LOG_WARNING, "Natural write failed\n");
@@ -175,18 +174,18 @@ int ast_writestream(struct ast_filestream *fs, struct ast_frame *f)
 	} else {
 		/* XXX If they try to send us a type of frame that isn't the normal frame, and isn't
 		       the one we've setup a translator for, we do the "wrong thing" XXX */
-		if (fs->trans && f->subclass.codec != fs->lastwriteformat) {
+		if (fs->trans && f->subclass != fs->lastwriteformat) {
 			ast_translator_free_path(fs->trans);
 			fs->trans = NULL;
 		}
 		if (!fs->trans) 
-			fs->trans = ast_translator_build_path(fs->fmt->format, f->subclass.codec);
+			fs->trans = ast_translator_build_path(fs->fmt->format, f->subclass);
 		if (!fs->trans)
 			ast_log(LOG_WARNING, "Unable to translate to format %s, source format %s\n",
-				fs->fmt->name, ast_getformatname(f->subclass.codec));
+				fs->fmt->name, ast_getformatname(f->subclass));
 		else {
 			struct ast_frame *trf;
-			fs->lastwriteformat = f->subclass.codec;
+			fs->lastwriteformat = f->subclass;
 			/* Get the translated frame but don't consume the original in case they're using it on another stream */
 			if ((trf = ast_translate(fs->trans, f, 0))) {
 				struct ast_frame *cur;
@@ -558,7 +557,10 @@ static int fileexists_test(const char *filename, const char *fmt, const char *la
 /*!
  * \brief helper routine to locate a file with a given format
  * and language preference.
- * Try preflang, preflang with stripped '_' suffices, or NULL.
+ * Try preflang, preflang with stripped '_' suffix, or NULL.
+ * In the standard asterisk, language goes just before the last component.
+ * In an alternative configuration, the language should be a prefix
+ * to the actual filename.
  *
  * The last parameter(s) point to a buffer of sufficient size,
  * which on success is filled with the matching filename.
@@ -567,35 +569,36 @@ static int fileexists_core(const char *filename, const char *fmt, const char *pr
 			   char *buf, int buflen)
 {
 	int res = -1;
-	char *lang;
+	char *lang = NULL;
 
 	if (buf == NULL) {
 		return -1;
 	}
 
 	/* We try languages in the following order:
-	 *    preflang (may include dialect and style codes)
+	 *    preflang (may include dialect)
 	 *    lang (preflang without dialect - if any)
 	 *    <none>
 	 *    default (unless the same as preflang or lang without dialect)
 	 */
 
-	lang = ast_strdupa(preflang);
-
-	/* Try preferred language, including removing any style or dialect codes */
-	while (!ast_strlen_zero(lang)) {
-		char *end;
-
-		if ((res = fileexists_test(filename, fmt, lang, buf, buflen)) > 0) {
+	/* Try preferred language */
+	if (!ast_strlen_zero(preflang)) {
+		/* try the preflang exactly as it was requested */
+		if ((res = fileexists_test(filename, fmt, preflang, buf, buflen)) > 0) {
 			return res;
-		}
+		} else {
+			/* try without a dialect */
+			char *postfix = NULL;
+			postfix = lang = ast_strdupa(preflang);
 
-		if ((end = strrchr(lang, '_')) != NULL) {
-			*end = '\0';
-			continue;
+			strsep(&postfix, "_");
+			if (postfix) {
+				if ((res = fileexists_test(filename, fmt, lang, buf, buflen)) > 0) {
+					return res;
+				}
+			}
 		}
-
-		break;
 	}
 
 	/* Try without any language */
@@ -650,7 +653,10 @@ struct ast_filestream *ast_openstream_full(struct ast_channel *chan, const char 
 	chan->oldwriteformat = chan->writeformat;
 	/* Set the channel to a format we can work with */
 	res = ast_set_write_format(chan, fmts);
- 	res = ast_filehelper(buf, chan, NULL, ACTION_OPEN);
+	if (res == -1) {	/* No format available that works with this channel */
+		return NULL;
+	}
+	res = ast_filehelper(buf, chan, NULL, ACTION_OPEN);
 	if (res >= 0)
 		return chan->stream;
 	return NULL;
@@ -661,7 +667,7 @@ struct ast_filestream *ast_openvstream(struct ast_channel *chan, const char *fil
 	/* As above, but for video. But here we don't have translators
 	 * so we must enforce a format.
 	 */
-	format_t format;
+	unsigned int format;
 	char *buf;
 	int buflen;
 
@@ -955,10 +961,12 @@ int ast_streamfile(struct ast_channel *chan, const char *filename, const char *p
 	 * done this way because there is no where for ast_openstream_full to
 	 * return the file had no data. */
 	seekattempt = fseek(fs->f, -1, SEEK_END);
-	if (!seekattempt)
-		ast_seekstream(fs, 0, SEEK_SET);
-	else
+	if (seekattempt && errno == EINVAL) {
+		/* Zero-length file, as opposed to a pipe */
 		return 0;
+	} else {
+		ast_seekstream(fs, 0, SEEK_SET);
+	}
 
 	vfs = ast_openvstream(chan, filename, preflang);
 	if (vfs) {
@@ -1234,15 +1242,15 @@ static int waitstream_core(struct ast_channel *c, const char *breakon,
 			switch (fr->frametype) {
 			case AST_FRAME_DTMF_END:
 				if (context) {
-					const char exten[2] = { fr->subclass.integer, '\0' };
+					const char exten[2] = { fr->subclass, '\0' };
 					if (ast_exists_extension(c, context, exten, 1, c->cid.cid_num)) {
-						res = fr->subclass.integer;
+						res = fr->subclass;
 						ast_frfree(fr);
 						ast_clear_flag(c, AST_FLAG_END_DTMF_ONLY);
 						return res;
 					}
 				} else {
-					res = fr->subclass.integer;
+					res = fr->subclass;
 					if (strchr(forward, res)) {
 						int eoftest;
 						ast_stream_fastforward(c->stream, skip_ms);
@@ -1262,7 +1270,7 @@ static int waitstream_core(struct ast_channel *c, const char *breakon,
 				}
 				break;
 			case AST_FRAME_CONTROL:
-				switch (fr->subclass.integer) {
+				switch (fr->subclass) {
 				case AST_CONTROL_HANGUP:
 				case AST_CONTROL_BUSY:
 				case AST_CONTROL_CONGESTION:
@@ -1276,14 +1284,11 @@ static int waitstream_core(struct ast_channel *c, const char *breakon,
 				case AST_CONTROL_SRCCHANGE:
 				case AST_CONTROL_HOLD:
 				case AST_CONTROL_UNHOLD:
-				case AST_CONTROL_CONNECTED_LINE:
-				case AST_CONTROL_REDIRECTING:
-				case AST_CONTROL_AOC:
 				case -1:
 					/* Unimportant */
 					break;
 				default:
-					ast_log(LOG_WARNING, "Unexpected control subclass '%d'\n", fr->subclass.integer);
+					ast_log(LOG_WARNING, "Unexpected control subclass '%d'\n", fr->subclass);
 				}
 				break;
 			case AST_FRAME_VOICE:
@@ -1464,7 +1469,7 @@ static char *handle_cli_core_show_file_formats(struct ast_cli_entry *e, int cmd,
 #undef FORMAT2
 }
 
-static struct ast_cli_entry cli_file[] = {
+struct ast_cli_entry cli_file[] = {
 	AST_CLI_DEFINE(handle_cli_core_show_file_formats, "Displays file formats")
 };
 

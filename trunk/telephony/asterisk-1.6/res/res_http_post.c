@@ -32,7 +32,7 @@
 
 #include "asterisk.h"
 
-ASTERISK_FILE_VERSION(__FILE__, "$Revision: 226099 $")
+ASTERISK_FILE_VERSION(__FILE__, "$Revision: 226101 $")
 
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -155,6 +155,7 @@ static int process_message(GMimeMessage *message, const char *post_dir)
 
 	return cbinfo.count;
 }
+
 
 /* Find a sequence of bytes within a binary array. */
 static int find_sequence(char * inbuf, int inlen, char * matchbuf, int matchlen)
@@ -291,9 +292,10 @@ static int readmimefile(FILE * fin, FILE * fout, char * boundary, int contentlen
 	return 0;
 }
 
-static int http_post_callback(struct ast_tcptls_session_instance *ser, const struct ast_http_uri *urih, const char *uri, enum ast_http_method method, struct ast_variable *get_vars, struct ast_variable *headers)
+
+static struct ast_str *http_post_callback(struct ast_tcptls_session_instance *ser, const struct ast_http_uri *urih, const char *uri, enum ast_http_method method, struct ast_variable *vars, struct ast_variable *headers, int *status, char **title, int *contentlength)
 {
-	struct ast_variable *var, *cookies;
+	struct ast_variable *var;
 	unsigned long ident = 0;
 	FILE *f;
 	int content_len = 0;
@@ -302,45 +304,41 @@ static int http_post_callback(struct ast_tcptls_session_instance *ser, const str
 	int message_count = 0;
 	char * boundary_marker = NULL;
 
-	if (method != AST_HTTP_POST) {
-		ast_http_error(ser, 501, "Not Implemented", "Attempt to use unimplemented / unsupported method");
-		return -1;
-	}
-
-	if (!astman_is_authed(ast_http_manid_from_vars(headers))) {
-		ast_http_error(ser, 403, "Access Denied", "Sorry, I cannot let you do that, Dave.");
-		return -1;
-	}
-
 	if (!urih) {
-		ast_http_error(ser, 400, "Missing URI handle", "There was an error parsing the request");
-	        return -1;
+		return ast_http_error((*status = 400),
+			   (*title = ast_strdup("Missing URI handle")),
+			   NULL, "There was an error parsing the request");
 	}
 
-	cookies = ast_http_get_cookies(headers);
-	for (var = cookies; var; var = var->next) {
-		if (!strcasecmp(var->name, "mansession_id")) {
-			sscanf(var->value, "%30lx", &ident);
-			break;
+	for (var = vars; var; var = var->next) {
+		if (strcasecmp(var->name, "mansession_id")) {
+			continue;
 		}
-	}
-	if (cookies) {
-		ast_variables_destroy(cookies);
+
+		if (sscanf(var->value, "%30lx", &ident) != 1) {
+			return ast_http_error((*status = 400),
+					      (*title = ast_strdup("Bad Request")),
+					      NULL, "The was an error parsing the request.");
+		}
+
+		if (!astman_verify_session_writepermissions(ident, EVENT_FLAG_CONFIG)) {
+			return ast_http_error((*status = 401),
+					      (*title = ast_strdup("Unauthorized")),
+					      NULL, "You are not authorized to make this request.");
+		}
+
+		break;
 	}
 
-	if (ident == 0) {
-		ast_http_error(ser, 401, "Unauthorized", "You are not authorized to make this request.");
-		return -1;
-	}
-	if (!astman_verify_session_writepermissions(ident, EVENT_FLAG_CONFIG)) {
-		ast_http_error(ser, 401, "Unauthorized", "You are not authorized to make this request.");
-		return -1;
+	if (!var) {
+		return ast_http_error((*status = 401),
+				      (*title = ast_strdup("Unauthorized")),
+				      NULL, "You are not authorized to make this request.");
 	}
 
 	if (!(f = tmpfile())) {
 		ast_log(LOG_ERROR, "Could not create temp file.\n");
-		ast_http_error(ser, 500, "Internal server error", "Could not create temp file.");
-		return -1;
+		return NULL;
 	}
 
 	for (var = headers; var; var = var->next) {
@@ -350,8 +348,8 @@ static int http_post_callback(struct ast_tcptls_session_instance *ser, const str
 			if ((sscanf(var->value, "%30u", &content_len)) != 1) {
 				ast_log(LOG_ERROR, "Invalid Content-Length in POST request!\n");
 				fclose(f);
-				ast_http_error(ser, 500, "Internal server error", "Invalid Content-Length in POST request!");
-				return -1;
+
+				return NULL;
 			}
 			ast_debug(1, "Got a Content-Length of %d\n", content_len);
 		} else if (!strcasecmp(var->name, "Content-Type")) {
@@ -369,15 +367,15 @@ static int http_post_callback(struct ast_tcptls_session_instance *ser, const str
 			ast_log(LOG_DEBUG, "Cannot find boundary marker in POST request.\n");
 		}
 		fclose(f);
-
-		return -1;
+		
+		return NULL;
 	}
 
 	if (fseek(f, SEEK_SET, 0)) {
 		ast_log(LOG_ERROR, "Failed to seek temp file back to beginning.\n");
 		fclose(f);
-		ast_http_error(ser, 500, "Internal server error", "Failed to seek temp file back to beginning.");
-		return -1;
+
+		return NULL;
 	}
 
 	post_dir = urih->data;
@@ -387,20 +385,24 @@ static int http_post_callback(struct ast_tcptls_session_instance *ser, const str
 	if (!message) {
 		ast_log(LOG_ERROR, "Error parsing MIME data\n");
 
-		ast_http_error(ser, 400, "Bad Request", "The was an error parsing the request.");
-		return -1;
+		return ast_http_error((*status = 400),
+				      (*title = ast_strdup("Bad Request")),
+				      NULL, "The was an error parsing the request.");
 	}
 
 	if (!(message_count = process_message(message, ast_str_buffer(post_dir)))) {
 		ast_log(LOG_ERROR, "Invalid MIME data, found no parts!\n");
 		g_object_unref(message);
-		ast_http_error(ser, 400, "Bad Request", "The was an error parsing the request.");
-		return -1;
+		return ast_http_error((*status = 400),
+				      (*title = ast_strdup("Bad Request")),
+				      NULL, "The was an error parsing the request.");
 	}
+
 	g_object_unref(message);
 
-	ast_http_error(ser, 200, "OK", "File successfully uploaded.");
-	return 0;
+	return ast_http_error((*status = 200),
+			      (*title = ast_strdup("OK")),
+			      NULL, "File successfully uploaded.");
 }
 
 static int __ast_http_post_load(int reload)
@@ -448,6 +450,8 @@ static int __ast_http_post_load(int reload)
 			ast_str_set(&ds, 0, "%s", v->value);
 			urih->data = ds;
 			urih->has_subtree = 0;
+			urih->supports_get = 0;
+			urih->supports_post = 1;
 			urih->callback = http_post_callback;
 			urih->key = __FILE__;
 			urih->mallocd = urih->dmallocd = 1;

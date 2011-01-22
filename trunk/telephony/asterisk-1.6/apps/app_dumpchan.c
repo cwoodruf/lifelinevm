@@ -30,7 +30,7 @@
 
 #include "asterisk.h"
 
-ASTERISK_FILE_VERSION(__FILE__, "$Revision: 256104 $")
+ASTERISK_FILE_VERSION(__FILE__, "$Revision: 184707 $")
 
 #include "asterisk/pbx.h"
 #include "asterisk/module.h"
@@ -60,7 +60,7 @@ ASTERISK_FILE_VERSION(__FILE__, "$Revision: 256104 $")
 	</application>
  ***/
 
-static const char app[] = "DumpChan";
+static char *app = "DumpChan";
 
 static int serialize_showchan(struct ast_channel *c, char *buf, size_t size)
 {
@@ -119,7 +119,7 @@ static int serialize_showchan(struct ast_channel *c, char *buf, size_t size)
 			S_OR(c->cid.cid_num, "(N/A)"),
 			S_OR(c->cid.cid_name, "(N/A)"),
 			S_OR(c->cid.cid_dnid, "(N/A)"),
-			S_OR(c->redirecting.from.number, "(N/A)"),
+			S_OR(c->cid.cid_rdnis, "(N/A)"),
 			c->parkinglot,
 			c->language,
 			ast_state2str(c->_state),
@@ -147,7 +147,7 @@ static int serialize_showchan(struct ast_channel *c, char *buf, size_t size)
 	return 0;
 }
 
-static int dumpchan_exec(struct ast_channel *chan, const char *data)
+static int dumpchan_exec(struct ast_channel *chan, void *data)
 {
 	struct ast_str *vars = ast_str_thread_get(&ast_str_thread_global_buf, 16);
 	char info[1024];

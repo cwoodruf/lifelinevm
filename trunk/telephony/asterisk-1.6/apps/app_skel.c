@@ -35,7 +35,7 @@
 
 #include "asterisk.h"
 
-ASTERISK_FILE_VERSION(__FILE__, "$Revision: 200656 $")
+ASTERISK_FILE_VERSION(__FILE__, "$Revision: 153365 $")
 
 #include "asterisk/file.h"
 #include "asterisk/channel.h"
@@ -74,18 +74,18 @@ ASTERISK_FILE_VERSION(__FILE__, "$Revision: 200656 $")
 
 static char *app = "Skel";
 
-enum option_flags {
+enum {
 	OPTION_A = (1 << 0),
 	OPTION_B = (1 << 1),
 	OPTION_C = (1 << 2),
-};
+} option_flags;
 
-enum option_args {
+enum {
 	OPTION_ARG_B = 0,
 	OPTION_ARG_C = 1,
 	/* This *must* be the last value in this enum! */
 	OPTION_ARG_ARRAY_SIZE = 2,
-};
+} option_args;
 
 AST_APP_OPTIONS(app_opts,{
 	AST_APP_OPTION('a', OPTION_A),
@@ -94,7 +94,7 @@ AST_APP_OPTIONS(app_opts,{
 });
 
 
-static int app_exec(struct ast_channel *chan, const char *data)
+static int app_exec(struct ast_channel *chan, void *data)
 {
 	int res = 0;
 	struct ast_flags flags;

@@ -27,7 +27,7 @@
  
 #include "asterisk.h"
 
-ASTERISK_FILE_VERSION(__FILE__, "$Revision: 196072 $")
+ASTERISK_FILE_VERSION(__FILE__, "$Revision: 153365 $")
 
 #include "asterisk/lock.h"
 #include "asterisk/file.h"
@@ -74,7 +74,7 @@ ASTERISK_FILE_VERSION(__FILE__, "$Revision: 196072 $")
 
 static char *app = "Zapateller";
 
-static int zapateller_exec(struct ast_channel *chan, const char *data)
+static int zapateller_exec(struct ast_channel *chan, void *data)
 {
 	int res = 0;
 	int i, answer = 0, nocallerid = 0;

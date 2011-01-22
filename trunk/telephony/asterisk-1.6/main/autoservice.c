@@ -27,7 +27,7 @@
 
 #include "asterisk.h"
 
-ASTERISK_FILE_VERSION(__FILE__, "$Revision: 264997 $")
+ASTERISK_FILE_VERSION(__FILE__, "$Revision: 278273 $")
 
 #include <sys/time.h>
 #include <signal.h>
@@ -56,6 +56,7 @@ struct asent {
 	 *  it gets stopped for the last time. */
 	unsigned int use_count;
 	unsigned int orig_end_dtmf_flag:1;
+	unsigned int ignore_frame_types;
 	/*! Frames go on at the head of deferred_frames, so we have the frames
 	 *  from newest to oldest.  As we put them at the head of the readq, we'll
 	 *  end up with them in the right order for the channel's readq. */
@@ -74,7 +75,7 @@ static void *autoservice_run(void *ign)
 {
 	struct ast_frame hangup_frame = {
 		.frametype = AST_FRAME_CONTROL,
-		.subclass.integer = AST_CONTROL_HANGUP,
+		.subclass = AST_CONTROL_HANGUP,
 	};
 
 	for (;;) {
@@ -110,6 +111,11 @@ static void *autoservice_run(void *ign)
 		AST_LIST_UNLOCK(&aslist);
 
 		if (!x) {
+			/* If we don't sleep, this becomes a busy loop, which causes
+			 * problems when Asterisk runs at a different priority than other
+			 * user processes.  As long as we check for new channels at least
+			 * once every 10ms, we should be fine. */
+			usleep(10000);
 			continue;
 		}
 
@@ -281,13 +287,32 @@ int ast_autoservice_stop(struct ast_channel *chan)
 
 	ast_channel_lock(chan);
 	while ((f = AST_LIST_REMOVE_HEAD(&as->deferred_frames, frame_list))) {
-		ast_queue_frame_head(chan, f);
+		if (!((1 << f->frametype) & as->ignore_frame_types)) {
+			ast_queue_frame_head(chan, f);
+		}
 		ast_frfree(f);
 	}
 	ast_channel_unlock(chan);
 
 	free(as);
 
+	return res;
+}
+
+int ast_autoservice_ignore(struct ast_channel *chan, enum ast_frame_type ftype)
+{
+	struct asent *as;
+	int res = -1;
+
+	AST_LIST_LOCK(&aslist);
+	AST_LIST_TRAVERSE(&aslist, as, list) {
+		if (as->chan == chan) {
+			res = 0;
+			as->ignore_frame_types |= (1 << ftype);
+			break;
+		}
+	}
+	AST_LIST_UNLOCK(&aslist);
 	return res;
 }
 

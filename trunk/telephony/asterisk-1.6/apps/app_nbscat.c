@@ -27,7 +27,7 @@
  
 #include "asterisk.h"
 
-ASTERISK_FILE_VERSION(__FILE__, "$Revision: 227580 $")
+ASTERISK_FILE_VERSION(__FILE__, "$Revision: 182947 $")
 
 #include <fcntl.h>
 #include <sys/time.h>
@@ -105,7 +105,7 @@ static int timed_read(int fd, void *data, int datalen)
 	
 }
 
-static int NBScat_exec(struct ast_channel *chan, const char *data)
+static int NBScat_exec(struct ast_channel *chan, void *data)
 {
 	int res=0;
 	int fds[2];
@@ -148,7 +148,7 @@ static int NBScat_exec(struct ast_channel *chan, const char *data)
 				res = timed_read(fds[0], myf.frdata, sizeof(myf.frdata));
 				if (res > 0) {
 					myf.f.frametype = AST_FRAME_VOICE;
-					myf.f.subclass.codec = AST_FORMAT_SLINEAR;
+					myf.f.subclass = AST_FORMAT_SLINEAR;
 					myf.f.datalen = res;
 					myf.f.samples = res / 2;
 					myf.f.mallocd = 0;
