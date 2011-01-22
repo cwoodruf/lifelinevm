@@ -292,6 +292,7 @@ enum ast_control_frame_type {
 	AST_CONTROL_VIDUPDATE = 18,	/*!< Indicate video frame update */
 	AST_CONTROL_SRCUPDATE = 20,     /*!< Indicate source of media has changed */
 	AST_CONTROL_SRCCHANGE = 21,     /*!< Media has changed and requires a new RTP SSRC */
+	AST_CONTROL_END_OF_Q = 22,		/*!< Indicate that this position was the end of the channel queue for a softhangup. */
 };
 
 #define AST_SMOOTHER_FLAG_G729		(1 << 0)
@@ -339,6 +340,13 @@ enum ast_control_frame_type {
 
 /*! Explicitly enable or disable echo cancelation for the given channel */
 #define	AST_OPTION_ECHOCAN		8
+
+/*! \brief Handle channel write data
+ * If a channel needs to process the data from a func_channel write operation
+ * after func_channel_write executes, it can define the setoption callback
+ * and process this option. A pointer to an ast_chan_write_info_t will be passed.
+ * */
+#define AST_OPTION_CHANNEL_WRITE 9
 
 struct oprmode {
 	struct ast_channel *peer;
@@ -548,7 +556,15 @@ void ast_parse_allow_disallow(struct ast_codec_pref *pref, int *mask, const char
 /*! \brief Dump audio codec preference list into a string */
 int ast_codec_pref_string(struct ast_codec_pref *pref, char *buf, size_t size);
 
-/*! \brief Shift an audio codec preference list up or down 65 bytes so that it becomes an ASCII string */
+/*! \brief Shift an audio codec preference list up or down 65 bytes so that it becomes an ASCII string
+ * \note Due to a misunderstanding in how codec preferences are stored, this
+ * list starts at 'B', not 'A'.  For backwards compatibility reasons, this
+ * cannot change.
+ * \param pref A codec preference list structure
+ * \param buf A string denoting codec preference, appropriate for use in line transmission
+ * \param size Size of \a buf
+ * \param right Boolean:  if 0, convert from \a buf to \a pref; if 1, convert from \a pref to \a buf.
+ */
 void ast_codec_pref_convert(struct ast_codec_pref *pref, char *buf, size_t size, int right);
 
 /*! \brief Returns the number of samples contained in the frame */

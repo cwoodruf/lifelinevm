@@ -19,7 +19,7 @@
  */
 #include "asterisk.h"
 
-ASTERISK_FILE_VERSION(__FILE__, "$Revision: 254714 $")
+ASTERISK_FILE_VERSION(__FILE__, "$Revision: 297775 $")
 
 #include "asterisk/astobj2.h"
 #include "asterisk/utils.h"
@@ -757,6 +757,10 @@ static int handle_astobj2_test(int fd, int argc, char *argv[])
 	int i, lim;
 	char *obj;
 	static int prof_id = -1;
+
+	if (argc != 3) {
+		return RESULT_SHOWUSAGE;
+	}
 
 	if (prof_id == -1)
 		prof_id = ast_add_profile("ao2_alloc", 0);

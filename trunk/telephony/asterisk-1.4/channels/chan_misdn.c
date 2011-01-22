@@ -36,7 +36,7 @@
  ***/
 #include "asterisk.h"
 
-ASTERISK_FILE_VERSION(__FILE__, "$Revision: 247910 $")
+ASTERISK_FILE_VERSION(__FILE__, "$Revision: 284478 $")
 
 #include <stdio.h>
 #include <pthread.h>
@@ -2763,9 +2763,8 @@ static struct ast_frame *process_ast_dsp(struct chan_list *tmp, struct ast_frame
 static struct ast_frame *misdn_read(struct ast_channel *ast)
 {
 	struct chan_list *tmp;
-	fd_set rrfs;
-	struct timeval tv;
 	int len, t;
+	struct pollfd pfd = { .fd = -1, .events = POLLIN };
 
 	if (!ast) {
 		chan_misdn_log(1, 0, "misdn_read called without ast\n");
@@ -2781,30 +2780,23 @@ static struct ast_frame *misdn_read(struct ast_channel *ast)
 		return NULL;
 	}
 
-	tv.tv_sec=0;
-	tv.tv_usec=20000;
+	pfd.fd = tmp->pipe[0];
+	t = ast_poll(&pfd, 1, 20);
 
-	FD_ZERO(&rrfs);
-	FD_SET(tmp->pipe[0],&rrfs);
-
-	t=select(FD_SETSIZE,&rrfs,NULL, NULL,&tv);
-
-	if (!t) {
-		chan_misdn_log(3, tmp->bc->port, "read Select Timed out\n");
-		len=160;
-	}
-
-	if (t<0) {
-		chan_misdn_log(-1, tmp->bc->port, "Select Error (err=%s)\n",strerror(errno));
+	if (t < 0) {
+		chan_misdn_log(-1, tmp->bc->port, "poll() error (err=%s)\n", strerror(errno));
 		return NULL;
 	}
 
-	if (FD_ISSET(tmp->pipe[0],&rrfs)) {
-		len=read(tmp->pipe[0],tmp->ast_rd_buf,sizeof(tmp->ast_rd_buf));
+	if (!t) {
+		chan_misdn_log(3, tmp->bc->port, "poll() timed out\n");
+		len = 160;
+	} else if (pfd.revents & POLLIN) {
+		len = read(tmp->pipe[0], tmp->ast_rd_buf, sizeof(tmp->ast_rd_buf));
 
-		if (len<=0) {
+		if (len <= 0) {
 			/* we hangup here, since our pipe is closed */
-			chan_misdn_log(2,tmp->bc->port,"misdn_read: Pipe closed, hanging up\n");
+			chan_misdn_log(2, tmp->bc->port, "misdn_read: Pipe closed, hanging up\n");
 			return NULL;
 		}
 
@@ -4910,26 +4902,22 @@ cb_events(enum event_e event, struct misdn_bchannel *bc, void *user_data)
 			if (ch->ast) 
 				ast_queue_frame(ch->ast, &frame);
 		} else {
-			fd_set wrfs;
-			struct timeval tv = { 0, 0 };
+			struct pollfd pfd = { .fd = ch->pipe[1], .events = POLLOUT };
 			int t;
 
-			FD_ZERO(&wrfs);
-			FD_SET(ch->pipe[1], &wrfs);
+			t = ast_poll(&pfd, 1, 0);
 
-			t = select(FD_SETSIZE, NULL, &wrfs, NULL, &tv);
+			if (t < 0) {
+				chan_misdn_log(-1, bc->port, "poll() error (err=%s)\n", strerror(errno));
+				break;
+			}
 
 			if (!t) {
-				chan_misdn_log(9, bc->port, "Select Timed out\n");
+				chan_misdn_log(9, bc->port, "poll() timed out\n");
 				break;
 			}
-			
-			if (t < 0) {
-				chan_misdn_log(-1, bc->port, "Select Error (err=%s)\n", strerror(errno));
-				break;
-			}
-			
-			if (FD_ISSET(ch->pipe[1], &wrfs)) {
+
+			if (pfd.revents & POLLOUT) {
 				chan_misdn_log(9, bc->port, "writing %d bytes to asterisk\n", bc->bframe_len);
 				if (write(ch->pipe[1], bc->bframe, bc->bframe_len) <= 0) {
 					chan_misdn_log(0, bc->port, "Write returned <=0 (err=%s) --> hanging up channel\n", strerror(errno));
@@ -5276,9 +5264,9 @@ static int load_module(void)
 		"    a - Have Asterisk detect DTMF tones on called channel\n"
 		"    c - Make crypted outgoing call, optarg is keyindex\n"
 		"    d - Send display text to called phone, text is the optarg\n"
-		"    e - Perform echo cancelation on this channel,\n"
+		"    e - Perform echo cancellation on this channel,\n"
 		"        takes taps as optarg (32,64,128,256)\n"
-		"   e! - Disable echo cancelation on this channel\n"
+		"   e! - Disable echo cancellation on this channel\n"
 		"    f - Enable fax detection\n"
 		"    h - Make digital outgoing call\n"
 		"   h1 - Make HDLC mode digital outgoing call\n"

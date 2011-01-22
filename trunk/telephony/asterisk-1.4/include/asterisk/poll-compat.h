@@ -9,7 +9,7 @@
  */
 
 /*---------------------------------------------------------------------------*\
-  $Id: poll-compat.h 182810 2009-03-18 02:09:13Z russell $
+  $Id: poll-compat.h 284478 2010-09-01 18:49:11Z tilghman $
 
   NAME
 
@@ -79,6 +79,8 @@
 #ifndef __AST_POLL_COMPAT_H
 #define __AST_POLL_COMPAT_H
 
+#include "asterisk/select.h"
+
 #ifndef AST_POLL_COMPAT
 
 #include <sys/poll.h>
@@ -113,5 +115,11 @@ int ast_internal_poll(struct pollfd *pArray, unsigned long n_fds, int timeout);
 #endif
 
 #endif /* AST_POLL_COMPAT */
+
+/*!
+ * \brief Same as poll(2), except the time is specified in microseconds and
+ * the tv argument is modified to indicate the time remaining.
+ */
+int ast_poll2(struct pollfd *pArray, unsigned long n_fds, struct timeval *tv);
 
 #endif /* __AST_POLL_COMPAT_H */

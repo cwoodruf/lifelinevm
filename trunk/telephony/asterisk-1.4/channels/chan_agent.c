@@ -36,7 +36,7 @@
 
 #include "asterisk.h"
 
-ASTERISK_FILE_VERSION(__FILE__, "$Revision: 241227 $")
+ASTERISK_FILE_VERSION(__FILE__, "$Revision: 273793 $")
 
 #include <stdio.h>
 #include <string.h>
@@ -707,7 +707,12 @@ static int agent_indicate(struct ast_channel *ast, int condition, const void *da
 	ast_mutex_lock(&p->lock);
 	if (p->chan && !ast_check_hangup(p->chan)) {
 		while (ast_channel_trylock(p->chan)) {
-			ast_channel_unlock(ast);
+			int res;
+			if ((res = ast_channel_unlock(ast))) {
+				ast_log(LOG_ERROR, "chan_agent bug! Channel was not locked upon entry to agent_indicate: %s\n", strerror(res));
+				ast_mutex_unlock(&p->lock);
+				return -1;
+			}
 			usleep(1);
 			ast_channel_lock(ast);
 		}
@@ -2790,7 +2795,9 @@ static int function_agent(struct ast_channel *chan, char *cmd, char *data, char 
 		ast_copy_string(buf, agent->moh, len);
 	else if (!strcasecmp(args.item, "channel")) {
 		if (agent->chan) {
+			ast_channel_lock(agent->chan);
 			ast_copy_string(buf, agent->chan->name, len);
+			ast_channel_unlock(agent->chan);
 			tmp = strrchr(buf, '-');
 			if (tmp)
 				*tmp = '\0';

@@ -55,6 +55,7 @@
 #include "asterisk/time.h"
 #endif
 #include "asterisk/logger.h"
+#include "asterisk/compiler.h"
 
 /* internal macro to profile mutexes. Only computes the delay on
  * non-blocking calls.
@@ -204,13 +205,21 @@ int ast_find_lock_info(void *lock_addr, char *filename, size_t filename_size, in
 	do { \
 		char __filename[80], __func[80], __mutex_name[80]; \
 		int __lineno; \
-		int __res = ast_find_lock_info(lock, __filename, sizeof(__filename), &__lineno, __func, sizeof(__func), __mutex_name, sizeof(__mutex_name)); \
-		ast_mutex_unlock(lock); \
+		int __res2, __res = ast_find_lock_info(lock, __filename, sizeof(__filename), &__lineno, __func, sizeof(__func), __mutex_name, sizeof(__mutex_name)); \
+		__res2 = ast_mutex_unlock(lock); \
 		usleep(1); \
 		if (__res < 0) { /* Shouldn't ever happen, but just in case... */ \
-			ast_mutex_lock(lock); \
+			if (__res2 == 0) { \
+				ast_mutex_lock(lock); \
+			} else { \
+				ast_log(LOG_WARNING, "Could not unlock mutex '%s': %s and no lock info found!  I will NOT try to relock.\n", #lock, strerror(__res2)); \
+			} \
 		} else { \
-			__ast_pthread_mutex_lock(__filename, __lineno, __func, __mutex_name, lock); \
+			if (__res2 == 0) { \
+				__ast_pthread_mutex_lock(__filename, __lineno, __func, __mutex_name, lock); \
+			} else { \
+				ast_log(LOG_WARNING, "Could not unlock mutex '%s': %s.  {{{Originally locked at %s line %d: (%s) '%s'}}}  I will NOT try to relock.\n", #lock, strerror(__res2), __filename, __lineno, __func, __mutex_name); \
+			} \
 		} \
 	} while (0)
 
@@ -260,7 +269,7 @@ static inline int __ast_pthread_mutex_init(int track, const char *filename, int 
 	int res;
 	pthread_mutexattr_t  attr;
 
-#ifdef AST_MUTEX_INIT_W_CONSTRUCTORS
+#if defined(AST_MUTEX_INIT_W_CONSTRUCTORS) && defined(CAN_COMPARE_MUTEX_TO_INIT_VALUE)
 
 	if ((t->mutex) != ((pthread_mutex_t) PTHREAD_MUTEX_INITIALIZER)) {
 /*
@@ -296,7 +305,7 @@ static inline int __ast_pthread_mutex_destroy(const char *filename, int lineno, 
 	int res;
 	int canlog = strcmp(filename, "logger.c") & t->track;
 
-#ifdef AST_MUTEX_INIT_W_CONSTRUCTORS
+#if defined(AST_MUTEX_INIT_W_CONSTRUCTORS) && defined(CAN_COMPARE_MUTEX_TO_INIT_VALUE)
 	if ((t->mutex) == ((pthread_mutex_t) PTHREAD_MUTEX_INITIALIZER)) {
 		/* Don't try to uninitialize non initialized mutex
 		 * This may no effect on linux
@@ -332,10 +341,6 @@ static inline int __ast_pthread_mutex_destroy(const char *filename, int lineno, 
 	if ((res = pthread_mutex_destroy(&t->mutex)))
 		__ast_mutex_logger("%s line %d (%s): Error destroying mutex %s: %s\n",
 				   filename, lineno, func, mutex_name, strerror(res));
-#ifndef PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP
-	else
-		t->mutex = PTHREAD_MUTEX_INIT_VALUE;
-#endif
 	ast_reentrancy_lock(t);
 	t->file[0] = filename;
 	t->lineno[0] = lineno;
@@ -354,7 +359,7 @@ static inline int __ast_pthread_mutex_lock(const char *filename, int lineno, con
 	int res;
 	int canlog = strcmp(filename, "logger.c") & t->track;
 
-#if defined(AST_MUTEX_INIT_W_CONSTRUCTORS)
+#if defined(AST_MUTEX_INIT_W_CONSTRUCTORS) && defined(CAN_COMPARE_MUTEX_TO_INIT_VALUE)
 	if ((t->mutex) == ((pthread_mutex_t) PTHREAD_MUTEX_INITIALIZER)) {
 		/* Don't warn abount uninitialized mutex.
 		 * Simple try to initialize it.
@@ -437,12 +442,14 @@ static inline int __ast_pthread_mutex_lock(const char *filename, int lineno, con
 }
 
 static inline int __ast_pthread_mutex_trylock(const char *filename, int lineno, const char *func,
+                                              const char* mutex_name, ast_mutex_t *t) attribute_warn_unused_result;
+static inline int __ast_pthread_mutex_trylock(const char *filename, int lineno, const char *func,
                                               const char* mutex_name, ast_mutex_t *t)
 {
 	int res;
 	int canlog = strcmp(filename, "logger.c") & t->track;
 
-#if defined(AST_MUTEX_INIT_W_CONSTRUCTORS)
+#if defined(AST_MUTEX_INIT_W_CONSTRUCTORS) && defined(CAN_COMPARE_MUTEX_TO_INIT_VALUE)
 	if ((t->mutex) == ((pthread_mutex_t) PTHREAD_MUTEX_INITIALIZER)) {
 		/* Don't warn abount uninitialized mutex.
 		 * Simple try to initialize it.
@@ -488,7 +495,7 @@ static inline int __ast_pthread_mutex_unlock(const char *filename, int lineno, c
 	int res;
 	int canlog = strcmp(filename, "logger.c") & t->track;
 
-#ifdef AST_MUTEX_INIT_W_CONSTRUCTORS
+#if defined(AST_MUTEX_INIT_W_CONSTRUCTORS) && defined(CAN_COMPARE_MUTEX_TO_INIT_VALUE)
 	if ((t->mutex) == ((pthread_mutex_t) PTHREAD_MUTEX_INITIALIZER)) {
 		__ast_mutex_logger("%s line %d (%s): Error: mutex '%s' is uninitialized.\n",
 				   filename, lineno, func, mutex_name);
@@ -567,7 +574,7 @@ static inline int __ast_cond_wait(const char *filename, int lineno, const char *
 	int res;
 	int canlog = strcmp(filename, "logger.c") & t->track;
 
-#ifdef AST_MUTEX_INIT_W_CONSTRUCTORS
+#if defined(AST_MUTEX_INIT_W_CONSTRUCTORS) && defined(CAN_COMPARE_MUTEX_TO_INIT_VALUE)
 	if ((t->mutex) == ((pthread_mutex_t) PTHREAD_MUTEX_INITIALIZER)) {
 		__ast_mutex_logger("%s line %d (%s): Error: mutex '%s' is uninitialized.\n",
 				   filename, lineno, func, mutex_name);
@@ -638,7 +645,7 @@ static inline int __ast_cond_timedwait(const char *filename, int lineno, const c
 	int res;
 	int canlog = strcmp(filename, "logger.c") & t->track;
 
-#ifdef AST_MUTEX_INIT_W_CONSTRUCTORS
+#if defined(AST_MUTEX_INIT_W_CONSTRUCTORS) && defined(CAN_COMPARE_MUTEX_TO_INIT_VALUE)
 	if ((t->mutex) == ((pthread_mutex_t) PTHREAD_MUTEX_INITIALIZER)) {
 		__ast_mutex_logger("%s line %d (%s): Error: mutex '%s' is uninitialized.\n",
 				   filename, lineno, func, mutex_name);
@@ -716,9 +723,15 @@ static inline int __ast_cond_timedwait(const char *filename, int lineno, const c
 #else /* !DEBUG_THREADS */
 
 #define	DEADLOCK_AVOIDANCE(lock) \
-	ast_mutex_unlock(lock); \
-	usleep(1); \
-	ast_mutex_lock(lock);
+	do { \
+		int __res; \
+		if (!(__res = ast_mutex_unlock(lock))) { \
+			usleep(1); \
+			ast_mutex_lock(lock); \
+		} else { \
+			ast_log(LOG_WARNING, "Failed to unlock mutex '%s' (%s).  I will NOT try to relock. {{{ THIS IS A BUG. }}}\n", #lock, strerror(__res)); \
+		} \
+	} while (0)
 
 
 typedef pthread_mutex_t ast_mutex_t;
@@ -862,7 +875,7 @@ static inline int __ast_rwlock_init(const char *filename, int lineno, const char
 {
 	int res;
 	pthread_rwlockattr_t attr;
-#ifdef AST_MUTEX_INIT_W_CONSTRUCTORS
+#if defined(AST_MUTEX_INIT_W_CONSTRUCTORS) && defined(CAN_COMPARE_MUTEX_TO_INIT_VALUE)
         int canlog = strcmp(filename, "logger.c");
 
         if (*prwlock != ((ast_rwlock_t) AST_RWLOCK_INIT_VALUE)) {
@@ -889,7 +902,7 @@ static inline int __ast_rwlock_destroy(const char *filename, int lineno, const c
 	int res;
 	int canlog = strcmp(filename, "logger.c");
 
-#ifdef AST_MUTEX_INIT_W_CONSTRUCTORS
+#if defined(AST_MUTEX_INIT_W_CONSTRUCTORS) && defined(CAN_COMPARE_MUTEX_TO_INIT_VALUE)
 	if (*prwlock == ((ast_rwlock_t) AST_RWLOCK_INIT_VALUE)) {
 		__ast_mutex_logger("%s line %d (%s): Warning: rwlock '%s' is uninitialized.\n",
 				   filename, lineno, func, rwlock_name);
@@ -911,7 +924,7 @@ static inline int _ast_rwlock_unlock(ast_rwlock_t *lock, const char *name,
 	const char *file, int line, const char *func)
 {
 	int res;
-#ifdef AST_MUTEX_INIT_W_CONSTRUCTORS
+#if defined(AST_MUTEX_INIT_W_CONSTRUCTORS) && defined(CAN_COMPARE_MUTEX_TO_INIT_VALUE)
 	int canlog = strcmp(file, "logger.c");
 
 	if (*lock == ((ast_rwlock_t) AST_RWLOCK_INIT_VALUE)) {
@@ -938,7 +951,7 @@ static inline int _ast_rwlock_rdlock(ast_rwlock_t *lock, const char *name,
 	const char *file, int line, const char *func)
 {
 	int res;
-#ifdef AST_MUTEX_INIT_W_CONSTRUCTORS
+#if defined(AST_MUTEX_INIT_W_CONSTRUCTORS) && defined(CAN_COMPARE_MUTEX_TO_INIT_VALUE)
 	int canlog = strcmp(file, "logger.c");
 	
 	if (*lock == ((ast_rwlock_t) AST_RWLOCK_INIT_VALUE)) {
@@ -971,7 +984,7 @@ static inline int _ast_rwlock_wrlock(ast_rwlock_t *lock, const char *name,
 	const char *file, int line, const char *func)
 {
 	int res;
-#ifdef AST_MUTEX_INIT_W_CONSTRUCTORS
+#if defined(AST_MUTEX_INIT_W_CONSTRUCTORS) && defined(CAN_COMPARE_MUTEX_TO_INIT_VALUE)
 	int canlog = strcmp(file, "logger.c");
 	
 	if (*lock == ((ast_rwlock_t) AST_RWLOCK_INIT_VALUE)) {
@@ -1004,7 +1017,7 @@ static inline int _ast_rwlock_timedrdlock(ast_rwlock_t *lock, const char *name,
 	const struct timespec *abs_timeout, const char *file, int line, const char *func)
 {
 	int res;
-#ifdef AST_MUTEX_INIT_W_CONSTRUCTORS
+#if defined(AST_MUTEX_INIT_W_CONSTRUCTORS) && defined(CAN_COMPARE_MUTEX_TO_INIT_VALUE)
 	int canlog = strcmp(file, "logger.c");
 	
 	if (*lock == ((ast_rwlock_t) AST_RWLOCK_INIT_VALUE)) {
@@ -1053,7 +1066,7 @@ static inline int _ast_rwlock_timedwrlock(ast_rwlock_t *lock, const char *name,
 	const struct timespec *abs_timeout, const char *file, int line, const char *func)
 {
 	int res;
-#ifdef AST_MUTEX_INIT_W_CONSTRUCTORS
+#if defined(AST_MUTEX_INIT_W_CONSTRUCTORS) && defined(CAN_COMPARE_MUTEX_TO_INIT_VALUE)
 	int canlog = strcmp(file, "logger.c");
 	
 	if (*lock == ((ast_rwlock_t) AST_RWLOCK_INIT_VALUE)) {
@@ -1102,7 +1115,7 @@ static inline int _ast_rwlock_tryrdlock(ast_rwlock_t *lock, const char *name,
 	const char *file, int line, const char *func)
 {
 	int res;
-#ifdef AST_MUTEX_INIT_W_CONSTRUCTORS
+#if defined(AST_MUTEX_INIT_W_CONSTRUCTORS) && defined(CAN_COMPARE_MUTEX_TO_INIT_VALUE)
 	int canlog = strcmp(file, "logger.c");
 	
 	if (*lock == ((ast_rwlock_t) AST_RWLOCK_INIT_VALUE)) {
@@ -1135,7 +1148,7 @@ static inline int _ast_rwlock_trywrlock(ast_rwlock_t *lock, const char *name,
 	const char *file, int line, const char *func)
 {
 	int res;
-#ifdef AST_MUTEX_INIT_W_CONSTRUCTORS
+#if defined(AST_MUTEX_INIT_W_CONSTRUCTORS) && defined(CAN_COMPARE_MUTEX_TO_INIT_VALUE)
 	int canlog = strcmp(file, "logger.c");
 	
 	if (*lock == ((ast_rwlock_t) AST_RWLOCK_INIT_VALUE)) {
@@ -1371,7 +1384,7 @@ AST_INLINE_API(int ast_atomic_dec_and_test(volatile int *p),
 #define ast_channel_lock(x)		ast_mutex_lock(&x->lock)
 /*! \brief Unlock a channel. If DEBUG_CHANNEL_LOCKS is defined 
 	in the Makefile, print relevant output for debugging */
-#define ast_channel_unlock(x)		ast_mutex_unlock(&x->lock)
+#define ast_channel_unlock(x)	ast_mutex_unlock(&x->lock)
 /*! \brief Try locking a channel. If DEBUG_CHANNEL_LOCKS is defined 
 	in the Makefile, print relevant output for debugging */
 #define ast_channel_trylock(x)		ast_mutex_trylock(&x->lock)
@@ -1393,7 +1406,7 @@ int __ast_channel_unlock(struct ast_channel *chan, const char *file, int lineno,
 #define ast_channel_trylock(a) __ast_channel_trylock(a, __FILE__, __LINE__, __PRETTY_FUNCTION__)
 /*! \brief Lock AST channel (and print debugging output)
 \note   You need to enable DEBUG_CHANNEL_LOCKS for this function */
-int __ast_channel_trylock(struct ast_channel *chan, const char *file, int lineno, const char *func);
+int __ast_channel_trylock(struct ast_channel *chan, const char *file, int lineno, const char *func) attribute_warn_unused_result;
 #endif
 
 #endif /* _ASTERISK_LOCK_H */

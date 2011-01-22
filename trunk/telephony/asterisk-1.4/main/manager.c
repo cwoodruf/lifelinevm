@@ -34,7 +34,7 @@
 
 #include "asterisk.h"
 
-ASTERISK_FILE_VERSION(__FILE__, "$Revision: 265570 $")
+ASTERISK_FILE_VERSION(__FILE__, "$Revision: 289949 $")
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -97,13 +97,22 @@ struct eventqent {
 	char eventdata[1];
 };
 
+static const int DEFAULT_ENABLED			= 0;	/*!< Default setting for manager to be enabled */
+static const int DEFAULT_WEBENABLED			= 0;	/*!< Default setting for the web interface to be enabled */
+static const int DEFAULT_BLOCKSOCKETS		= 0;	/*!< Default setting for block-sockets */
+static const int DEFAULT_DISPLAYCONNECTS	= 1;	/*!< Default setting for displaying manager connections */
+static const int DEFAULT_TIMESTAMPEVENTS	= 0;	/*!< Default setting for timestampevents */	
+static const int DEFAULT_HTTPTIMEOUT 		= 60;	/*!< Default manager http timeout */
+static const int DEFAULT_BROKENEVENTSACTION	= 0;	/*!< Default setting for brokeneventsaction */
+
+
 static int enabled;
 static int portno = DEFAULT_MANAGER_PORT;
 static int asock = -1;
-static int displayconnects = 1;
+static int displayconnects;
 static int timestampevents;
-static int httptimeout = 60;
-static int broken_events_action = 0;
+static int httptimeout;
+static int broken_events_action;
 
 static pthread_t t;
 static int block_sockets;
@@ -1592,7 +1601,7 @@ static int action_getvar(struct mansession *s, const struct message *m)
 	if (c)
 		ast_channel_unlock(c);
 	astman_append(s, "Response: Success\r\n"
-		"Variable: %s\r\nValue: %s\r\n", varname, varval);
+		"Variable: %s\r\nValue: %s\r\n", varname, S_OR(varval, ""));
 	if (!ast_strlen_zero(id))
 		astman_append(s, "ActionID: %s\r\n",id);
 	astman_append(s, "\r\n");
@@ -1935,6 +1944,7 @@ static char mandescr_originate[] =
 "	Timeout: How long to wait for call to be answered (in ms. Default: 30000)\n"
 "	CallerID: Caller ID to be set on the outgoing channel\n"
 "	Variable: Channel variable to set, multiple Variable: headers are allowed\n"
+"	Codecs: Comma-separated list of codecs to use for the new channels\n"
 "	Account: Account code\n"
 "	Async: Set to 'true' for fast origination\n";
 
@@ -1952,7 +1962,7 @@ static int action_originate(struct mansession *s, const struct message *m)
 	const char *async = astman_get_header(m, "Async");
 	const char *id = astman_get_header(m, "ActionID");
 	const char *codecs = astman_get_header(m, "Codecs");
-	struct ast_variable *vars = astman_get_variables(m);
+	struct ast_variable *vars;
 	char *tech, *data;
 	char *l = NULL, *n = NULL;
 	int pi = 0;
@@ -2002,6 +2012,9 @@ static int action_originate(struct mansession *s, const struct message *m)
 		format = 0;
 		ast_parse_allow_disallow(NULL, &format, codecs, 1);
 	}
+	/* Allocate requested channel variables */
+	vars = astman_get_variables(m);
+
 	if (ast_true(async)) {
 		struct fast_originate_helper *fast = ast_calloc(1, sizeof(*fast));
 		if (!fast) {
@@ -2041,6 +2054,9 @@ static int action_originate(struct mansession *s, const struct message *m)
 	        	res = ast_pbx_outgoing_exten(tech, format, data, to, context, exten, pi, &reason, 1, l, n, vars, account, NULL);
 		else {
 			astman_send_error(s, m, "Originate with 'Exten' requires 'Context' and 'Priority'");
+			if (vars) {
+				ast_variables_destroy(vars);
+			}
 			return 0;
 		}
 	}   
@@ -2917,14 +2933,12 @@ static char *generic_http_callback(int format, struct sockaddr_in *requestor, co
 			char *buf;
 			size_t l;
 
-			/* Ensure buffer is NULL-terminated */
-			fprintf(ss.f, "%c", 0);
-
 			if ((l = lseek(ss.fd, 0, SEEK_END)) > 0) {
-				if (MAP_FAILED == (buf = mmap(NULL, l, PROT_READ | PROT_WRITE, MAP_PRIVATE, ss.fd, 0))) {
+				if (MAP_FAILED == (buf = mmap(NULL, l + 1, PROT_READ | PROT_WRITE, MAP_SHARED, ss.fd, 0))) {
 					ast_log(LOG_WARNING, "mmap failed.  Manager request output was not processed\n");
 				} else {
 					char *tmpbuf;
+					buf[l] = '\0';
 					if (format == FORMAT_XML)
 						tmpbuf = xml_translate(buf, params);
 					else if (format == FORMAT_HTML)
@@ -2945,7 +2959,7 @@ static char *generic_http_callback(int format, struct sockaddr_in *requestor, co
 						free(tmpbuf);
 					free(s->outputstr);
 					s->outputstr = NULL;
-					munmap(buf, l);
+					munmap(buf, l + 1);
 				}
 			}
 			fclose(ss.f);
@@ -3055,8 +3069,8 @@ int init_manager(void)
 	static struct sockaddr_in ba;
 	int x = 1;
 	int flags;
-	int webenabled = 0;
-	int newhttptimeout = 60;
+	int webenabled = DEFAULT_WEBENABLED;
+	int newhttptimeout = DEFAULT_HTTPTIMEOUT;
 	struct ast_manager_user *user = NULL;
 
 	if (!registered) {
@@ -3087,9 +3101,14 @@ int init_manager(void)
 		/* Append placeholder event so master_eventq never runs dry */
 		append_event("Event: Placeholder\r\n\r\n", 0);
 	}
+
 	portno = DEFAULT_MANAGER_PORT;
-	displayconnects = 1;
-	broken_events_action = 0;
+	displayconnects = DEFAULT_DISPLAYCONNECTS;
+	broken_events_action = DEFAULT_BROKENEVENTSACTION;
+	block_sockets = DEFAULT_BLOCKSOCKETS;
+	timestampevents = DEFAULT_TIMESTAMPEVENTS;
+	httptimeout = DEFAULT_HTTPTIMEOUT;
+
 	cfg = ast_config_load("manager.conf");
 	if (!cfg) {
 		ast_log(LOG_NOTICE, "Unable to open management configuration manager.conf.  Call management disabled.\n");
