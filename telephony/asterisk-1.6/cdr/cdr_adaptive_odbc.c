@@ -16,8 +16,8 @@
  * at the top of the source tree.
  */
 
-/*!
- * \file
+/*! \file
+ *
  * \brief Adaptive ODBC CDR backend
  *
  * \author Tilghman Lesher <cdr_adaptive_odbc__v1@the-tilghman.com>
@@ -25,13 +25,12 @@
  */
 
 /*** MODULEINFO
-	<depend>generic_odbc</depend>
-	<depend>ltdl</depend>
+	<depend>res_odbc</depend>
  ***/
 
 #include "asterisk.h"
 
-ASTERISK_FILE_VERSION(__FILE__, "$Revision: 269153 $")
+ASTERISK_FILE_VERSION(__FILE__, "$Revision: 283318 $")
 
 #include <sys/types.h>
 #include <time.h>
@@ -50,7 +49,7 @@ ASTERISK_FILE_VERSION(__FILE__, "$Revision: 269153 $")
 
 #define	CONFIG	"cdr_adaptive_odbc.conf"
 
-static const char name[] = "Adaptive ODBC";
+static char *name = "Adaptive ODBC";
 /* Optimization to reduce number of memory allocations */
 static int maxsize = 512, maxsize2 = 512;
 
@@ -282,6 +281,7 @@ static int free_config(void)
 static SQLHSTMT generic_prepare(struct odbc_obj *obj, void *data)
 {
 	int res, i;
+	char *sql = data;
 	SQLHSTMT stmt;
 	SQLINTEGER nativeerror = 0, numfields = 0;
 	SQLSMALLINT diagbytes = 0;
@@ -293,9 +293,9 @@ static SQLHSTMT generic_prepare(struct odbc_obj *obj, void *data)
 		return NULL;
 	}
 
-	res = SQLPrepare(stmt, (unsigned char *) data, SQL_NTS);
+	res = SQLPrepare(stmt, (unsigned char *)sql, SQL_NTS);
 	if ((res != SQL_SUCCESS) && (res != SQL_SUCCESS_WITH_INFO)) {
-		ast_log(LOG_WARNING, "SQL Prepare failed![%s]\n", (char *) data);
+		ast_log(LOG_WARNING, "SQL Prepare failed![%s]\n", sql);
 		SQLGetDiagField(SQL_HANDLE_STMT, stmt, 1, SQL_DIAG_NUMBER, &numfields, SQL_IS_INTEGER, &diagbytes);
 		for (i = 0; i < numfields; i++) {
 			SQLGetDiagRec(SQL_HANDLE_STMT, stmt, i + 1, state, &nativeerror, diagnostic, sizeof(diagnostic), &diagbytes);
@@ -611,23 +611,6 @@ static int odbc_log(struct ast_cdr *cdr)
 						continue;
 					} else {
 						double number = 0.0;
-
-						if (!strcasecmp(entry->cdrname, "billsec")) {
-							if (!ast_tvzero(cdr->answer)) {
-								snprintf(colbuf, sizeof(colbuf), "%lf",
-											(double) (ast_tvdiff_us(cdr->end, cdr->answer) / 1000000.0));
-							} else {
-								ast_copy_string(colbuf, "0", sizeof(colbuf));
-							}
-						} else if (!strcasecmp(entry->cdrname, "duration")) {
-							snprintf(colbuf, sizeof(colbuf), "%lf",
-										(double) (ast_tvdiff_us(cdr->end, cdr->start) / 1000000.0));
-
-							if (!ast_strlen_zero(colbuf)) {
-								colptr = colbuf;
-							}
-						}
-
 						if (sscanf(colptr, "%30lf", &number) != 1) {
 							ast_log(LOG_WARNING, "CDR variable %s is not an numeric type.\n", entry->name);
 							continue;
@@ -645,23 +628,6 @@ static int odbc_log(struct ast_cdr *cdr)
 						continue;
 					} else {
 						double number = 0.0;
-
-						if (!strcasecmp(entry->cdrname, "billsec")) {
-							if (!ast_tvzero(cdr->answer)) {
-								snprintf(colbuf, sizeof(colbuf), "%lf",
-											(double) (ast_tvdiff_us(cdr->end, cdr->answer) / 1000000.0));
-							} else {
-								ast_copy_string(colbuf, "0", sizeof(colbuf));
-							}
-						} else if (!strcasecmp(entry->cdrname, "duration")) {
-							snprintf(colbuf, sizeof(colbuf), "%lf",
-										(double) (ast_tvdiff_us(cdr->end, cdr->start) / 1000000.0));
-
-							if (!ast_strlen_zero(colbuf)) {
-								colptr = colbuf;
-							}
-						}
-
 						if (sscanf(colptr, "%30lf", &number) != 1) {
 							ast_log(LOG_WARNING, "CDR variable %s is not an numeric type.\n", entry->name);
 							continue;
@@ -717,6 +683,7 @@ early_release:
 static int unload_module(void)
 {
 	ast_cdr_unregister(name);
+	usleep(1);
 	if (AST_RWLIST_WRLOCK(&odbc_tables)) {
 		ast_cdr_register(name, ast_module_info->description, odbc_log);
 		ast_log(LOG_ERROR, "Unable to lock column list.  Unload failed.\n");

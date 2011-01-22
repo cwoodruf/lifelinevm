@@ -36,21 +36,6 @@
 
 #define PARK_APP_NAME "Park"
 
-#define AST_FEATURE_RETURN_HANGUP           -1
-#define AST_FEATURE_RETURN_SUCCESSBREAK     0
-#define AST_FEATURE_RETURN_PBX_KEEPALIVE    AST_PBX_KEEPALIVE
-#define AST_FEATURE_RETURN_NO_HANGUP_PEER   AST_PBX_NO_HANGUP_PEER
-#define AST_FEATURE_RETURN_PASSDIGITS       21
-#define AST_FEATURE_RETURN_STOREDIGITS      22
-#define AST_FEATURE_RETURN_SUCCESS          23
-#define AST_FEATURE_RETURN_KEEPTRYING       24
-#define AST_FEATURE_RETURN_PARKFAILED       25
-
-#define FEATURE_SENSE_CHAN	(1 << 0)
-#define FEATURE_SENSE_PEER	(1 << 1)
-
-typedef int (*ast_feature_operation)(struct ast_channel *chan, struct ast_channel *peer, struct ast_bridge_config *config, const char *code, int sense, void *data);
-
 /*! \brief main call feature structure */
 
 enum {
@@ -68,13 +53,21 @@ struct ast_call_feature {
 	char sname[FEATURE_SNAME_LEN];
 	char exten[FEATURE_MAX_LEN];
 	char default_exten[FEATURE_MAX_LEN];
-	ast_feature_operation operation;
+	int (*operation)(struct ast_channel *chan, struct ast_channel *peer, struct ast_bridge_config *config, char *code, int sense, void *data);
 	unsigned int flags;
 	char app[FEATURE_APP_LEN];		
 	char app_args[FEATURE_APP_ARGS_LEN];
 	char moh_class[FEATURE_MOH_LEN];
 	AST_LIST_ENTRY(ast_call_feature) feature_entry;
 };
+
+#define AST_FEATURE_RETURN_HANGUP                   -1
+#define AST_FEATURE_RETURN_SUCCESSBREAK             0
+#define AST_FEATURE_RETURN_PASSDIGITS               21
+#define AST_FEATURE_RETURN_STOREDIGITS              22
+#define AST_FEATURE_RETURN_SUCCESS                  23
+#define AST_FEATURE_RETURN_KEEPTRYING               24
+#define AST_FEATURE_RETURN_PARKFAILED               25
 
 /*!
  * \brief Park a call and read back parked location 
@@ -120,34 +113,18 @@ int ast_bridge_call(struct ast_channel *chan, struct ast_channel *peer,struct as
 /*! \brief Pickup a call */
 int ast_pickup_call(struct ast_channel *chan);
 
-/*! 
- * \brief register new feature into feature_set 
- * \param feature an ast_call_feature object which contains a keysequence
- * and a callback function which is called when this keysequence is pressed
- * during a call. 
-*/
+/*! \brief register new feature into feature_set 
+   \param feature an ast_call_feature object which contains a keysequence
+   and a callback function which is called when this keysequence is pressed
+   during a call. */
 void ast_register_feature(struct ast_call_feature *feature);
 
-/*! 
- * \brief unregister feature from feature_set
- * \param feature the ast_call_feature object which was registered before
-*/
+/*! \brief unregister feature from feature_set
+    \param feature the ast_call_feature object which was registered before*/
 void ast_unregister_feature(struct ast_call_feature *feature);
 
-/*! 
- * \brief detect a feature before bridging 
- * \param chan
- * \param features an ast_flags ptr
- * \param code ptr of input code
- * \param feature
- * \retval ast_call_feature ptr to be set if found 
-*/
-int ast_feature_detect(struct ast_channel *chan, struct ast_flags *features, const char *code, struct ast_call_feature *feature);
-
-/*! 
- * \brief look for a call feature entry by its sname
- * \param name a string ptr, should match "automon", "blindxfer", "atxfer", etc. 
-*/
+/*! \brief look for a call feature entry by its sname
+	\param name a string ptr, should match "automon", "blindxfer", "atxfer", etc. */
 struct ast_call_feature *ast_find_call_feature(const char *name);
 
 void ast_rdlock_call_features(void);
@@ -155,11 +132,5 @@ void ast_unlock_call_features(void);
 
 /*! \brief Reload call features from features.conf */
 int ast_features_reload(void);
-
-/*!
- * \brief parse L option and read associated channel variables to set warning, warning frequency, and timelimit
- * \note caller must be aware of freeing memory for warning_sound, end_sound, and start_sound
-*/
-int ast_bridge_timelimit(struct ast_channel *chan, struct ast_bridge_config *config, char *parse, struct timeval *calldurationlimit);
 
 #endif /* _AST_FEATURES_H */

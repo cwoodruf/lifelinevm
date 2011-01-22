@@ -1,7 +1,7 @@
 /*
  * Asterisk -- An open source telephony toolkit.
  *
- * Copyright (C) 1999 - 2008, Digium, Inc.
+ * Copyright (C) 1999 - 2010, Digium, Inc.
  *
  * Mark Spencer <markster@digium.com>
  *
@@ -19,7 +19,7 @@
 
 /* Doxygenified Copyright Header */
 /*!
- * \mainpage Asterisk -- The Open Source Telephony Project
+ * \mainpage Asterisk -- An Open Source Telephony Toolkit
  *
  * \par Developer Documentation for Asterisk
  *
@@ -29,8 +29,6 @@
  * In addition to the information available on the Asterisk source code, 
  * please see the appendices for information on coding guidelines, 
  * release management, commit policies, and more.
- *
- * \arg \ref AsteriskArchitecture
  *
  * \par Additional documentation
  * \arg \ref Licensing
@@ -61,7 +59,7 @@
 
 #include "asterisk.h"
 
-ASTERISK_FILE_VERSION(__FILE__, "$Revision: 269636 $")
+ASTERISK_FILE_VERSION(__FILE__, "$Revision: 296533 $")
 
 #include "asterisk/_private.h"
 
@@ -120,9 +118,9 @@ int daemon(int, int);  /* defined in libresolv of all places */
 #include "asterisk/term.h"
 #include "asterisk/manager.h"
 #include "asterisk/cdr.h"
-#include "asterisk/cel.h"
 #include "asterisk/pbx.h"
 #include "asterisk/enum.h"
+#include "asterisk/rtp.h"
 #include "asterisk/http.h"
 #include "asterisk/udptl.h"
 #include "asterisk/app.h"
@@ -140,9 +138,8 @@ int daemon(int, int);  /* defined in libresolv of all places */
 #include "asterisk/buildinfo.h"
 #include "asterisk/xmldoc.h"
 #include "asterisk/poll-compat.h"
-#include "asterisk/ccss.h"
-#include "asterisk/test.h"
-#include "asterisk/aoc.h"
+
+#include "asterisk/doxyref.h"		/* Doxygen documentation */
 
 #include "../defaults.h"
 
@@ -172,7 +169,7 @@ int daemon(int, int);  /* defined in libresolv of all places */
 /*! @{ */
 
 struct ast_flags ast_options = { AST_DEFAULT_OPTIONS };
-struct ast_flags ast_compat = { 0 };
+struct ast_flags ast_compat = { 7 };
 
 int option_verbose;				/*!< Verbosity level */
 int option_debug;				/*!< Debug level */
@@ -272,10 +269,13 @@ static char ast_config_AST_CTL_OWNER[PATH_MAX] = "\0";
 static char ast_config_AST_CTL_GROUP[PATH_MAX] = "\0";
 static char ast_config_AST_CTL[PATH_MAX] = "asterisk.ctl";
 
+extern unsigned int ast_FD_SETSIZE;
+
 static char *_argv[256];
 static int shuttingdown;
 static int restartnow;
 static pthread_t consolethread = AST_PTHREADT_NULL;
+static pthread_t mon_sig_flags;
 static int canary_pid = 0;
 static char canary_filename[128];
 
@@ -473,6 +473,7 @@ static char *handle_show_settings(struct ast_cli_entry *e, int cmd, struct ast_c
 	ast_cli(a->fd, "  -------------\n");
 	ast_cli(a->fd, "  Manager (AMI):               %s\n", check_manager_enabled() ? "Enabled" : "Disabled");
 	ast_cli(a->fd, "  Web Manager (AMI/HTTP):      %s\n", check_webmanager_enabled() ? "Enabled" : "Disabled");
+	ast_cli(a->fd, "  Send Manager FullyBooted:    %s\n", ast_opt_send_fullybooted ? "Enabled" : "Disabled");
 	ast_cli(a->fd, "  Call data records:           %s\n", check_cdr_enabled() ? "Enabled" : "Disabled");
 	ast_cli(a->fd, "  Realtime Architecture (ARA): %s\n", ast_realtime_enabled() ? "Enabled" : "Disabled");
 
@@ -485,13 +486,6 @@ static char *handle_show_settings(struct ast_cli_entry *e, int cmd, struct ast_c
 	ast_cli(a->fd, "  Module directory:            %s\n", ast_config_AST_MODULE_DIR);
 	ast_cli(a->fd, "  Spool directory:             %s\n", ast_config_AST_SPOOL_DIR);
 	ast_cli(a->fd, "  Log directory:               %s\n", ast_config_AST_LOG_DIR);
-	ast_cli(a->fd, "  Run/Sockets directory:       %s\n", ast_config_AST_RUN_DIR);
-	ast_cli(a->fd, "  PID file:                    %s\n", ast_config_AST_PID);
-	ast_cli(a->fd, "  VarLib directory:            %s\n", ast_config_AST_VAR_DIR);
-	ast_cli(a->fd, "  Data directory:              %s\n", ast_config_AST_DATA_DIR);
-	ast_cli(a->fd, "  ASTDB:                       %s\n", ast_config_AST_DB);
-	ast_cli(a->fd, "  IAX2 Keys directory:         %s\n", ast_config_AST_KEY_DIR);
-	ast_cli(a->fd, "  AGI Scripts directory:       %s\n", ast_config_AST_AGI_DIR);
 	ast_cli(a->fd, "\n\n");
 	return CLI_SUCCESS;
 }
@@ -782,7 +776,7 @@ int64_t ast_mark(int i, int startstop)
 static char *handle_show_profile(struct ast_cli_entry *e, int cmd, struct ast_cli_args *a)
 {
 	int i, min, max;
-	const char *search = NULL;
+	char *search = NULL;
 	switch (cmd) {
 	case CLI_INIT:
 		e->command = "core show profile";
@@ -817,7 +811,7 @@ static char *handle_show_profile(struct ast_cli_entry *e, int cmd, struct ast_cl
 static char *handle_clear_profile(struct ast_cli_entry *e, int cmd, struct ast_cli_args *a)
 {
 	int i, min, max;
-	const char *search = NULL;
+	char *search = NULL;
 	switch (cmd) {
 	case CLI_INIT:
 		e->command = "core clear profile";
@@ -1199,12 +1193,18 @@ static int read_credentials(int fd, char *buffer, size_t size, struct console *c
 		return result;
 	}
 
-#if defined(SO_PEERCRED)
+#if defined(SO_PEERCRED) && (defined(HAVE_STRUCT_UCRED_UID) || defined(HAVE_STRUCT_UCRED_CR_UID))
 	if (getsockopt(fd, SOL_SOCKET, SO_PEERCRED, &cred, &len)) {
 		return result;
 	}
+#if defined(HAVE_STRUCT_UCRED_UID)
 	uid = cred.uid;
 	gid = cred.gid;
+#else /* defined(HAVE_STRUCT_UCRED_CR_UID) */
+	uid = cred.cr_uid;
+	gid = cred.cr_gid;
+#endif /* defined(HAVE_STRUCT_UCRED_UID) */
+
 #elif defined(HAVE_GETPEEREID)
 	if (getpeereid(fd, &uid, &gid)) {
 		return result;
@@ -1635,14 +1635,22 @@ static void quit_handler(int num, int niceness, int safeshutdown, int restart)
 			ast_module_shutdown();
 	}
 	if (ast_opt_console || (ast_opt_remote && !ast_opt_exec)) {
-		if (getenv("HOME")) 
+		pthread_t thisthread = pthread_self();
+		if (getenv("HOME")) {
 			snprintf(filename, sizeof(filename), "%s/.asterisk_history", getenv("HOME"));
-		if (!ast_strlen_zero(filename))
+		}
+		if (!ast_strlen_zero(filename)) {
 			ast_el_write_history(filename);
-		if (el != NULL)
-			el_end(el);
-		if (el_hist != NULL)
-			history_end(el_hist);
+		}
+		if (consolethread == AST_PTHREADT_NULL || consolethread == thisthread || mon_sig_flags == thisthread) {
+			/* Only end if we are the consolethread or signal handler, otherwise there's a race with that thread. */
+			if (el != NULL) {
+				el_end(el);
+			}
+			if (el_hist != NULL) {
+				history_end(el_hist);
+			}
+		}
 	}
 	if (option_verbose)
 		ast_verbose("Executing last minute cleanups\n");
@@ -2722,7 +2730,7 @@ static void ast_remotecontrol(char *data)
 				curline = nextline;
 			} while (!ast_strlen_zero(curline));
 
-			/* No non-verbose output in 60 seconds. */
+			/* No non-verbose output in 60s */
 			if (not_written) {
 				break;
 			}
@@ -2814,7 +2822,6 @@ static int show_cli_help(void) {
 	printf("                   of output to the CLI\n");
 	printf("   -v              Increase verbosity (multiple v's = more verbose)\n");
 	printf("   -x <cmd>        Execute command <cmd> (only valid with -r)\n");
-	printf("   -X              Execute includes by default (allows #exec in asterisk.conf)\n");
 	printf("   -W              Adjust terminal colors to compensate for a light background\n");
 	printf("\n");
 	return 0;
@@ -2934,7 +2941,7 @@ static void ast_readconfig(void)
 			ast_set2_flag(&ast_options, ast_true(v->value), AST_OPT_FLAG_QUIET);
 		/* Run as console (-c at startup, implies nofork) */
 		} else if (!strcasecmp(v->name, "console")) {
-			ast_set2_flag(&ast_options, ast_true(v->value), AST_OPT_FLAG_CONSOLE);
+			ast_set2_flag(&ast_options, ast_true(v->value), AST_OPT_FLAG_NO_FORK | AST_OPT_FLAG_CONSOLE);
 		/* Run with high priority if the O/S permits (-p at startup) */
 		} else if (!strcasecmp(v->name, "highpriority")) {
 			ast_set2_flag(&ast_options, ast_true(v->value), AST_OPT_FLAG_HIGH_PRIORITY);
@@ -3034,8 +3041,8 @@ static void ast_readconfig(void)
 			ast_set2_flag(&ast_options, ast_true(v->value), AST_OPT_FLAG_FORCE_BLACK_BACKGROUND);
 		} else if (!strcasecmp(v->name, "hideconnect")) {
 			ast_set2_flag(&ast_options, ast_true(v->value), AST_OPT_FLAG_HIDE_CONSOLE_CONNECT);
-		} else if (!strcasecmp(v->name, "lockconfdir")) {
-			ast_set2_flag(&ast_options, ast_true(v->value),	AST_OPT_FLAG_LOCK_CONFIG_DIR);
+		} else if (!strcasecmp(v->name, "sendfullybooted")) {
+			ast_set2_flag(&ast_options, ast_true(v->value), AST_OPT_FLAG_SEND_FULLYBOOTED);
 		}
 	}
 	for (v = ast_variable_browse(cfg, "compat"); v; v = v->next) {
@@ -3133,18 +3140,6 @@ static void run_startup_commands(void)
 	ast_config_destroy(cfg);
 }
 
-static void env_init(void)
-{
-	setenv("AST_SYSTEMNAME", ast_config_AST_SYSTEM_NAME, 1);
-	setenv("AST_BUILD_HOST", ast_build_hostname, 1);
-	setenv("AST_BUILD_DATE", ast_build_date, 1);
-	setenv("AST_BUILD_KERNEL", ast_build_kernel, 1);
-	setenv("AST_BUILD_MACHINE", ast_build_machine, 1);
-	setenv("AST_BUILD_OS", ast_build_os, 1);
-	setenv("AST_BUILD_USER", ast_build_user, 1);
-	setenv("AST_VERSION", ast_get_version(), 1);
-}
-
 int main(int argc, char *argv[])
 {
 	int c;
@@ -3156,11 +3151,11 @@ int main(int argc, char *argv[])
 	FILE *f;
 	sigset_t sigs;
 	int num;
-	int isroot = 1;
+	int isroot = 1, rundir_exists = 0;
 	char *buf;
 	const char *runuser = NULL, *rungroup = NULL;
 	char *remotesock = NULL;
-	int moduleresult; 		/*!< Result from the module load subsystem */
+	struct rlimit l;
 
 	/* Remember original args for restart */
 	if (argc > ARRAY_LEN(_argv) - 1) {
@@ -3189,33 +3184,13 @@ int main(int argc, char *argv[])
 	tdd_init();
 	ast_tps_init();
 	ast_fd_init();
+	ast_pbx_init();
 
 	if (getenv("HOME")) 
 		snprintf(filename, sizeof(filename), "%s/.asterisk_history", getenv("HOME"));
 	/* Check for options */
-	while ((c = getopt(argc, argv, "BC:cde:FfG:ghIiL:M:mnpqRrs:TtU:VvWXx:")) != -1) {
-		/*!\note Please keep the ordering here to alphabetical, capital letters
-		 * first.  This will make it easier in the future to select unused
-		 * option flags for new features. */
+	while ((c = getopt(argc, argv, "mtThfFdvVqprRgciInx:U:G:C:L:M:e:s:WB")) != -1) {
 		switch (c) {
-		case 'B': /* Force black background */
-			ast_set_flag(&ast_options, AST_OPT_FLAG_FORCE_BLACK_BACKGROUND);
-			ast_clear_flag(&ast_options, AST_OPT_FLAG_LIGHT_BACKGROUND);
-			break;
-		case 'X':
-			ast_set_flag(&ast_options, AST_OPT_FLAG_EXEC_INCLUDES);
-			break;
-		case 'C':
-			ast_copy_string(cfg_paths.config_file, optarg, sizeof(cfg_paths.config_file));
-			ast_set_flag(&ast_options, AST_OPT_FLAG_OVERRIDE_CONFIG);
-			break;
-		case 'c':
-			ast_set_flag(&ast_options, AST_OPT_FLAG_NO_FORK | AST_OPT_FLAG_CONSOLE);
-			break;
-		case 'd':
-			option_debug++;
-			ast_set_flag(&ast_options, AST_OPT_FLAG_NO_FORK);
-			break;
 #if defined(HAVE_SYSINFO)
 		case 'e':
 			if ((sscanf(&optarg[1], "%30ld", &option_minmemfree) != 1) || (option_minmemfree < 0)) {
@@ -3231,8 +3206,62 @@ int main(int argc, char *argv[])
 			ast_set_flag(&ast_options, AST_OPT_FLAG_NO_FORK);
 			break;
 #endif
-		case 'G':
-			rungroup = ast_strdupa(optarg);
+		case 'd':
+			option_debug++;
+			ast_set_flag(&ast_options, AST_OPT_FLAG_NO_FORK);
+			break;
+		case 'c':
+			ast_set_flag(&ast_options, AST_OPT_FLAG_NO_FORK | AST_OPT_FLAG_CONSOLE);
+			break;
+		case 'n':
+			ast_set_flag(&ast_options, AST_OPT_FLAG_NO_COLOR);
+			break;
+		case 'r':
+			ast_set_flag(&ast_options, AST_OPT_FLAG_NO_FORK | AST_OPT_FLAG_REMOTE);
+			break;
+		case 'R':
+			ast_set_flag(&ast_options, AST_OPT_FLAG_NO_FORK | AST_OPT_FLAG_REMOTE | AST_OPT_FLAG_RECONNECT);
+			break;
+		case 'p':
+			ast_set_flag(&ast_options, AST_OPT_FLAG_HIGH_PRIORITY);
+			break;
+		case 'v':
+			option_verbose++;
+			ast_set_flag(&ast_options, AST_OPT_FLAG_NO_FORK);
+			break;
+		case 'm':
+			ast_set_flag(&ast_options, AST_OPT_FLAG_MUTE);
+			break;
+		case 'M':
+			if ((sscanf(optarg, "%30d", &option_maxcalls) != 1) || (option_maxcalls < 0))
+				option_maxcalls = 0;
+			break;
+		case 'L':
+			if ((sscanf(optarg, "%30lf", &option_maxload) != 1) || (option_maxload < 0.0))
+				option_maxload = 0.0;
+			break;
+		case 'q':
+			ast_set_flag(&ast_options, AST_OPT_FLAG_QUIET);
+			break;
+		case 't':
+			ast_set_flag(&ast_options, AST_OPT_FLAG_CACHE_RECORD_FILES);
+			break;
+		case 'T':
+			ast_set_flag(&ast_options, AST_OPT_FLAG_TIMESTAMP);
+			break;
+		case 'x':
+			ast_set_flag(&ast_options, AST_OPT_FLAG_EXEC);
+			xarg = ast_strdupa(optarg);
+			break;
+		case 'C':
+			ast_copy_string(cfg_paths.config_file, optarg, sizeof(cfg_paths.config_file));
+			ast_set_flag(&ast_options, AST_OPT_FLAG_OVERRIDE_CONFIG);
+			break;
+		case 'I':
+			ast_set_flag(&ast_options, AST_OPT_FLAG_INTERNAL_TIMING);
+			break;
+		case 'i':
+			ast_set_flag(&ast_options, AST_OPT_FLAG_INIT_KEYS);
 			break;
 		case 'g':
 			ast_set_flag(&ast_options, AST_OPT_FLAG_DUMP_CORE);
@@ -3240,66 +3269,25 @@ int main(int argc, char *argv[])
 		case 'h':
 			show_cli_help();
 			exit(0);
-		case 'I':
-			ast_set_flag(&ast_options, AST_OPT_FLAG_INTERNAL_TIMING);
-			break;
-		case 'i':
-			ast_set_flag(&ast_options, AST_OPT_FLAG_INIT_KEYS);
-			break;
-		case 'L':
-			if ((sscanf(optarg, "%30lf", &option_maxload) != 1) || (option_maxload < 0.0)) {
-				option_maxload = 0.0;
-			}
-			break;
-		case 'M':
-			if ((sscanf(optarg, "%30d", &option_maxcalls) != 1) || (option_maxcalls < 0)) {
-				option_maxcalls = 0;
-			}
-			break;
-		case 'm':
-			ast_set_flag(&ast_options, AST_OPT_FLAG_MUTE);
-			break;
-		case 'n':
-			ast_set_flag(&ast_options, AST_OPT_FLAG_NO_COLOR);
-			break;
-		case 'p':
-			ast_set_flag(&ast_options, AST_OPT_FLAG_HIGH_PRIORITY);
-			break;
-		case 'q':
-			ast_set_flag(&ast_options, AST_OPT_FLAG_QUIET);
-			break;
-		case 'R':
-			ast_set_flag(&ast_options, AST_OPT_FLAG_NO_FORK | AST_OPT_FLAG_REMOTE | AST_OPT_FLAG_RECONNECT);
-			break;
-		case 'r':
-			ast_set_flag(&ast_options, AST_OPT_FLAG_NO_FORK | AST_OPT_FLAG_REMOTE);
-			break;
-		case 's':
-			remotesock = ast_strdupa(optarg);
-			break;
-		case 'T':
-			ast_set_flag(&ast_options, AST_OPT_FLAG_TIMESTAMP);
-			break;
-		case 't':
-			ast_set_flag(&ast_options, AST_OPT_FLAG_CACHE_RECORD_FILES);
-			break;
-		case 'U':
-			runuser = ast_strdupa(optarg);
-			break;
 		case 'V':
 			show_version();
 			exit(0);
-		case 'v':
-			option_verbose++;
-			ast_set_flag(&ast_options, AST_OPT_FLAG_NO_FORK);
+		case 'U':
+			runuser = ast_strdupa(optarg);
+			break;
+		case 'G':
+			rungroup = ast_strdupa(optarg);
+			break;
+		case 's':
+			remotesock = ast_strdupa(optarg);
 			break;
 		case 'W': /* White background */
 			ast_set_flag(&ast_options, AST_OPT_FLAG_LIGHT_BACKGROUND);
 			ast_clear_flag(&ast_options, AST_OPT_FLAG_FORCE_BLACK_BACKGROUND);
 			break;
-		case 'x':
-			ast_set_flag(&ast_options, AST_OPT_FLAG_EXEC);
-			xarg = ast_strdupa(optarg);
+		case 'B': /* Force black background */
+			ast_set_flag(&ast_options, AST_OPT_FLAG_FORCE_BLACK_BACKGROUND);
+			ast_clear_flag(&ast_options, AST_OPT_FLAG_LIGHT_BACKGROUND);
 			break;
 		case '?':
 			exit(1);
@@ -3331,7 +3319,6 @@ int main(int argc, char *argv[])
 	}
 
 	ast_readconfig();
-	env_init();
 
 	if (ast_opt_remote && remotesock != NULL)
 		ast_copy_string((char *) cfg_paths.socket_path, remotesock, sizeof(cfg_paths.socket_path));
@@ -3345,7 +3332,6 @@ int main(int argc, char *argv[])
 	}
 
 	if (ast_opt_dump_core) {
-		struct rlimit l;
 		memset(&l, 0, sizeof(l));
 		l.rlim_cur = RLIM_INFINITY;
 		l.rlim_max = RLIM_INFINITY;
@@ -3353,6 +3339,44 @@ int main(int argc, char *argv[])
 			ast_log(LOG_WARNING, "Unable to disable core size resource limit: %s\n", strerror(errno));
 		}
 	}
+
+	if (getrlimit(RLIMIT_NOFILE, &l)) {
+		ast_log(LOG_WARNING, "Unable to check file descriptor limit: %s\n", strerror(errno));
+	}
+
+#if !defined(CONFIGURE_RAN_AS_ROOT)
+	/* Check if select(2) will run with more file descriptors */
+	do {
+		int fd, fd2;
+		ast_fdset readers;
+		struct timeval tv = { 0, };
+
+		if (l.rlim_cur <= FD_SETSIZE) {
+			/* The limit of select()able FDs is irrelevant, because we'll never
+			 * open one that high. */
+			break;
+		}
+
+		if (!(fd = open("/dev/null", O_RDONLY))) {
+			ast_log(LOG_ERROR, "Cannot open a file descriptor at boot? %s\n", strerror(errno));
+			break; /* XXX Should we exit() here? XXX */
+		}
+
+		fd2 = (l.rlim_cur > sizeof(readers) * 8 ? sizeof(readers) * 8 : l.rlim_cur) - 1;
+		if (dup2(fd, fd2) < 0) {
+			ast_log(LOG_WARNING, "Cannot open maximum file descriptor %d at boot? %s\n", fd2, strerror(errno));
+			break;
+		}
+
+		FD_ZERO(&readers);
+		FD_SET(fd2, &readers);
+		if (ast_select(fd2 + 1, &readers, NULL, NULL, &tv) < 0) {
+			ast_log(LOG_WARNING, "Maximum select()able file descriptor is %d\n", FD_SETSIZE);
+		}
+	} while (0);
+#elif defined(HAVE_VARIABLE_FDSET)
+	ast_FD_SETSIZE = l.rlim_cur;
+#endif /* !defined(CONFIGURE_RAN_AS_ROOT) */
 
 	if ((!rungroup) && !ast_strlen_zero(ast_config_AST_RUN_GROUP))
 		rungroup = ast_config_AST_RUN_GROUP;
@@ -3366,8 +3390,12 @@ int main(int argc, char *argv[])
 
 	/* It's common on some platforms to clear /var/run at boot.  Create the
 	 * socket file directory before we drop privileges. */
-	if (mkdir(ast_config_AST_RUN_DIR, 0755) && errno != EEXIST) {
-		ast_log(LOG_WARNING, "Unable to create socket file directory.  Remote consoles will not be able to connect! (%s)\n", strerror(x));
+	if (mkdir(ast_config_AST_RUN_DIR, 0755)) {
+		if (errno == EEXIST) {
+			rundir_exists = 1;
+		} else {
+			ast_log(LOG_WARNING, "Unable to create socket file directory.  Remote consoles will not be able to connect! (%s)\n", strerror(x));
+		}
 	}
 
 #ifndef __CYGWIN__
@@ -3383,7 +3411,7 @@ int main(int argc, char *argv[])
 			ast_log(LOG_WARNING, "No such group '%s'!\n", rungroup);
 			exit(1);
 		}
-		if (chown(ast_config_AST_RUN_DIR, -1, gr->gr_gid)) {
+		if (!rundir_exists && chown(ast_config_AST_RUN_DIR, -1, gr->gr_gid)) {
 			ast_log(LOG_WARNING, "Unable to chgrp run directory to %d (%s)\n", (int) gr->gr_gid, rungroup);
 		}
 		if (setgid(gr->gr_gid)) {
@@ -3607,8 +3635,6 @@ int main(int argc, char *argv[])
 	}
 #endif
 
-	ast_aoc_cli_init();
-
 	ast_makesocket();
 	sigemptyset(&sigs);
 	sigaddset(&sigs, SIGHUP);
@@ -3655,17 +3681,9 @@ int main(int argc, char *argv[])
 	ast_xmldoc_load_documentation();
 #endif
 
-	/* initialize the data retrieval API */
-	if (ast_data_init()) {
-		printf ("%s", term_quit());
-		exit(1);
-	}
-
-	ast_channels_init();
-
-	if ((moduleresult = load_modules(1))) {		/* Load modules, pre-load only */
+	if (load_modules(1)) {		/* Load modules, pre-load only */
 		printf("%s", term_quit());
-		exit(moduleresult == -2 ? 2 : 1);
+		exit(1);
 	}
 
 	if (dnsmgr_init()) {		/* Initialize the DNS manager */
@@ -3674,6 +3692,8 @@ int main(int argc, char *argv[])
 	}
 
 	ast_http_init();		/* Start the HTTP server, if needed */
+
+	ast_channels_init();
 
 	if (init_manager()) {
 		printf("%s", term_quit());
@@ -3685,16 +3705,12 @@ int main(int argc, char *argv[])
 		exit(1);
 	}
 
-	if (ast_cel_engine_init()) {
-		printf("%s", term_quit());
-		exit(1);
-	}
-
 	if (ast_device_state_engine_init()) {
 		printf("%s", term_quit());
 		exit(1);
 	}
 
+	ast_rtp_init();
 	ast_dsp_init();
 	ast_udptl_init();
 
@@ -3735,20 +3751,13 @@ int main(int argc, char *argv[])
 		exit(1);
 	}
 
-	if (ast_cc_init()) {
+	if (load_modules(0)) {
 		printf("%s", term_quit());
 		exit(1);
 	}
 
-	if ((moduleresult = load_modules(0))) {		/* Load modules */
-		printf("%s", term_quit());
-		exit(moduleresult == -2 ? 2 : 1);
-	}
-
 	/* loads the cli_permissoins.conf file needed to implement cli restrictions. */
 	ast_cli_perms_init(0);
-
-	ast_stun_init();
 
 	dnsmgr_start_refresh();
 
@@ -3765,7 +3774,9 @@ int main(int argc, char *argv[])
 		sig_alert_pipe[0] = sig_alert_pipe[1] = -1;
 
 	ast_set_flag(&ast_options, AST_OPT_FLAG_FULLY_BOOTED);
-	manager_event(EVENT_FLAG_SYSTEM, "FullyBooted", "Status: Fully Booted\r\n");
+	if (ast_opt_send_fullybooted) {
+		manager_event(EVENT_FLAG_SYSTEM, "FullyBooted", "Status: Fully Booted\r\n");
+	}
 
 	ast_process_pending_reloads();
 
@@ -3784,9 +3795,8 @@ int main(int argc, char *argv[])
 		/* Console stuff now... */
 		/* Register our quit function */
 		char title[256];
-		pthread_t dont_care;
 
-		ast_pthread_create_detached(&dont_care, NULL, monitor_sig_flags, NULL);
+		ast_pthread_create_detached(&mon_sig_flags, NULL, monitor_sig_flags, NULL);
 
 		set_icon("Asterisk");
 		snprintf(title, sizeof(title), "Asterisk Console on '%s' (pid %ld)", hostname, (long)ast_mainpid);

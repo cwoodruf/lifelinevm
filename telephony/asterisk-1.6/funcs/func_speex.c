@@ -26,8 +26,7 @@
  *
  * \ingroup functions
  *
- * \extref The Speex 1.2 library - http://www.speex.org
- * \note Requires the 1.2 version of the Speex library (which might not be what you find in Linux packages)
+ * \extref The Speex library - http://www.speex.org
  */
 
 /*** MODULEINFO
@@ -38,7 +37,7 @@
 
 #include "asterisk.h"
 
-ASTERISK_FILE_VERSION(__FILE__, "$Revision: 227237 $")
+ASTERISK_FILE_VERSION(__FILE__, "$Revision: 224859 $")
 
 #include <speex/speex_preprocess.h>
 #include "asterisk/module.h"
@@ -343,15 +342,13 @@ static int speex_read(struct ast_channel *chan, const char *cmd, char *data, cha
 static struct ast_custom_function agc_function = {
 	.name = "AGC",
 	.write = speex_write,
-	.read = speex_read,
-	.read_max = 22,
+	.read = speex_read
 };
 
 static struct ast_custom_function denoise_function = {
 	.name = "DENOISE",
 	.write = speex_write,
-	.read = speex_read,
-	.read_max = 22,
+	.read = speex_read
 };
 
 static int unload_module(void)

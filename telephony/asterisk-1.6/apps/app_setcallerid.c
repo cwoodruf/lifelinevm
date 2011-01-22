@@ -27,7 +27,7 @@
  
 #include "asterisk.h"
 
-ASTERISK_FILE_VERSION(__FILE__, "$Revision: 211539 $")
+ASTERISK_FILE_VERSION(__FILE__, "$Revision: 211580 $")
 
 #include "asterisk/lock.h"
 #include "asterisk/file.h"
@@ -84,7 +84,7 @@ ASTERISK_FILE_VERSION(__FILE__, "$Revision: 211539 $")
 
 static char *app2 = "SetCallerPres";
 
-static int setcallerid_pres_exec(struct ast_channel *chan, const char *data)
+static int setcallerid_pres_exec(struct ast_channel *chan, void *data)
 {
 	int pres = -1;
 	static int deprecated = 0;

@@ -27,7 +27,7 @@
 
 #include "asterisk.h"
 
-ASTERISK_FILE_VERSION(__FILE__, "$Revision: 233692 $")
+ASTERISK_FILE_VERSION(__FILE__, "$Revision: 233694 $")
 
 #include "asterisk/mod_format.h"
 #include "asterisk/module.h"
@@ -45,7 +45,7 @@ static struct ast_frame *ilbc_read(struct ast_filestream *s, int *whennext)
 	int res;
 	/* Send a frame from the file to the appropriate channel */
 	s->fr.frametype = AST_FRAME_VOICE;
-	s->fr.subclass.codec = AST_FORMAT_ILBC;
+	s->fr.subclass = AST_FORMAT_ILBC;
 	s->fr.mallocd = 0;
 	AST_FRAME_SET_BUFFER(&s->fr, s->buf, AST_FRIENDLY_OFFSET, ILBC_BUF_SIZE);
 	if ((res = fread(s->fr.data.ptr, 1, s->fr.datalen, s->f)) != s->fr.datalen) {
@@ -64,8 +64,8 @@ static int ilbc_write(struct ast_filestream *fs, struct ast_frame *f)
 		ast_log(LOG_WARNING, "Asked to write non-voice frame!\n");
 		return -1;
 	}
-	if (f->subclass.codec != AST_FORMAT_ILBC) {
-		ast_log(LOG_WARNING, "Asked to write non-iLBC frame (%s)!\n", ast_getformatname(f->subclass.codec));
+	if (f->subclass != AST_FORMAT_ILBC) {
+		ast_log(LOG_WARNING, "Asked to write non-iLBC frame (%d)!\n", f->subclass);
 		return -1;
 	}
 	if (f->datalen % 50) {

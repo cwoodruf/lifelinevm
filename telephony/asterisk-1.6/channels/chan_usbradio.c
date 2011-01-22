@@ -41,12 +41,12 @@
  ***/
 
 /*** MAKEOPTS
-<category name="MENUSELECT_CFLAGS" displayname="Compiler Flags" positive_output="yes">
-	<member name="RADIO_RTX" displayname="Build RTX/DTX Radio Programming" touch_on_change="channels/chan_usbradio.c channels/xpmr/xpmr.h">
+<category name="MENUSELECT_CFLAGS" displayname="Compiler Flags" positive_output="yes" remove_on_change=".lastclean">
+	<member name="RADIO_RTX" displayname="Build RTX/DTX Radio Programming">
 		<defaultenabled>no</defaultenabled>
 		<depend>chan_usbradio</depend>
 	</member>
-	<member name="RADIO_XPMRX" displayname="Build Experimental Radio Protocols" touch_on_change="channels/chan_usbradio.c">
+	<member name="RADIO_XPMRX" displayname="Build Experimental Radio Protocols">
 		<defaultenabled>no</defaultenabled>
 		<depend>chan_usbradio</depend>
 	</member>
@@ -57,7 +57,7 @@
 
 #include "asterisk.h"
 
-ASTERISK_FILE_VERSION(__FILE__, "$Revision: 267537 $")
+ASTERISK_FILE_VERSION(__FILE__, "$Revision: 284665 $")
 
 #include <stdio.h>
 #include <ctype.h>
@@ -644,7 +644,7 @@ static struct chan_usbradio_pvt usbradio_default = {
 
 /*	DECLARE FUNCTION PROTOTYPES	*/
 
-static void store_txtoctype(struct chan_usbradio_pvt *o, char *s);
+static void store_txtoctype(struct chan_usbradio_pvt *o, const char *s);
 static int	hidhdwconfig(struct chan_usbradio_pvt *o);
 static int set_txctcss_level(struct chan_usbradio_pvt *o);
 static void pmrdump(struct chan_usbradio_pvt *o);
@@ -661,9 +661,8 @@ static char *usbradio_active;	 /* the active device */
 
 static int setformat(struct chan_usbradio_pvt *o, int mode);
 
-static struct ast_channel *usbradio_request(const char *type, format_t format,
-		const struct ast_channel *requestor,
-		void *data, int *cause);
+static struct ast_channel *usbradio_request(const char *type, int format, void *data
+, int *cause);
 static int usbradio_digit_begin(struct ast_channel *c, char digit);
 static int usbradio_digit_end(struct ast_channel *c, char digit, unsigned int duration);
 static int usbradio_text(struct ast_channel *c, const char *text);
@@ -1119,8 +1118,7 @@ static void *hidthread(void *arg)
 	struct usb_device *usb_dev;
 	struct usb_dev_handle *usb_handle;
 	struct chan_usbradio_pvt *o = (struct chan_usbradio_pvt *) arg;
-	struct timeval to;
-	fd_set rfds;
+	struct pollfd pfd = { .events = POLLIN };
 
 	usb_dev = hid_device_init(o->devstr);
 	if (usb_dev == NULL) {
@@ -1156,63 +1154,49 @@ static void *hidthread(void *arg)
 	traceusb1(("hidthread: Starting normally on %s!!\n",o->name));
 	lastrx = 0;
 	// popen 
-	while(!o->stophid)
-	{
-		to.tv_sec = 0;
-		to.tv_usec = 50000;   // maw sph
+	while (!o->stophid) {
+		pfd.fd = o->pttkick[0];
+		pfd.revents = 0;
 
-		FD_ZERO(&rfds);
-		FD_SET(o->pttkick[0],&rfds);
-		/* ast_select emulates linux behaviour in terms of timeout handling */
-		res = ast_select(o->pttkick[0] + 1, &rfds, NULL, NULL, &to);
+		res = ast_poll(&pfd, 1, 50);
 		if (res < 0) {
-			ast_log(LOG_WARNING, "select failed: %s\n", strerror(errno));
+			ast_log(LOG_WARNING, "poll() failed: %s\n", strerror(errno));
 			usleep(10000);
 			continue;
 		}
-		if (FD_ISSET(o->pttkick[0],&rfds))
-		{
+		if (pfd.revents & POLLIN) {
 			char c;
 
-			if (read(o->pttkick[0],&c,1) < 0) {
+			if (read(o->pttkick[0], &c, 1) < 0) {
 				ast_log(LOG_ERROR, "read() failed: %s\n", strerror(errno));
 			}
 		}
-		if(o->wanteeprom)
-		{
+		if (o->wanteeprom) {
 			ast_mutex_lock(&o->eepromlock);
-			if (o->eepromctl == 1)  /* to read */
-			{
+			if (o->eepromctl == 1) { /* to read */
 				/* if CS okay */
-				if (!get_eeprom(usb_handle,o->eeprom))
-				{
-					if (o->eeprom[EEPROM_MAGIC_ADDR] != EEPROM_MAGIC)
-					{
-						ast_log(LOG_NOTICE,"UNSUCCESSFUL: EEPROM MAGIC NUMBER BAD on channel %s\n",o->name);
-					}
-					else
-					{
+				if (!get_eeprom(usb_handle, o->eeprom)) {
+					if (o->eeprom[EEPROM_MAGIC_ADDR] != EEPROM_MAGIC) {
+						ast_log(LOG_NOTICE, "UNSUCCESSFUL: EEPROM MAGIC NUMBER BAD on channel %s\n", o->name);
+					} else {
 						o->rxmixerset = o->eeprom[EEPROM_RXMIXERSET];
-						o->txmixaset = 	o->eeprom[EEPROM_TXMIXASET];
+						o->txmixaset = o->eeprom[EEPROM_TXMIXASET];
 						o->txmixbset = o->eeprom[EEPROM_TXMIXBSET];
-						memcpy(&o->rxvoiceadj,&o->eeprom[EEPROM_RXVOICEADJ],sizeof(float));
-						memcpy(&o->rxctcssadj,&o->eeprom[EEPROM_RXCTCSSADJ],sizeof(float));
+						memcpy(&o->rxvoiceadj, &o->eeprom[EEPROM_RXVOICEADJ], sizeof(float));
+						memcpy(&o->rxctcssadj, &o->eeprom[EEPROM_RXCTCSSADJ], sizeof(float));
 						o->txctcssadj = o->eeprom[EEPROM_TXCTCSSADJ];
 						o->rxsquelchadj = o->eeprom[EEPROM_RXSQUELCHADJ];
 						ast_log(LOG_NOTICE,"EEPROM Loaded on channel %s\n",o->name);
 					}
-				}
-				else
-				{
-					ast_log(LOG_NOTICE,"USB Adapter has no EEPROM installed or Checksum BAD on channel %s\n",o->name);
+				} else {
+					ast_log(LOG_NOTICE, "USB Adapter has no EEPROM installed or Checksum BAD on channel %s\n", o->name);
 				}
 				hid_set_outputs(usb_handle,bufsave);
-			} 
-			if (o->eepromctl == 2) /* to write */
-			{
+			}
+			if (o->eepromctl == 2) { /* to write */
 				put_eeprom(usb_handle,o->eeprom);
 				hid_set_outputs(usb_handle,bufsave);
-				ast_log(LOG_NOTICE,"USB Parameters written to EEPROM on %s\n",o->name);
+				ast_log(LOG_NOTICE, "USB Parameters written to EEPROM on %s\n", o->name);
 			}
 			o->eepromctl = 0;
 			ast_mutex_unlock(&o->eepromlock);
@@ -1220,38 +1204,43 @@ static void *hidthread(void *arg)
 		buf[o->hid_gpio_ctl_loc] = o->hid_gpio_ctl;
 		hid_get_inputs(usb_handle,buf);
 		keyed = !(buf[o->hid_io_cor_loc] & o->hid_io_cor);
-		if (keyed != o->rxhidsq)
-		{
-			if(o->debuglevel)printf("chan_usbradio() hidthread: update rxhidsq = %d\n",keyed);
+		if (keyed != o->rxhidsq) {
+			if (o->debuglevel) {
+				printf("chan_usbradio() hidthread: update rxhidsq = %d\n", keyed);
+			}
 			o->rxhidsq=keyed;
 		}
 
 		/* if change in tx state as controlled by xpmr */
-		txtmp=o->pmrChan->txPttOut;
-				
-		if (o->lasttx != txtmp)
-		{
-			o->pmrChan->txPttHid=o->lasttx = txtmp;
-			if(o->debuglevel)printf("hidthread: tx set to %d\n",txtmp);
-			buf[o->hid_gpio_loc] = 0;
-			if (!o->invertptt)
-			{
-				if (txtmp) buf[o->hid_gpio_loc] = o->hid_io_ptt;
+		txtmp = o->pmrChan->txPttOut;
+
+		if (o->lasttx != txtmp) {
+			o->pmrChan->txPttHid = o->lasttx = txtmp;
+			if (o->debuglevel) {
+				ast_debug(0, "hidthread: tx set to %d\n", txtmp);
 			}
-			else
-			{
-				if (!txtmp) buf[o->hid_gpio_loc] = o->hid_io_ptt;
+			buf[o->hid_gpio_loc] = 0;
+			if (!o->invertptt) {
+				if (txtmp) {
+					buf[o->hid_gpio_loc] = o->hid_io_ptt;
+				}
+			} else {
+				if (!txtmp) {
+					buf[o->hid_gpio_loc] = o->hid_io_ptt;
+				}
 			}
 			buf[o->hid_gpio_ctl_loc] = o->hid_gpio_ctl;
-			memcpy(bufsave,buf,sizeof(buf));
-			hid_set_outputs(usb_handle,buf);
+			memcpy(bufsave, buf, sizeof(buf));
+			hid_set_outputs(usb_handle, buf);
 		}
 		time(&o->lasthidtime);
 	}
 	buf[o->hid_gpio_loc] = 0;
-	if (o->invertptt) buf[o->hid_gpio_loc] = o->hid_io_ptt;
+	if (o->invertptt) {
+		buf[o->hid_gpio_loc] = o->hid_io_ptt;
+	}
 	buf[o->hid_gpio_ctl_loc] = o->hid_gpio_ctl;
-	hid_set_outputs(usb_handle,buf);
+	hid_set_outputs(usb_handle, buf);
 	pthread_exit(0);
 }
 
@@ -1452,37 +1441,29 @@ static void *sound_thread(void *arg)
 	 */
 	read(o->sounddev, ign, sizeof(ign));
 	for (;;) {
-		fd_set rfds, wfds;
-		int maxfd, res;
+		struct pollfd pfd[2] = { { .fd = o->sndcmd[0], .events = POLLIN }, { .fd = o->sounddev } };
+		int res;
 
-		FD_ZERO(&rfds);
-		FD_ZERO(&wfds);
-		FD_SET(o->sndcmd[0], &rfds);
-		maxfd = o->sndcmd[0];	/* pipe from the main process */
-		if (o->cursound > -1 && o->sounddev < 0)
+		if (o->cursound > -1 && o->sounddev < 0) {
 			setformat(o, O_RDWR);	/* need the channel, try to reopen */
-		else if (o->cursound == -1 && o->owner == NULL)
-		{
+		} else if (o->cursound == -1 && o->owner == NULL) {
 			setformat(o, O_CLOSE);	/* can close */
 		}
 		if (o->sounddev > -1) {
 			if (!o->owner) {	/* no one owns the audio, so we must drain it */
-				FD_SET(o->sounddev, &rfds);
-				maxfd = MAX(o->sounddev, maxfd);
+				pfd[1].events = POLLIN;
 			}
 			if (o->cursound > -1) {
-				FD_SET(o->sounddev, &wfds);
-				maxfd = MAX(o->sounddev, maxfd);
+				pfd[1].events |= POLLOUT;
 			}
 		}
-		/* ast_select emulates linux behaviour in terms of timeout handling */
-		res = ast_select(maxfd + 1, &rfds, &wfds, NULL, NULL);
+		res = ast_poll(pfd, o->sounddev > -1 ? 2 : 1, -1);
 		if (res < 1) {
-			ast_log(LOG_WARNING, "select failed: %s\n", strerror(errno));
+			ast_log(LOG_WARNING, "poll failed: %s\n", strerror(errno));
 			sleep(1);
 			continue;
 		}
-		if (FD_ISSET(o->sndcmd[0], &rfds)) {
+		if (pfd[0].revents & POLLIN) {
 			/* read which sound to play from the pipe */
 			int i, what = -1;
 
@@ -1495,14 +1476,17 @@ static void *sound_thread(void *arg)
 					break;
 				}
 			}
-			if (sounds[i].ind == -1)
+			if (sounds[i].ind == -1) {
 				ast_log(LOG_WARNING, "invalid sound index: %d\n", what);
+			}
 		}
 		if (o->sounddev > -1) {
-			if (FD_ISSET(o->sounddev, &rfds))	/* read and ignore errors */
+			if (pfd[1].revents & POLLIN) { /* read and ignore errors */
 				read(o->sounddev, ign, sizeof(ign)); 
-			if (FD_ISSET(o->sounddev, &wfds))
+			}
+			if (pfd[1].revents & POLLOUT) {
 				send_sound(o);
+			}
 		}
 	}
 	return NULL;				/* Never reached */
@@ -2053,14 +2037,14 @@ static struct ast_frame *usbradio_read(struct ast_channel *c)
 	{
 		o->lastrx = 0;
 		//printf("AST_CONTROL_RADIO_UNKEY\n");
-		wf.subclass.integer = AST_CONTROL_RADIO_UNKEY;
+		wf.subclass = AST_CONTROL_RADIO_UNKEY;
 		ast_queue_frame(o->owner, &wf);
 	}
 	else if ((!o->lastrx) && (o->rxkeyed))
 	{
 		o->lastrx = 1;
 		//printf("AST_CONTROL_RADIO_KEY\n");
-		wf.subclass.integer = AST_CONTROL_RADIO_KEY;
+		wf.subclass = AST_CONTROL_RADIO_KEY;
 		if(o->rxctcssdecode)  	
         {
 	        wf.data.ptr = o->rxctcssfreq;
@@ -2075,7 +2059,7 @@ static struct ast_frame *usbradio_read(struct ast_channel *c)
 		return f;
 	/* ok we can build and deliver the frame to the caller */
 	f->frametype = AST_FRAME_VOICE;
-	f->subclass.codec = AST_FORMAT_SLINEAR;
+	f->subclass = AST_FORMAT_SLINEAR;
 	f->samples = FRAME_SIZE;
 	f->datalen = FRAME_SIZE * 2;
 	f->data.ptr = o->usbradio_read_buf_8k + AST_FRIENDLY_OFFSET;
@@ -2099,14 +2083,14 @@ static struct ast_frame *usbradio_read(struct ast_channel *c)
 	    if ((f1->frametype == AST_FRAME_DTMF_END) ||
 	      (f1->frametype == AST_FRAME_DTMF_BEGIN))
 	    {
-		if ((f1->subclass.integer == 'm') || (f1->subclass.integer == 'u'))
+		if ((f1->subclass == 'm') || (f1->subclass == 'u'))
 		{
 			f1->frametype = AST_FRAME_NULL;
-			f1->subclass.integer = 0;
+			f1->subclass = 0;
 			return(f1);
 		}
 		if (f1->frametype == AST_FRAME_DTMF_END)
-			ast_log(LOG_NOTICE, "Got DTMF char %c\n", f1->subclass.integer);
+			ast_log(LOG_NOTICE,"Got DTMF char %c\n",f1->subclass);
 		return(f1);
 	    }
 	}
@@ -2181,11 +2165,11 @@ static int usbradio_indicate(struct ast_channel *c, int cond, const void *data, 
 /*
  * allocate a new channel.
  */
-static struct ast_channel *usbradio_new(struct chan_usbradio_pvt *o, char *ext, char *ctx, int state, const char *linkedid)
+static struct ast_channel *usbradio_new(struct chan_usbradio_pvt *o, char *ext, char *ctx, int state)
 {
 	struct ast_channel *c;
 
-	c = ast_channel_alloc(1, state, o->cid_num, o->cid_name, "", ext, ctx, linkedid, 0, "Radio/%s", o->name);
+	c = ast_channel_alloc(1, state, o->cid_num, o->cid_name, "", ext, ctx, 0, "Radio/%s", o->name);
 	if (c == NULL)
 		return NULL;
 	c->tech = &usbradio_tech;
@@ -2224,7 +2208,7 @@ static struct ast_channel *usbradio_new(struct chan_usbradio_pvt *o, char *ext, 
 }
 /*
 */
-static struct ast_channel *usbradio_request(const char *type, format_t format, const struct ast_channel *requestor, void *data, int *cause)
+static struct ast_channel *usbradio_request(const char *type, int format, void *data, int *cause)
 {
 	struct ast_channel *c;
 	struct chan_usbradio_pvt *o = find_desc(data);
@@ -2241,7 +2225,7 @@ static struct ast_channel *usbradio_request(const char *type, format_t format, c
 		return NULL;
 	}
 	if ((format & AST_FORMAT_SLINEAR) == 0) {
-		ast_log(LOG_NOTICE, "Format 0x%lx unsupported\n", format);
+		ast_log(LOG_NOTICE, "Format 0x%x unsupported\n", format);
 		return NULL;
 	}
 	if (o->owner) {
@@ -2249,7 +2233,7 @@ static struct ast_channel *usbradio_request(const char *type, format_t format, c
 		*cause = AST_CAUSE_BUSY;
 		return NULL;
 	}
-	c = usbradio_new(o, NULL, NULL, AST_STATE_DOWN, requestor ? requestor->linkedid : NULL);
+	c = usbradio_new(o, NULL, NULL, AST_STATE_DOWN);
 	if (c == NULL) {
 		ast_log(LOG_WARNING, "Unable to create new usb channel\n");
 		return NULL;
@@ -2695,7 +2679,7 @@ static void store_callerid(struct chan_usbradio_pvt *o, char *s)
 }
 #endif
 
-static void store_rxdemod(struct chan_usbradio_pvt *o, char *s)
+static void store_rxdemod(struct chan_usbradio_pvt *o, const char *s)
 {
 	if (!strcasecmp(s,"no")){
 		o->rxdemod = RX_AUDIO_NONE;
@@ -2714,7 +2698,7 @@ static void store_rxdemod(struct chan_usbradio_pvt *o, char *s)
 }
 
 					   
-static void store_txmixa(struct chan_usbradio_pvt *o, char *s)
+static void store_txmixa(struct chan_usbradio_pvt *o, const char *s)
 {
 	if (!strcasecmp(s,"no")){
 		o->txmixa = TX_OUT_OFF;
@@ -2738,7 +2722,7 @@ static void store_txmixa(struct chan_usbradio_pvt *o, char *s)
 	//ast_log(LOG_WARNING, "set txmixa = %s\n", s);
 }
 
-static void store_txmixb(struct chan_usbradio_pvt *o, char *s)
+static void store_txmixb(struct chan_usbradio_pvt *o, const char *s)
 {
 	if (!strcasecmp(s,"no")){
 		o->txmixb = TX_OUT_OFF;
@@ -2763,7 +2747,7 @@ static void store_txmixb(struct chan_usbradio_pvt *o, char *s)
 }
 /*
 */
-static void store_rxcdtype(struct chan_usbradio_pvt *o, char *s)
+static void store_rxcdtype(struct chan_usbradio_pvt *o, const char *s)
 {
 	if (!strcasecmp(s,"no")){
 		o->rxcdtype = CD_IGNORE;
@@ -2788,7 +2772,7 @@ static void store_rxcdtype(struct chan_usbradio_pvt *o, char *s)
 }
 /*
 */
-static void store_rxsdtype(struct chan_usbradio_pvt *o, char *s)
+static void store_rxsdtype(struct chan_usbradio_pvt *o, const char *s)
 {
 	if (!strcasecmp(s,"no") || !strcasecmp(s,"SD_IGNORE")){
 		o->rxsdtype = SD_IGNORE;
@@ -2810,7 +2794,7 @@ static void store_rxsdtype(struct chan_usbradio_pvt *o, char *s)
 }
 /*
 */
-static void store_rxgain(struct chan_usbradio_pvt *o, char *s)
+static void store_rxgain(struct chan_usbradio_pvt *o, const char *s)
 {
 	float f;
 	sscanf(s, "%30f", &f); 
@@ -2819,7 +2803,7 @@ static void store_rxgain(struct chan_usbradio_pvt *o, char *s)
 }
 /*
 */
-static void store_rxvoiceadj(struct chan_usbradio_pvt *o, char *s)
+static void store_rxvoiceadj(struct chan_usbradio_pvt *o, const char *s)
 {
 	float f;
 	sscanf(s, "%30f", &f);
@@ -2828,7 +2812,7 @@ static void store_rxvoiceadj(struct chan_usbradio_pvt *o, char *s)
 }
 /*
 */
-static void store_rxctcssadj(struct chan_usbradio_pvt *o, char *s)
+static void store_rxctcssadj(struct chan_usbradio_pvt *o, const char *s)
 {
 	float f;
 	sscanf(s, "%30f", &f);
@@ -2837,7 +2821,7 @@ static void store_rxctcssadj(struct chan_usbradio_pvt *o, char *s)
 }
 /*
 */
-static void store_txtoctype(struct chan_usbradio_pvt *o, char *s)
+static void store_txtoctype(struct chan_usbradio_pvt *o, const char *s)
 {
 	if (!strcasecmp(s,"no") || !strcasecmp(s,"TOC_NONE")){
 		o->txtoctype = TOC_NONE;

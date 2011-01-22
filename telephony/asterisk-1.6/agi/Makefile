@@ -11,12 +11,9 @@
 # the GNU General Public License
 #
 
-ASTTOPDIR?=..
--include $(ASTTOPDIR)/menuselect.makeopts
-
 .PHONY: clean all uninstall
 
-AGIS=$(MENUSELECT_AGIS)
+AGIS=agi-test.agi eagi-test eagi-sphinx-test jukebox.agi
 
 ifeq ($(OSARCH),SunOS)
   LIBS+=-lsocket -lnsl

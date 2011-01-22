@@ -69,7 +69,7 @@
 
 %{
 #include "asterisk.h"
-ASTERISK_FILE_VERSION(__FILE__, "$Revision: 162271 $")
+ASTERISK_FILE_VERSION(__FILE__, "$Revision: 272262 $")
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -887,7 +887,7 @@ static void setup_filestack(char *fnamebuf2, int fnamebuf_siz, glob_t *globbuf, 
 			   	free(include_stack[include_stack_index].fname);
 				include_stack[include_stack_index].fname = 0;
 			}
-			include_stack[include_stack_index].fname = strdup(my_file);
+			include_stack[include_stack_index].fname = strdup(S_OR(my_file, "<none>"));
 			include_stack[include_stack_index].lineno = my_lineno;
 			include_stack[include_stack_index].colno = my_col+yyleng;
 			if (my_file)

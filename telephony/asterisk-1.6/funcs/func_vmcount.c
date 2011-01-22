@@ -27,7 +27,7 @@
 
 #include "asterisk.h"
 
-ASTERISK_FILE_VERSION(__FILE__, "$Revision: 200620 $")
+ASTERISK_FILE_VERSION(__FILE__, "$Revision: 153365 $")
 
 #include <dirent.h>
 
@@ -94,10 +94,9 @@ static int acf_vmcount_exec(struct ast_channel *chan, const char *cmd, char *arg
 	return 0;
 }
 
-static struct ast_custom_function acf_vmcount = {
+struct ast_custom_function acf_vmcount = {
 	.name = "VMCOUNT",
 	.read = acf_vmcount_exec,
-	.read_max = 12,
 };
 
 static int unload_module(void)

@@ -27,7 +27,7 @@
 
 #include "asterisk.h"
 
-ASTERISK_FILE_VERSION(__FILE__, "$Revision: 262656 $")
+ASTERISK_FILE_VERSION(__FILE__, "$Revision: 262659 $")
 
 #include "asterisk/lock.h"
 #include "asterisk/file.h"
@@ -80,7 +80,7 @@ ASTERISK_FILE_VERSION(__FILE__, "$Revision: 262656 $")
 
 static char *app = "PrivacyManager";
 
-static int privacy_exec(struct ast_channel *chan, const char *data)
+static int privacy_exec (struct ast_channel *chan, void *data)
 {
 	int res=0;
 	int retries;

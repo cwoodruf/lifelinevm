@@ -21,7 +21,7 @@
 
 #include "asterisk.h"
 
-ASTERISK_FILE_VERSION(__FILE__, "$Revision: 217033 $")
+ASTERISK_FILE_VERSION(__FILE__, "$Revision: 217036 $")
 
 #include <ctype.h>
 #include <sys/time.h>
@@ -38,7 +38,7 @@ ASTERISK_FILE_VERSION(__FILE__, "$Revision: 217033 $")
 #endif
 #endif
 
-static const struct limits {
+static struct limits {
 	int resource;
 	char limit[3];
 	char desc[40];
@@ -152,7 +152,7 @@ static char *handle_cli_ulimit(struct ast_cli_entry *e, int cmd, struct ast_cli_
 
 	if (a->argc == 1) {
 		char arg2[15];
-		const char * const newargv[2] = { "ulimit", arg2 };
+		char *newargv[2] = { "ulimit", arg2 };
 		for (resource = 0; resource < ARRAY_LEN(limits); resource++) {
 			struct ast_cli_args newArgs = { .argv = newargv, .argc = 2 };
 			ast_copy_string(arg2, limits[resource].clicmd, sizeof(arg2));

@@ -42,7 +42,7 @@
 
 #include "asterisk.h"
 
-ASTERISK_FILE_VERSION(__FILE__, "$Revision: 268690 $")
+ASTERISK_FILE_VERSION(__FILE__, "$Revision: 268691 $")
 
 #include <math.h>
 
@@ -290,17 +290,24 @@ typedef struct
 	} td;
 } digit_detect_state_t;
 
-static const float dtmf_row[] = {
+static float dtmf_row[] =
+{
 	697.0,  770.0,  852.0,  941.0
 };
-static const float dtmf_col[] = {
+static float dtmf_col[] =
+{
 	1209.0, 1336.0, 1477.0, 1633.0
 };
-static const float mf_tones[] = {
+
+static float mf_tones[] =
+{
 	700.0, 900.0, 1100.0, 1300.0, 1500.0, 1700.0
 };
-static const char dtmf_positions[] = "123A" "456B" "789C" "*0#D";
-static const char bell_mf_positions[] = "1247C-358A--69*---0B----#";
+
+static char dtmf_positions[] = "123A" "456B" "789C" "*0#D";
+
+static char bell_mf_positions[] = "1247C-358A--69*---0B----#";
+
 static int thresholds[THRESHOLD_MAX];
 
 static inline void goertzel_sample(goertzel_state_t *s, short sample)
@@ -399,6 +406,7 @@ struct ast_dsp {
 	digit_detect_state_t digit_state;
 	tone_detect_state_t cng_tone_state;
 	tone_detect_state_t ced_tone_state;
+	int destroy;
 };
 
 static void mute_fragment(struct ast_dsp *dsp, fragment_t *fragment)
@@ -1106,7 +1114,7 @@ int ast_dsp_call_progress(struct ast_dsp *dsp, struct ast_frame *inf)
 		ast_log(LOG_WARNING, "Can't check call progress of non-voice frames\n");
 		return 0;
 	}
-	if (inf->subclass.codec != AST_FORMAT_SLINEAR) {
+	if (inf->subclass != AST_FORMAT_SLINEAR) {
 		ast_log(LOG_WARNING, "Can only check call progress in signed-linear frames\n");
 		return 0;
 	}
@@ -1280,7 +1288,7 @@ int ast_dsp_silence(struct ast_dsp *dsp, struct ast_frame *f, int *totalsilence)
 		ast_log(LOG_WARNING, "Can't calculate silence on a non-voice frame\n");
 		return 0;
 	}
-	if (f->subclass.codec != AST_FORMAT_SLINEAR) {
+	if (f->subclass != AST_FORMAT_SLINEAR) {
 		ast_log(LOG_WARNING, "Can only calculate silence on signed-linear frames :(\n");
 		return 0;
 	}
@@ -1298,7 +1306,7 @@ int ast_dsp_noise(struct ast_dsp *dsp, struct ast_frame *f, int *totalnoise)
                ast_log(LOG_WARNING, "Can't calculate noise on a non-voice frame\n");
                return 0;
        }
-       if (f->subclass.codec != AST_FORMAT_SLINEAR) {
+       if (f->subclass != AST_FORMAT_SLINEAR) {
                ast_log(LOG_WARNING, "Can only calculate noise on signed-linear frames :(\n");
                return 0;
        }
@@ -1329,13 +1337,12 @@ struct ast_frame *ast_dsp_process(struct ast_channel *chan, struct ast_dsp *dsp,
 	odata = af->data.ptr;
 	len = af->datalen;
 	/* Make sure we have short data */
-	switch (af->subclass.codec) {
+	switch (af->subclass) {
 	case AST_FORMAT_SLINEAR:
 		shortdata = af->data.ptr;
 		len = af->datalen / 2;
 		break;
 	case AST_FORMAT_ULAW:
-	case AST_FORMAT_TESTLAW:
 		shortdata = alloca(af->datalen * 2);
 		for (x = 0;x < len; x++) {
 			shortdata[x] = AST_MULAW(odata[x]);
@@ -1350,7 +1357,7 @@ struct ast_frame *ast_dsp_process(struct ast_channel *chan, struct ast_dsp *dsp,
 	default:
 		/*Display warning only once. Otherwise you would get hundreds of warnings every second */
 		if (dsp->display_inband_dtmf_warning)
-			ast_log(LOG_WARNING, "Inband DTMF is not supported on codec %s. Use RFC2833\n", ast_getformatname(af->subclass.codec));
+			ast_log(LOG_WARNING, "Inband DTMF is not supported on codec %s. Use RFC2833\n", ast_getformatname(af->subclass));
 		dsp->display_inband_dtmf_warning = 0;
 		return af;
 	}
@@ -1367,16 +1374,18 @@ struct ast_frame *ast_dsp_process(struct ast_channel *chan, struct ast_dsp *dsp,
 		memset(&dsp->f, 0, sizeof(dsp->f));
 		dsp->f.frametype = AST_FRAME_NULL;
 		ast_frfree(af);
-		return ast_frisolate(&dsp->f);
+		ast_set_flag(&dsp->f, AST_FRFLAG_FROM_DSP);
+		return &dsp->f;
 	}
 	if ((dsp->features & DSP_FEATURE_BUSY_DETECT) && ast_dsp_busydetect(dsp)) {
 		chan->_softhangup |= AST_SOFTHANGUP_DEV;
 		memset(&dsp->f, 0, sizeof(dsp->f));
 		dsp->f.frametype = AST_FRAME_CONTROL;
-		dsp->f.subclass.integer = AST_CONTROL_BUSY;
+		dsp->f.subclass = AST_CONTROL_BUSY;
 		ast_frfree(af);
 		ast_debug(1, "Requesting Hangup because the busy tone was detected on channel %s\n", chan->name);
-		return ast_frisolate(&dsp->f);
+		ast_set_flag(&dsp->f, AST_FRFLAG_FROM_DSP);
+		return &dsp->f;
 	}
 
 	if ((dsp->features & DSP_FEATURE_FAX_DETECT)) {
@@ -1431,7 +1440,7 @@ struct ast_frame *ast_dsp_process(struct ast_channel *chan, struct ast_dsp *dsp,
 			if (event) {
 				memset(&dsp->f, 0, sizeof(dsp->f));
 				dsp->f.frametype = event;
-				dsp->f.subclass.integer = event_digit;
+				dsp->f.subclass = event_digit;
 				dsp->f.len = event_len;
 				outf = &dsp->f;
 				goto done;
@@ -1444,7 +1453,7 @@ struct ast_frame *ast_dsp_process(struct ast_channel *chan, struct ast_dsp *dsp,
 
 		memset(&dsp->f, 0, sizeof(dsp->f));
 		dsp->f.frametype = AST_FRAME_DTMF;
-		dsp->f.subclass.integer = fax_digit;
+		dsp->f.subclass = fax_digit;
 		outf = &dsp->f;
 		goto done;
 	}
@@ -1460,7 +1469,7 @@ struct ast_frame *ast_dsp_process(struct ast_channel *chan, struct ast_dsp *dsp,
 			case AST_CONTROL_HANGUP:
 				memset(&dsp->f, 0, sizeof(dsp->f));
 				dsp->f.frametype = AST_FRAME_CONTROL;
-				dsp->f.subclass.integer = res;
+				dsp->f.subclass = res;
 				dsp->f.src = "dsp_progress";
 				if (chan) 
 					ast_queue_frame(chan, &dsp->f);
@@ -1479,7 +1488,7 @@ done:
 		memset(shortdata + dsp->mute_data[x].start, 0, sizeof(int16_t) * (dsp->mute_data[x].end - dsp->mute_data[x].start));
 	}
 
-	switch (af->subclass.codec) {
+	switch (af->subclass) {
 	case AST_FORMAT_SLINEAR:
 		break;
 	case AST_FORMAT_ULAW:
@@ -1499,7 +1508,8 @@ done:
 			ast_queue_frame(chan, af);
 		}
 		ast_frfree(af);
-		return ast_frisolate(outf);
+		ast_set_flag(outf, AST_FRFLAG_FROM_DSP);
+		return outf;
 	} else {
 		return af;
 	}
@@ -1550,6 +1560,16 @@ void ast_dsp_set_features(struct ast_dsp *dsp, int features)
 
 void ast_dsp_free(struct ast_dsp *dsp)
 {
+	if (ast_test_flag(&dsp->f, AST_FRFLAG_FROM_DSP)) {
+		/* If this flag is still set, that means that the dsp's destruction 
+		 * been torn down, while we still have a frame out there being used.
+		 * When ast_frfree() gets called on that frame, this ast_trans_pvt
+		 * will get destroyed, too. */
+
+		dsp->destroy = 1;
+
+		return;
+	}
 	ast_free(dsp);
 }
 
@@ -1721,3 +1741,16 @@ int ast_dsp_reload(void)
 	return _dsp_init(1);
 }
 
+void ast_dsp_frame_freed(struct ast_frame *fr)
+{
+	struct ast_dsp *dsp;
+
+	ast_clear_flag(fr, AST_FRFLAG_FROM_DSP);
+
+	dsp = (struct ast_dsp *) (((char *) fr) - offsetof(struct ast_dsp, f));
+
+	if (!dsp->destroy)
+		return;
+	
+	ast_dsp_free(dsp);
+}

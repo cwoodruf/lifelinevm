@@ -32,7 +32,7 @@
 
 #include "asterisk.h"
 
-ASTERISK_FILE_VERSION(__FILE__, "$Revision: 267622 $")
+ASTERISK_FILE_VERSION(__FILE__, "$Revision: 293969 $")
 
 #include <fcntl.h>
 #include <netinet/in.h>
@@ -92,10 +92,10 @@ struct codec_dahdi_pvt {
 };
 
 /* Only used by a decoder */
-static int ulawtolin(struct ast_trans_pvt *pvt)
+static int ulawtolin(struct ast_trans_pvt *pvt, int samples)
 {
 	struct codec_dahdi_pvt *dahdip = pvt->pvt;
-	int i = dahdip->required_samples;
+	int i = samples;
 	uint8_t *src = &dahdip->ulaw_buffer[0];
 	int16_t *dst = pvt->outbuf.i16 + pvt->datalen;
 
@@ -179,7 +179,7 @@ static int dahdi_encoder_framein(struct ast_trans_pvt *pvt, struct ast_frame *f)
 {
 	struct codec_dahdi_pvt *dahdip = pvt->pvt;
 
-	if (!f->subclass.codec) {
+	if (!f->subclass) {
 		/* We're just faking a return for calculation purposes. */
 		dahdip->fake = 2;
 		pvt->samples = f->samples;
@@ -227,15 +227,16 @@ static struct ast_frame *dahdi_encoder_frameout(struct ast_trans_pvt *pvt)
 	if (2 == dahdip->fake) {
 		dahdip->fake = 1;
 		pvt->f.frametype = AST_FRAME_VOICE;
-		pvt->f.subclass.codec = 0;
+		pvt->f.subclass = 0;
 		pvt->f.samples = dahdip->required_samples;
 		pvt->f.data.ptr = NULL;
 		pvt->f.offset = 0;
 		pvt->f.datalen = 0;
 		pvt->f.mallocd = 0;
+		ast_set_flag(&pvt->f, AST_FRFLAG_FROM_TRANSLATOR);
 		pvt->samples = 0;
 
-		return ast_frisolate(&pvt->f);
+		return &pvt->f;
 
 	} else if (1 == dahdip->fake) {
 		dahdip->fake = 0;
@@ -255,15 +256,16 @@ static struct ast_frame *dahdi_encoder_frameout(struct ast_trans_pvt *pvt)
 		pvt->f.datalen = res;
 		pvt->f.samples = dahdip->required_samples;
 		pvt->f.frametype = AST_FRAME_VOICE;
-		pvt->f.subclass.codec = 1 <<  (pvt->t->dstfmt);
+		pvt->f.subclass = 1 <<  (pvt->t->dstfmt);
 		pvt->f.mallocd = 0;
 		pvt->f.offset = AST_FRIENDLY_OFFSET;
 		pvt->f.src = pvt->t->name;
 		pvt->f.data.ptr = pvt->outbuf.c;
+		ast_set_flag(&pvt->f, AST_FRFLAG_FROM_TRANSLATOR);
 
 		pvt->samples = 0;
 		pvt->datalen = 0;
-		return ast_frisolate(&pvt->f);
+		return &pvt->f;
 	}
 
 	/* Shouldn't get here... */
@@ -274,7 +276,7 @@ static int dahdi_decoder_framein(struct ast_trans_pvt *pvt, struct ast_frame *f)
 {
 	struct codec_dahdi_pvt *dahdip = pvt->pvt;
 
-	if (!f->subclass.codec) {
+	if (!f->subclass) {
 		/* We're just faking a return for calculation purposes. */
 		dahdip->fake = 2;
 		pvt->samples = f->samples;
@@ -300,14 +302,15 @@ static struct ast_frame *dahdi_decoder_frameout(struct ast_trans_pvt *pvt)
 	if (2 == dahdip->fake) {
 		dahdip->fake = 1;
 		pvt->f.frametype = AST_FRAME_VOICE;
-		pvt->f.subclass.codec = 0;
+		pvt->f.subclass = 0;
 		pvt->f.samples = dahdip->required_samples;
 		pvt->f.data.ptr = NULL;
 		pvt->f.offset = 0;
 		pvt->f.datalen = 0;
 		pvt->f.mallocd = 0;
+		ast_set_flag(&pvt->f, AST_FRFLAG_FROM_TRANSLATOR);
 		pvt->samples = 0;
-		return ast_frisolate(&pvt->f);
+		return &pvt->f;
 	} else if (1 == dahdip->fake) {
 		pvt->samples = 0;
 		dahdip->fake = 0;
@@ -331,22 +334,23 @@ static struct ast_frame *dahdi_decoder_frameout(struct ast_trans_pvt *pvt)
 		}
 	} else {
 		if (dahdip->softslin) {
-			ulawtolin(pvt);
+			ulawtolin(pvt, res);
 			pvt->f.datalen = res * 2;
 		} else {
 			pvt->f.datalen = res;
 		}
 		pvt->datalen = 0;
 		pvt->f.frametype = AST_FRAME_VOICE;
-		pvt->f.subclass.codec = 1 <<  (pvt->t->dstfmt);
+		pvt->f.subclass = 1 <<  (pvt->t->dstfmt);
 		pvt->f.mallocd = 0;
 		pvt->f.offset = AST_FRIENDLY_OFFSET;
 		pvt->f.src = pvt->t->name;
 		pvt->f.data.ptr = pvt->outbuf.c;
-		pvt->f.samples = dahdip->required_samples;
+		pvt->f.samples = res;
+		ast_set_flag(&pvt->f, AST_FRFLAG_FROM_TRANSLATOR);
 		pvt->samples = 0;
 
-		return ast_frisolate(&pvt->f);
+		return &pvt->f;
 	}
 
 	/* Shouldn't get here... */

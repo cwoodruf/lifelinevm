@@ -59,7 +59,6 @@ export ASTHEADERDIR
 export ASTSBINDIR
 export AGI_DIR
 export ASTCONFPATH
-export ASTKEYDIR
 
 export OSARCH			# Operating system
 export PROC			# Processor type
@@ -156,9 +155,6 @@ else
   ASTVARLIBDIR=$(localstatedir)/lib/asterisk
   ASTDBDIR=$(ASTVARLIBDIR)
 endif
-ifneq ($(findstring darwin,$(OSARCH)),)
-  ASTVARRUNDIR=/Library/Application Support/Asterisk/Run
-endif
   ASTKEYDIR=$(ASTVARLIBDIR)
 endif
 ifeq ($(ASTDATADIR),)
@@ -175,14 +171,6 @@ AGI_DIR=$(ASTDATADIR)/agi-bin
 HTTP_DOCSDIR=/var/www/html
 # Determine by a grep 'ScriptAlias' of your Apache httpd.conf file
 HTTP_CGIDIR=/var/www/cgi-bin
-
-# If your platform's linker expects a prefix on symbols generated from compiling C
-# source files, set LINKER_SYMBOL_PREFIX to that value. On some systems, exported symbols
-# from C source files are prefixed with '_', for example. If this value is not set
-# properly, the linker scripts that live in the '*.exports' files in various places
-# in this tree will unintentionally suppress symbols that should be visible
-# in the final binary objects.
-LINKER_SYMBOL_PREFIX=
 
 # Uncomment this to use the older DSP routines
 #_ASTCFLAGS+=-DOLD_DSP_ROUTINES
@@ -272,6 +260,9 @@ ifeq ($(PROC),ppc)
 endif
 
 ifeq ($(OSARCH),FreeBSD)
+  ifeq ($(PROC),i386)
+    _ASTCFLAGS+=-march=i686
+  endif
   # -V is understood by BSD Make, not by GNU make.
   BSDVERSION=$(shell make -V OSVERSION -f /usr/share/mk/bsd.port.subdir.mk)
   _ASTCFLAGS+=$(shell if test $(BSDVERSION) -lt 500016 ; then echo "-D_THREAD_SAFE"; fi)
@@ -301,7 +292,7 @@ endif
 
 _ASTCFLAGS+=$(OPTIONS)
 
-MOD_SUBDIRS:=channels pbx apps codecs formats cdr cel bridges funcs tests main res addons $(LOCAL_MOD_SUBDIRS)
+MOD_SUBDIRS:=channels pbx apps codecs formats cdr bridges funcs tests main res $(LOCAL_MOD_SUBDIRS)
 OTHER_SUBDIRS:=utils agi
 SUBDIRS:=$(OTHER_SUBDIRS) $(MOD_SUBDIRS)
 SUBDIRS_INSTALL:=$(SUBDIRS:%=%-install)
@@ -315,11 +306,10 @@ MOD_SUBDIRS_MENUSELECT_TREE:=$(MOD_SUBDIRS:%=%-menuselect-tree)
 
 ifneq ($(findstring darwin,$(OSARCH)),)
   _ASTCFLAGS+=-D__Darwin__
-  SOLINK=-bundle -Xlinker -macosx_version_min -Xlinker 10.4 -Xlinker -undefined -Xlinker dynamic_lookup -force_flat_namespace
+  SOLINK=-dynamic -bundle -Xlinker -macosx_version_min -Xlinker 10.4 -Xlinker -undefined -Xlinker dynamic_lookup -force_flat_namespace
   ifeq ($(shell /usr/bin/sw_vers -productVersion | cut -c1-4),10.6)
     SOLINK+=/usr/lib/bundle1.o
   endif
-  _ASTLDFLAGS+=-L/usr/local/lib
 else
 # These are used for all but Darwin
   SOLINK=-shared
@@ -338,10 +328,6 @@ endif
 
 # comment to print directories during submakes
 #PRINT_DIR=yes
-
-ifneq ($(INSIDE_EMACS),)
-PRINT_DIR=yes
-endif
 
 SILENTMAKE:=$(MAKE) --quiet --no-print-directory
 ifneq ($(PRINT_DIR)$(NOISY_BUILD),)
@@ -559,7 +545,7 @@ installdirs:
 	mkdir -p $(DESTDIR)$(MODULES_DIR)
 	mkdir -p $(DESTDIR)$(ASTSBINDIR)
 	mkdir -p $(DESTDIR)$(ASTETCDIR)
-	mkdir -p "$(DESTDIR)$(ASTVARRUNDIR)"
+	mkdir -p $(DESTDIR)$(ASTVARRUNDIR)
 	mkdir -p $(DESTDIR)$(ASTSPOOLDIR)/voicemail
 	mkdir -p $(DESTDIR)$(ASTSPOOLDIR)/dictate
 	mkdir -p $(DESTDIR)$(ASTSPOOLDIR)/system
@@ -572,15 +558,13 @@ bininstall: _all installdirs $(SUBDIRS_INSTALL)
 	$(LN) -sf asterisk $(DESTDIR)$(ASTSBINDIR)/rasterisk
 	$(INSTALL) -m 755 contrib/scripts/astgenkey $(DESTDIR)$(ASTSBINDIR)/
 	$(INSTALL) -m 755 contrib/scripts/autosupport $(DESTDIR)$(ASTSBINDIR)/
-	if [ ! -f $(DESTDIR)$(ASTSBINDIR)/safe_asterisk -a ! -f /sbin/launchd ]; then \
+	if [ ! -f $(DESTDIR)$(ASTSBINDIR)/safe_asterisk ]; then \
 		cat contrib/scripts/safe_asterisk | sed 's|__ASTERISK_SBIN_DIR__|$(ASTSBINDIR)|;s|__ASTERISK_VARRUN_DIR__|$(ASTVARRUNDIR)|;' > $(DESTDIR)$(ASTSBINDIR)/safe_asterisk ;\
 		chmod 755 $(DESTDIR)$(ASTSBINDIR)/safe_asterisk;\
 	fi
 	$(INSTALL) -d $(DESTDIR)$(ASTHEADERDIR)
-	$(INSTALL) -d $(DESTDIR)$(ASTHEADERDIR)/doxygen
 	$(INSTALL) -m 644 include/asterisk.h $(DESTDIR)$(includedir)
 	$(INSTALL) -m 644 include/asterisk/*.h $(DESTDIR)$(ASTHEADERDIR)
-	$(INSTALL) -m 644 include/asterisk/doxygen/*.h $(DESTDIR)$(ASTHEADERDIR)/doxygen
 	if [ -n "$(OLDHEADERS)" ]; then \
 		rm -f $(addprefix $(DESTDIR)$(ASTHEADERDIR)/,$(OLDHEADERS)) ;\
 	fi
@@ -588,8 +572,6 @@ bininstall: _all installdirs $(SUBDIRS_INSTALL)
 	mkdir -p $(DESTDIR)$(ASTDATADIR)/documentation/thirdparty
 	mkdir -p $(DESTDIR)$(ASTLOGDIR)/cdr-csv
 	mkdir -p $(DESTDIR)$(ASTLOGDIR)/cdr-custom
-	mkdir -p $(DESTDIR)$(ASTLOGDIR)/cel-csv
-	mkdir -p $(DESTDIR)$(ASTLOGDIR)/cel-custom
 	mkdir -p $(DESTDIR)$(ASTDATADIR)/keys
 	mkdir -p $(DESTDIR)$(ASTDATADIR)/firmware
 	mkdir -p $(DESTDIR)$(ASTDATADIR)/firmware/iax
@@ -702,22 +684,74 @@ samples: adsi
 		echo "Installing file $$x"; \
 		$(INSTALL) -m 644 $$x $${dst} ;\
 	done
-	if [ "$(OVERWRITE)" = "y" ]; then \
-		echo "Updating asterisk.conf"; \
-		sed \
-			-e 's|^astetcdir.*$$|astetcdir => $(ASTETCDIR)|' \
-			-e 's|^astmoddir.*$$|astmoddir => $(MODULES_DIR)|' \
-			-e 's|^astvarlibdir.*$$|astvarlibdir => $(ASTVARLIBDIR)|' \
-			-e 's|^astdbdir.*$$|astdbdir => $(ASTDBDIR)|' \
-			-e 's|^astkeydir.*$$|astkeydir => $(ASTKEYDIR)|' \
-			-e 's|^astdatadir.*$$|astdatadir => $(ASTDATADIR)|' \
-			-e 's|^astagidir.*$$|astagidir => $(AGI_DIR)|' \
-			-e 's|^astspooldir.*$$|astspooldir => $(ASTSPOOLDIR)|' \
-			-e 's|^astrundir.*$$|astrundir => $(ASTVARRUNDIR)|' \
-			-e 's|^astlogdir.*$$|astlogdir => $(ASTLOGDIR)|' \
-			$(DESTDIR)$(ASTCONFPATH) > $(DESTDIR)$(ASTCONFPATH).tmp \
-			&& mv $(DESTDIR)$(ASTCONFPATH).tmp $(DESTDIR)$(ASTCONFPATH); \
-	fi ;\
+	@if [ "$(OVERWRITE)" = "y" ] || [ ! -f $(DESTDIR)$(ASTCONFPATH) ]; then \
+		echo "Creating asterisk.conf"; \
+		( \
+		echo "[directories](!) ; remove the (!) to enable this" ; \
+		echo "astetcdir => $(ASTETCDIR)" ; \
+		echo "astmoddir => $(MODULES_DIR)" ; \
+		echo "astvarlibdir => $(ASTVARLIBDIR)" ; \
+		echo "astdbdir => $(ASTDBDIR)" ; \
+		echo "astkeydir => $(ASTKEYDIR)" ; \
+		echo "astdatadir => $(ASTDATADIR)" ; \
+		echo "astagidir => $(AGI_DIR)" ; \
+		echo "astspooldir => $(ASTSPOOLDIR)" ; \
+		echo "astrundir => $(ASTVARRUNDIR)" ; \
+		echo "astlogdir => $(ASTLOGDIR)" ; \
+		echo "" ; \
+		echo "[options]" ; \
+		echo ";verbose = 3" ; \
+		echo ";debug = 3" ; \
+		echo ";alwaysfork = yes ; same as -F at startup" ; \
+		echo ";nofork = yes ; same as -f at startup" ; \
+		echo ";quiet = yes ; same as -q at startup" ; \
+		echo ";timestamp = yes ; same as -T at startup" ; \
+		echo ";execincludes = yes ; support #exec in config files" ; \
+		echo ";console = yes ; Run as console (same as -c at startup)" ; \
+		echo ";highpriority = yes ; Run realtime priority (same as -p at startup)" ; \
+		echo ";initcrypto = yes ; Initialize crypto keys (same as -i at startup)" ; \
+		echo ";nocolor = yes ; Disable console colors" ; \
+		echo ";dontwarn = yes ; Disable some warnings" ; \
+		echo ";dumpcore = yes ; Dump core on crash (same as -g at startup)" ; \
+		echo ";languageprefix = yes ; Use the new sound prefix path syntax" ; \
+		echo ";internal_timing = yes" ; \
+		echo ";systemname = my_system_name ; prefix uniqueid with a system name for global uniqueness issues" ; \
+		echo ";autosystemname = yes ; automatically set systemname to hostname - uses 'localhost' on failure, or systemname if set" ; \
+		echo ";maxcalls = 10 ; Maximum amount of calls allowed" ; \
+		echo ";maxload = 0.9 ; Asterisk stops accepting new calls if the load average exceed this limit" ; \
+		echo ";maxfiles = 1000 ; Maximum amount of openfiles" ; \
+		echo ";minmemfree = 1 ; in MBs, Asterisk stops accepting new calls if the amount of free memory falls below this watermark" ; \
+		echo ";cache_record_files = yes ; Cache recorded sound files to another directory during recording" ; \
+		echo ";record_cache_dir = /tmp ; Specify cache directory (used in conjunction with cache_record_files)" ; \
+		echo ";transmit_silence_during_record = yes ; Transmit SLINEAR silence while a channel is being recorded" ; \
+		echo ";transmit_silence = yes ; Transmit silence while a channel is in a waiting state, a recording only state, or when DTMF is" ; \
+		echo "                        ; being generated.  Note that the silence internally is generated in raw signed linear format." ; \
+		echo "                        ; This means that it must be transcoded into the native format of the channel before it can be sent" ; \
+		echo "                        ; to the device.  It is for this reason that this is optional, as it may result in requiring a" ; \
+		echo "                        ; temporary codec translation path for a channel that may not otherwise require one." ; \
+		echo ";transcode_via_sln = yes ; Build transcode paths via SLINEAR, instead of directly" ; \
+		echo ";sendfullybooted = yes  ; Send the FullyBooted AMI event on AMI login and when all modules are finished loading" ; \
+		echo ";runuser = asterisk ; The user to run as" ; \
+		echo ";rungroup = asterisk ; The group to run as" ; \
+		echo ";lightbackground = yes ; If your terminal is set for a light-colored background" ; \
+		echo "documentation_language = en_US ; Set the Language you want Documentation displayed in. Value is in the same format as locale names" ; \
+		echo ";hideconnect = yes ; Hide messages displayed when a remote console connects and disconnects" ; \
+		echo "" ; \
+		echo "; Changing the following lines may compromise your security." ; \
+		echo ";[files]" ; \
+		echo ";astctlpermissions = 0660" ; \
+		echo ";astctlowner = root" ; \
+		echo ";astctlgroup = apache" ; \
+		echo ";astctl = asterisk.ctl" ; \
+		echo "" ; \
+		echo "[compat]" ; \
+		echo "pbx_realtime=1.6" ; \
+		echo "res_agi=1.6" ; \
+		echo "app_set=1.6" ; \
+		) > $(DESTDIR)$(ASTCONFPATH) ; \
+	else \
+		echo "Skipping asterisk.conf creation"; \
+	fi
 	mkdir -p $(DESTDIR)$(ASTSPOOLDIR)/voicemail/default/1234/INBOX
 	build_tools/make_sample_voicemail $(DESTDIR)/$(ASTDATADIR) $(DESTDIR)/$(ASTSPOOLDIR)
 	@mkdir -p $(DESTDIR)$(ASTDATADIR)/phoneprov
@@ -782,12 +816,10 @@ config:
 		if [ -f /etc/redhat-release -o -f /etc/fedora-release ]; then \
 			cat contrib/init.d/rc.redhat.asterisk | sed 's|__ASTERISK_ETC_DIR__|$(ASTETCDIR)|;s|__ASTERISK_SBIN_DIR__|$(ASTSBINDIR)|;s|__ASTERISK_VARRUN_DIR__|$(ASTVARRUNDIR)|;' > $(DESTDIR)/etc/rc.d/init.d/asterisk ;\
 			chmod 755 $(DESTDIR)/etc/rc.d/init.d/asterisk;\
-			if [ ! -f /etc/sysconfig/asterisk ]; then install -m 644 contrib/init.d/etc_default_asterisk /etc/sysconfig/asterisk ; fi ;\
 			if [ -z "$(DESTDIR)" ]; then /sbin/chkconfig --add asterisk; fi; \
 		elif [ -f /etc/debian_version ]; then \
 			cat contrib/init.d/rc.debian.asterisk | sed 's|__ASTERISK_ETC_DIR__|$(ASTETCDIR)|;s|__ASTERISK_SBIN_DIR__|$(ASTSBINDIR)|;s|__ASTERISK_VARRUN_DIR__|$(ASTVARRUNDIR)|;' > $(DESTDIR)/etc/init.d/asterisk ;\
 			chmod 755 $(DESTDIR)/etc/init.d/asterisk;\
-			if [ ! -f /etc/default/asterisk ]; then install -m 644 contrib/init.d/etc_default_asterisk /etc/default/asterisk ; fi ;\
 			if [ -z "$(DESTDIR)" ]; then /usr/sbin/update-rc.d asterisk defaults 50 91; fi; \
 		elif [ -f /etc/gentoo-release ]; then \
 			cat contrib/init.d/rc.gentoo.asterisk | sed 's|__ASTERISK_ETC_DIR__|$(ASTETCDIR)|;s|__ASTERISK_SBIN_DIR__|$(ASTSBINDIR)|;s|__ASTERISK_VARRUN_DIR__|$(ASTVARRUNDIR)|;' > $(DESTDIR)/etc/init.d/asterisk ;\
@@ -796,18 +828,21 @@ config:
 		elif [ -f /etc/mandrake-release -o -f /etc/mandriva-release ]; then \
 			cat contrib/init.d/rc.mandriva.asterisk | sed 's|__ASTERISK_ETC_DIR__|$(ASTETCDIR)|;s|__ASTERISK_SBIN_DIR__|$(ASTSBINDIR)|;s|__ASTERISK_VARRUN_DIR__|$(ASTVARRUNDIR)|;' > $(DESTDIR)/etc/rc.d/init.d/asterisk ;\
 			chmod 755 $(DESTDIR)/etc/rc.d/init.d/asterisk;\
-			if [ ! -f /etc/sysconfig/asterisk ]; then install -m 644 contrib/init.d/etc_default_asterisk /etc/sysconfig/asterisk ; fi ;\
 			if [ -z "$(DESTDIR)" ]; then /sbin/chkconfig --add asterisk; fi; \
 		elif [ -f /etc/SuSE-release -o -f /etc/novell-release ]; then \
 			cat contrib/init.d/rc.suse.asterisk | sed 's|__ASTERISK_ETC_DIR__|$(ASTETCDIR)|;s|__ASTERISK_SBIN_DIR__|$(ASTSBINDIR)|;s|__ASTERISK_VARRUN_DIR__|$(ASTVARRUNDIR)|;' > $(DESTDIR)/etc/init.d/asterisk ;\
 			chmod 755 $(DESTDIR)/etc/init.d/asterisk;\
-			if [ ! -f /etc/sysconfig/asterisk ]; then install -m 644 contrib/init.d/etc_default_asterisk /etc/sysconfig/asterisk ; fi ;\
 			if [ -z "$(DESTDIR)" ]; then /sbin/chkconfig --add asterisk; fi; \
 		elif [ -f /etc/arch-release -o -f /etc/arch-release ]; then \
 			cat contrib/init.d/rc.archlinux.asterisk | sed 's|__ASTERISK_ETC_DIR__|$(ASTETCDIR)|;s|__ASTERISK_SBIN_DIR__|$(ASTSBINDIR)|;s|__ASTERISK_VARRUN_DIR__|$(ASTVARRUNDIR)|;' > $(DESTDIR)/etc/rc.d/asterisk ;\
 			chmod 755 $(DESTDIR)/etc/rc.d/asterisk;\
-		elif [ -d $(DESTDIR)/Library/LaunchDaemons -a ! -f $(DESTDIR)/Library/LaunchDaemons/org.asterisk.asterisk.plist ]; then \
-			$(INSTALL) -m 644 contrib/init.d/org.asterisk.asterisk.plist $(DESTDIR)/Library/LaunchDaemons/org.asterisk.asterisk.plist; \
+		elif [ -d $(DESTDIR)/Library/LaunchDaemons ]; then \
+			if [ ! -f $(DESTDIR)/Library/LaunchDaemons/org.asterisk.asterisk.plist ]; then \
+				$(INSTALL) -m 644 contrib/init.d/org.asterisk.asterisk.plist $(DESTDIR)/Library/LaunchDaemons/org.asterisk.asterisk.plist; \
+			fi; \
+			if [ ! -f $(DESTDIR)/Library/LaunchDaemons/org.asterisk.muted.plist ]; then \
+				$(INSTALL) -m 644 contrib/init.d/org.asterisk.muted.plist $(DESTDIR)/Library/LaunchDaemons/org.asterisk.muted.plist; \
+			fi; \
 		elif [ -f /etc/slackware-version ]; then \
 			echo "Slackware is not currently supported, although an init script does exist for it."; \
 		else \
@@ -913,7 +948,7 @@ menuselect/nmenuselect: menuselect/makeopts
 menuselect/makeopts: makeopts
 	+$(MAKE_MENUSELECT) makeopts
 
-menuselect-tree: $(foreach dir,$(filter-out main,$(MOD_SUBDIRS)),$(wildcard $(dir)/*.c) $(wildcard $(dir)/*.cc)) build_tools/cflags.xml build_tools/cflags-devmode.xml sounds/sounds.xml build_tools/embed_modules.xml utils/utils.xml agi/agi.xml configure
+menuselect-tree: $(foreach dir,$(filter-out main,$(MOD_SUBDIRS)),$(wildcard $(dir)/*.c) $(wildcard $(dir)/*.cc)) build_tools/cflags.xml build_tools/cflags-devmode.xml sounds/sounds.xml build_tools/embed_modules.xml configure
 	@echo "Generating input for menuselect ..."
 	@echo "<?xml version=\"1.0\"?>" > $@
 	@echo >> $@
@@ -924,8 +959,6 @@ menuselect-tree: $(foreach dir,$(filter-out main,$(MOD_SUBDIRS)),$(wildcard $(di
 	@if [ "${AST_DEVMODE}" = "yes" ]; then \
 		cat build_tools/cflags-devmode.xml >> $@; \
 	fi
-	@cat utils/utils.xml >> $@
-	@cat agi/agi.xml >> $@
 	@cat build_tools/embed_modules.xml >> $@
 	@cat sounds/sounds.xml >> $@
 	@echo "</menu>" >> $@

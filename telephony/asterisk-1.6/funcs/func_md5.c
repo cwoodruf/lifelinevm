@@ -28,7 +28,7 @@
 
 #include "asterisk.h"
 
-ASTERISK_FILE_VERSION(__FILE__, "$Revision: 191140 $")
+ASTERISK_FILE_VERSION(__FILE__, "$Revision: 153365 $")
 
 #include "asterisk/module.h"
 #include "asterisk/pbx.h"
@@ -64,7 +64,6 @@ static int md5(struct ast_channel *chan, const char *cmd, char *data,
 static struct ast_custom_function md5_function = {
 	.name = "MD5",
 	.read = md5,
-	.read_max = 33,
 };
 
 static int unload_module(void)

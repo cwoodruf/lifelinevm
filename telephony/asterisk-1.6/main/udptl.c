@@ -51,7 +51,7 @@
 
 #include "asterisk.h"
 
-ASTERISK_FILE_VERSION(__FILE__, "$Revision: 264400 $")
+ASTERISK_FILE_VERSION(__FILE__, "$Revision: 264405 $")
 
 #include <sys/time.h>
 #include <signal.h>
@@ -380,7 +380,7 @@ static int udptl_rx_packet(struct ast_udptl *s, uint8_t *buf, unsigned int len)
 					/* Decode the secondary IFP packet */
 					//fprintf(stderr, "Secondary %d, len %d\n", seq_no - i, lengths[i - 1]);
 					s->f[ifp_no].frametype = AST_FRAME_MODEM;
-					s->f[ifp_no].subclass.codec = AST_MODEM_T38;
+					s->f[ifp_no].subclass = AST_MODEM_T38;
 
 					s->f[ifp_no].mallocd = 0;
 					s->f[ifp_no].seqno = seq_no - i;
@@ -482,7 +482,7 @@ static int udptl_rx_packet(struct ast_udptl *s, uint8_t *buf, unsigned int len)
 			if (repaired[l]) {
 				//fprintf(stderr, "Fixed packet %d, len %d\n", j, l);
 				s->f[ifp_no].frametype = AST_FRAME_MODEM;
-				s->f[ifp_no].subclass.codec = AST_MODEM_T38;
+				s->f[ifp_no].subclass = AST_MODEM_T38;
 			
 				s->f[ifp_no].mallocd = 0;
 				s->f[ifp_no].seqno = j;
@@ -503,7 +503,7 @@ static int udptl_rx_packet(struct ast_udptl *s, uint8_t *buf, unsigned int len)
 	if (seq_no >= s->rx_seq_no) {
 		/* Decode the primary IFP packet */
 		s->f[ifp_no].frametype = AST_FRAME_MODEM;
-		s->f[ifp_no].subclass.codec = AST_MODEM_T38;
+		s->f[ifp_no].subclass = AST_MODEM_T38;
 		
 		s->f[ifp_no].mallocd = 0;
 		s->f[ifp_no].seqno = seq_no;
@@ -1077,7 +1077,7 @@ int ast_udptl_write(struct ast_udptl *s, struct ast_frame *f)
 		return 0;
 	
 	if ((f->frametype != AST_FRAME_MODEM) ||
-	    (f->subclass.codec != AST_MODEM_T38)) {
+	    (f->subclass != AST_MODEM_T38)) {
 		ast_log(LOG_WARNING, "(%s): UDPTL can only send T.38 data.\n",
 			LOG_TAG(s));
 		return -1;
@@ -1311,7 +1311,7 @@ static char *handle_cli_udptl_set_debug(struct ast_cli_entry *e, int cmd, struct
 		if (strncasecmp(a->argv[3], "ip", 2))
 			return CLI_SHOWUSAGE;
 		port = 0;
-		arg = ast_strdupa(a->argv[4]);
+		arg = a->argv[4];
 		p = strstr(arg, ":");
 		if (p) {
 			*p = '\0';

@@ -25,7 +25,7 @@
 
 #include "asterisk.h"
 
-ASTERISK_FILE_VERSION(__FILE__, "$Revision: 263541 $")
+ASTERISK_FILE_VERSION(__FILE__, "$Revision: 153223 $")
 
 #include <sys/time.h>
 #include <signal.h>
@@ -37,7 +37,6 @@ ASTERISK_FILE_VERSION(__FILE__, "$Revision: 263541 $")
 #include "asterisk/dial.h"
 #include "asterisk/pbx.h"
 #include "asterisk/musiconhold.h"
-#include "asterisk/app.h"
 
 /*! \brief Main dialing structure. Contains global options, channels being dialed, and more! */
 struct ast_dial {
@@ -174,6 +173,15 @@ static const struct ast_option_types {
 	{ AST_DIAL_OPTION_MAX, NULL, NULL },                                      /*!< Terminator of list */
 };
 
+/*! \brief free the buffer if allocated, and set the pointer to the second arg */
+#define S_REPLACE(s, new_val) \
+	do {                      \
+		if (s) {              \
+			free(s);          \
+		}                     \
+		s = (new_val);        \
+	} while (0)
+
 /*! \brief Maximum number of channels we can watch at a time */
 #define AST_MAX_WATCHERS 256
 
@@ -253,7 +261,7 @@ static int begin_dial_channel(struct ast_dial_channel *channel, struct ast_chann
 	ast_copy_string(numsubst, channel->device, sizeof(numsubst));
 
 	/* If we fail to create our owner channel bail out */
-	if (!(channel->owner = ast_request(channel->tech, chan ? chan->nativeformats : AST_FORMAT_AUDIO_MASK, chan, numsubst, &channel->cause)))
+	if (!(channel->owner = ast_request(channel->tech, chan ? chan->nativeformats : AST_FORMAT_AUDIO_MASK, numsubst, &channel->cause)))
 		return -1;
 
 	channel->owner->appl = "AppDial2";
@@ -266,17 +274,20 @@ static int begin_dial_channel(struct ast_dial_channel *channel, struct ast_chann
 		ast_channel_datastore_inherit(chan, channel->owner);
 
 		/* Copy over callerid information */
-		ast_party_redirecting_copy(&channel->owner->redirecting, &chan->redirecting);
-
-		channel->owner->cid.cid_tns = chan->cid.cid_tns;
-
-		ast_connected_line_copy_from_caller(&channel->owner->connected, &chan->cid);
+		S_REPLACE(channel->owner->cid.cid_num, ast_strdup(chan->cid.cid_num));
+		S_REPLACE(channel->owner->cid.cid_name, ast_strdup(chan->cid.cid_name));
+		S_REPLACE(channel->owner->cid.cid_ani, ast_strdup(chan->cid.cid_ani));
+		S_REPLACE(channel->owner->cid.cid_rdnis, ast_strdup(chan->cid.cid_rdnis));
 
 		ast_string_field_set(channel->owner, language, chan->language);
 		ast_string_field_set(channel->owner, accountcode, chan->accountcode);
+		channel->owner->cdrflags = chan->cdrflags;
 		if (ast_strlen_zero(channel->owner->musicclass))
 			ast_string_field_set(channel->owner, musicclass, chan->musicclass);
 
+		channel->owner->cid.cid_pres = chan->cid.cid_pres;
+		channel->owner->cid.cid_ton = chan->cid.cid_ton;
+		channel->owner->cid.cid_tns = chan->cid.cid_tns;
 		channel->owner->adsicpe = chan->adsicpe;
 		channel->owner->transfercapability = chan->transfercapability;
 	}
@@ -379,7 +390,7 @@ static void set_state(struct ast_dial *dial, enum ast_dial_result state)
 static void handle_frame(struct ast_dial *dial, struct ast_dial_channel *channel, struct ast_frame *fr, struct ast_channel *chan)
 {
 	if (fr->frametype == AST_FRAME_CONTROL) {
-		switch (fr->subclass.integer) {
+		switch (fr->subclass) {
 		case AST_CONTROL_ANSWER:
 			ast_verb(3, "%s answered %s\n", channel->owner->name, chan->name);
 			AST_LIST_LOCK(&dial->channels);
@@ -418,18 +429,6 @@ static void handle_frame(struct ast_dial *dial, struct ast_dial_channel *channel
 				ast_verbose (VERBOSE_PREFIX_3 "%s requested a source update, passing it to %s\n", channel->owner->name, chan->name);
 			ast_indicate(chan, AST_CONTROL_SRCUPDATE);
 			break;
-		case AST_CONTROL_CONNECTED_LINE:
-			ast_verb(3, "%s connected line has changed, passing it to %s\n", channel->owner->name, chan->name);
-			if (ast_channel_connected_line_macro(channel->owner, chan, fr, 1, 1)) {
-				ast_indicate_data(chan, AST_CONTROL_CONNECTED_LINE, fr->data.ptr, fr->datalen);
-			}
-			break;
-		case AST_CONTROL_REDIRECTING:
-			ast_verb(3, "%s redirecting info has changed, passing it to %s\n", channel->owner->name, chan->name);
-			if (ast_channel_redirecting_macro(channel->owner, chan, fr, 1, 1)) {
-				ast_indicate_data(chan, AST_CONTROL_REDIRECTING, fr->data.ptr, fr->datalen);
-			}
-			break;
 		case AST_CONTROL_PROCEEDING:
 			ast_verb(3, "%s is proceeding, passing it to %s\n", channel->owner->name, chan->name);
 			ast_indicate(chan, AST_CONTROL_PROCEEDING);
@@ -465,7 +464,7 @@ static void handle_frame_ownerless(struct ast_dial *dial, struct ast_dial_channe
 	if (fr->frametype != AST_FRAME_CONTROL)
 		return;
 
-	switch (fr->subclass.integer) {
+	switch (fr->subclass) {
 	case AST_CONTROL_ANSWER:
 		ast_verb(3, "%s answered\n", channel->owner->name);
 		AST_LIST_LOCK(&dial->channels);

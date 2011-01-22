@@ -32,7 +32,6 @@ INSTALL		=	@INSTALL@
 LIBMXML		=	@LIBMXML@
 LN		=	@LN@ -s
 MKDIR		=	@MKDIR@
-NROFF		=	@NROFF@
 OPTIM		=	@OPTIM@
 RANLIB		=	@RANLIB@
 RM		=	@RM@ -f
@@ -52,16 +51,6 @@ mandir		=	@mandir@
 docdir		=	@docdir@
 datarootdir =	@datarootdir@
 BUILDROOT	=	$(DSTROOT)
-
-
-#
-# Manpage extensions...
-#
-
-CAT1EXT		=	@CAT1EXT@
-CAT3EXT		=	@CAT3EXT@
-MAN1EXT		=	@MAN1EXT@
-MAN3EXT		=	@MAN3EXT@
 
 
 #
@@ -98,8 +87,7 @@ PUBLIBOBJS	=	mxml-attr.o mxml-entity.o mxml-file.o mxml-index.o \
 			mxml-node.o mxml-search.o mxml-set.o
 LIBOBJS		=	$(PUBLIBOBJS) mxml-private.o mxml-string.o
 OBJS		=	mxmldoc.o testmxml.o $(LIBOBJS)
-TARGETS		=	$(LIBMXML) mxmldoc doc/mxml.$(CAT3EXT) \
-			doc/mxmldoc.$(CAT1EXT) testmxml mxml.xml
+TARGETS		=	$(LIBMXML) mxmldoc testmxml mxml.xml
 
 
 #

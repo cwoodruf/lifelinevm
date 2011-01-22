@@ -32,7 +32,7 @@
 
 #include "asterisk.h"
 
-ASTERISK_FILE_VERSION(__FILE__, "$Revision: 196072 $")
+ASTERISK_FILE_VERSION(__FILE__, "$Revision: 193336 $")
 
 #include "asterisk/module.h"
 #include "asterisk/channel.h"
@@ -255,8 +255,8 @@ static char *handle_cli_devstate_change(struct ast_cli_entry *e, int cmd, struct
 		return NULL;
 	case CLI_GENERATE:
 	{
-		static const char * const cmds[] = { "UNKNOWN", "NOT_INUSE", "INUSE", "BUSY",
-						     "UNAVAILABLE", "RINGING", "RINGINUSE", "ONHOLD", NULL };
+		static char * const cmds[] = { "UNKNOWN", "NOT_INUSE", "INUSE", "BUSY",
+			"UNAVAILABLE", "RINGING", "RINGINUSE", "ONHOLD", NULL };
 
 		if (a->pos == e->args + 1)
 			return ast_cli_complete(a->word, cmds, a->n);

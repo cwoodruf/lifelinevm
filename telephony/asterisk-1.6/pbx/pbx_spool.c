@@ -1,7 +1,7 @@
 /*
  * Asterisk -- An open source telephony toolkit.
  *
- * Copyright (C) 1999 - 2010, Digium, Inc.
+ * Copyright (C) 1999 - 2005, Digium, Inc.
  *
  * Mark Spencer <markster@digium.com>
  *
@@ -24,20 +24,12 @@
 
 #include "asterisk.h"
 
-ASTERISK_FILE_VERSION(__FILE__, "$Revision: 262895 $")
+ASTERISK_FILE_VERSION(__FILE__, "$Revision: 211580 $")
 
 #include <sys/stat.h>
 #include <time.h>
 #include <utime.h>
 #include <dirent.h>
-#ifdef HAVE_INOTIFY
-#include <sys/inotify.h>
-#elif defined(HAVE_KQUEUE)
-#include <sys/types.h>
-#include <sys/time.h>
-#include <sys/event.h>
-#include <fcntl.h>
-#endif
 
 #include "asterisk/paths.h"	/* use ast_config_AST_SPOOL_DIR */
 #include "asterisk/lock.h"
@@ -74,7 +66,7 @@ struct outgoing {
 	int retrytime;                            /*!< How long to wait between retries (in seconds) */
 	int waittime;                             /*!< How long to wait for an answer */
 	long callingpid;                          /*!< PID which is currently calling */
-	format_t format;                          /*!< Formats (codecs) for this call */
+	int format;                               /*!< Formats (codecs) for this call */
 	AST_DECLARE_STRING_FIELDS (
 		AST_STRING_FIELD(fn);                 /*!< File name of call file */
 		AST_STRING_FIELD(tech);               /*!< Which channel technology to use for outgoing call */
@@ -115,7 +107,7 @@ static void free_outgoing(struct outgoing *o)
 	ast_free(o);
 }
 
-static int apply_outgoing(struct outgoing *o, const char *fn, FILE *f)
+static int apply_outgoing(struct outgoing *o, char *fn, FILE *f)
 {
 	char buf[256];
 	char *c, *c2;
@@ -347,7 +339,7 @@ static void *attempt_thread(void *data)
 		ast_log(LOG_NOTICE, "Call failed to go through, reason (%d) %s\n", reason, ast_channel_reason2str(reason));
 		if (o->retries >= o->maxretries + 1) {
 			/* Max retries exceeded */
-			ast_log(LOG_NOTICE, "Queued call to %s/%s expired without completion after %d attempt%s\n", o->tech, o->dest, o->retries - 1, ((o->retries - 1) != 1) ? "s" : "");
+			ast_log(LOG_EVENT, "Queued call to %s/%s expired without completion after %d attempt%s\n", o->tech, o->dest, o->retries - 1, ((o->retries - 1) != 1) ? "s" : "");
 			remove_from_queue(o, "Expired");
 		} else {
 			/* Notate that the call is still active */
@@ -355,6 +347,7 @@ static void *attempt_thread(void *data)
 		}
 	} else {
 		ast_log(LOG_NOTICE, "Call completed to %s/%s\n", o->tech, o->dest);
+		ast_log(LOG_EVENT, "Queued call to %s/%s completed\n", o->tech, o->dest);
 		remove_from_queue(o, "Completed");
 	}
 	free_outgoing(o);
@@ -372,7 +365,7 @@ static void launch_service(struct outgoing *o)
 	}
 }
 
-static int scan_service(const char *fn, time_t now)
+static int scan_service(char *fn, time_t now, time_t atime)
 {
 	struct outgoing *o = NULL;
 	FILE *f;
@@ -432,7 +425,7 @@ static int scan_service(const char *fn, time_t now)
 		}
 		res = now;
 	} else {
-		ast_log(LOG_NOTICE, "Queued call to %s/%s expired without completion after %d attempt%s\n", o->tech, o->dest, o->retries - 1, ((o->retries - 1) != 1) ? "s" : "");
+		ast_log(LOG_EVENT, "Queued call to %s/%s expired without completion after %d attempt%s\n", o->tech, o->dest, o->retries - 1, ((o->retries - 1) != 1) ? "s" : "");
 		remove_from_queue(o, "Expired");
 		free_outgoing(o);
 	}
@@ -440,188 +433,6 @@ static int scan_service(const char *fn, time_t now)
 	return res;
 }
 
-#if defined(HAVE_INOTIFY) || defined(HAVE_KQUEUE)
-struct direntry {
-	AST_LIST_ENTRY(direntry) list;
-	time_t mtime;
-	char name[0];
-};
-
-/* Only one thread is accessing this list, so no lock is necessary */
-static AST_LIST_HEAD_NOLOCK_STATIC(dirlist, direntry);
-
-static void queue_file(const char *filename, time_t when)
-{
-	struct stat st;
-	struct direntry *cur, *new;
-	int res;
-	time_t now = time(NULL);
-
-	if (filename[0] != '/') {
-		char *fn = alloca(strlen(qdir) + strlen(filename) + 2);
-		sprintf(fn, "%s/%s", qdir, filename); /* SAFE */
-		filename = fn;
-	}
-
-	if (when == 0) {
-		if (stat(filename, &st)) {
-			ast_log(LOG_WARNING, "Unable to stat %s: %s\n", filename, strerror(errno));
-			return;
-		}
-
-		if (!S_ISREG(st.st_mode)) {
-			return;
-		}
-
-		when = st.st_mtime;
-	}
-
-#ifndef HAVE_INOTIFY
-	/* Need to check the existing list for kqueue(2), in order to avoid duplicates. */
-	AST_LIST_TRAVERSE(&dirlist, cur, list) {
-		if (cur->mtime == when && !strcmp(filename, cur->name)) {
-			return;
-		}
-	}
-#endif
-
-	if ((res = when) > now || (res = scan_service(filename, now)) > 0) {
-		if (!(new = ast_calloc(1, sizeof(*new) + strlen(filename) + 1))) {
-			return;
-		}
-		new->mtime = res;
-		strcpy(new->name, filename);
-		/* List is ordered by mtime */
-		if (AST_LIST_EMPTY(&dirlist)) {
-			AST_LIST_INSERT_HEAD(&dirlist, new, list);
-		} else {
-			int found = 0;
-			AST_LIST_TRAVERSE_SAFE_BEGIN(&dirlist, cur, list) {
-				if (cur->mtime > new->mtime) {
-					AST_LIST_INSERT_BEFORE_CURRENT(new, list);
-					found = 1;
-					break;
-				}
-			}
-			AST_LIST_TRAVERSE_SAFE_END
-			if (!found) {
-				AST_LIST_INSERT_TAIL(&dirlist, new, list);
-			}
-		}
-	}
-}
-
-static void *scan_thread(void *unused)
-{
-	DIR *dir;
-	struct dirent *de;
-	time_t now;
-	struct timespec ts = { .tv_sec = 1 };
-#ifdef HAVE_INOTIFY
-	int res;
-	int inotify_fd = inotify_init();
-	struct {
-		struct inotify_event iev;
-		/* It may not look like we're using this element, but when we read
-		 * from inotify_fd, the event is typically larger than the first
-		 * struct, and overflows into this second one. */
-		char name[FILENAME_MAX + 1];
-	} buf;
-	struct pollfd pfd = { .fd = inotify_fd, .events = POLLIN };
-#else
-	struct timespec nowait = { 0, 1 };
-	int inotify_fd = kqueue();
-	struct kevent kev;
-#endif
-	struct direntry *cur;
-
-	while (!ast_fully_booted) {
-		nanosleep(&ts, NULL);
-	}
-
-	if (inotify_fd < 0) {
-		ast_log(LOG_ERROR, "Unable to initialize "
-#ifdef HAVE_INOTIFY
-			"inotify(7)"
-#else
-			"kqueue(2)"
-#endif
-			"\n");
-		return NULL;
-	}
-
-#ifdef HAVE_INOTIFY
-	inotify_add_watch(inotify_fd, qdir, IN_CREATE | IN_ATTRIB | IN_MOVED_TO);
-#endif
-
-	/* First, run through the directory and clear existing entries */
-	if (!(dir = opendir(qdir))) {
-		ast_log(LOG_ERROR, "Unable to open directory %s: %s\n", qdir, strerror(errno));
-		return NULL;
-	}
-
-#ifndef HAVE_INOTIFY
-	EV_SET(&kev, dirfd(dir), EVFILT_VNODE, EV_ADD | EV_ENABLE, NOTE_WRITE | NOTE_EXTEND | NOTE_DELETE | NOTE_REVOKE | NOTE_ATTRIB, 0, NULL);
-	if (kevent(inotify_fd, &kev, 1, NULL, 0, &nowait) < 0 && errno != 0) {
-		ast_log(LOG_ERROR, "Unable to watch directory %s: %s\n", qdir, strerror(errno));
-	}
-#endif
-	now = time(NULL);
-	while ((de = readdir(dir))) {
-		queue_file(de->d_name, 0);
-	}
-
-#ifdef HAVE_INOTIFY
-	/* Directory needs to remain open for kqueue(2) */
-	closedir(dir);
-#endif
-
-	/* Wait for either a) next timestamp to occur, or b) a change to happen */
-	for (;/* ever */;) {
-		time_t next = AST_LIST_EMPTY(&dirlist) ? INT_MAX : AST_LIST_FIRST(&dirlist)->mtime;
-
-		time(&now);
-		if (next > now) {
-#ifdef HAVE_INOTIFY
-			int stage = 0;
-			/* Convert from seconds to milliseconds, unless there's nothing
-			 * in the queue already, in which case, we wait forever. */
-			int waittime = next == INT_MAX ? -1 : (next - now) * 1000;
-			/* When a file arrives, add it to the queue, in mtime order. */
-			if ((res = poll(&pfd, 1, waittime)) > 0 && (stage = 1) &&
-				(res = read(inotify_fd, &buf, sizeof(buf))) >= sizeof(buf.iev)) {
-				/* File added to directory, add it to my list */
-				queue_file(buf.iev.name, 0);
-			} else if (res < 0 && errno != EINTR && errno != EAGAIN) {
-				ast_debug(1, "Got an error back from %s(2): %s\n", stage ? "read" : "poll", strerror(errno));
-			}
-#else
-			struct timespec ts2 = { next - now, 0 };
-			if (kevent(inotify_fd, NULL, 0, &kev, 1, &ts2) <= 0) {
-				/* Interrupt or timeout, restart calculations */
-				continue;
-			} else {
-				/* Directory changed, rescan */
-				rewinddir(dir);
-				while ((de = readdir(dir))) {
-					queue_file(de->d_name, 0);
-				}
-			}
-#endif
-			time(&now);
-		}
-
-		/* Empty the list of all entries ready to be processed */
-		while (!AST_LIST_EMPTY(&dirlist) && AST_LIST_FIRST(&dirlist)->mtime <= now) {
-			cur = AST_LIST_REMOVE_HEAD(&dirlist, list);
-			queue_file(cur->name, cur->mtime);
-			ast_free(cur);
-		}
-	}
-	return NULL;
-}
-
-#else
 static void *scan_thread(void *unused)
 {
 	struct stat st;
@@ -671,7 +482,7 @@ static void *scan_thread(void *unused)
 			if (!S_ISREG(st.st_mode))
 				continue;
 			if (st.st_mtime <= now) {
-				res = scan_service(fn, now);
+				res = scan_service(fn, now, st.st_atime);
 				if (res > 0) {
 					/* Update next service time */
 					if (!next || (res < next)) {
@@ -693,7 +504,6 @@ static void *scan_thread(void *unused)
 	}
 	return NULL;
 }
-#endif
 
 static int unload_module(void)
 {

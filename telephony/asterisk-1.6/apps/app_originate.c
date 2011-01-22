@@ -34,7 +34,7 @@
 
 #include "asterisk.h"
 
-ASTERISK_FILE_VERSION(__FILE__, "$Revision: 223875 $")
+ASTERISK_FILE_VERSION(__FILE__, "$Revision: 211580 $")
 
 #include "asterisk/file.h"
 #include "asterisk/channel.h"
@@ -89,7 +89,7 @@ static const char app_originate[] = "Originate";
 	</application>
  ***/
 
-static int originate_exec(struct ast_channel *chan, const char *data)
+static int originate_exec(struct ast_channel *chan, void *data)
 {
 	AST_DECLARE_APP_ARGS(args,
 		AST_APP_ARG(tech_data);

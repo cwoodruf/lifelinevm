@@ -25,7 +25,7 @@
 
 #include "asterisk.h"
 
-ASTERISK_FILE_VERSION(__FILE__, "$Revision: 262419 $")
+ASTERISK_FILE_VERSION(__FILE__, "$Revision: 285366 $")
 
 #include <ctype.h>
 
@@ -38,8 +38,8 @@ ASTERISK_FILE_VERSION(__FILE__, "$Revision: 262419 $")
 #include "asterisk/channel.h"	/* AST_MAX_EXTENSION */
 #include "asterisk/callerid.h"
 
-static const char config[] = "extensions.conf";
-static const char registrar[] = "pbx_config";
+static char config[] = "extensions.conf";
+static char registrar[] = "pbx_config";
 static char userscontext[AST_MAX_EXTENSION] = "default";
 
 static int static_config = 0;
@@ -328,7 +328,7 @@ static char *handle_cli_dialplan_remove_extension(struct ast_cli_entry *e, int c
 	 * Priority input checking ...
 	 */
 	if (a->argc == 5) {
-		const char *c = a->argv[4];
+		char *c = a->argv[4];
 
 		/* check for digits in whole parameter for right priority ...
 		 * why? because atoi (strtol) returns 0 if any characters in
@@ -455,7 +455,7 @@ static char *complete_dialplan_remove_extension(struct ast_cli_args *a)
 	} else if (a->pos == 4) { /* 'dialplan remove extension EXT _X_' (priority) */
 		char *exten = NULL, *context, *cid, *p;
 		struct ast_context *c;
-		int le, lc, lcid, len;
+		int le, lc, len;
 		const char *s = skip_words(a->line, 3); /* skip 'dialplan' 'remove' 'extension' */
 		int i = split_ec(s, &exten, &context, &cid);	/* parse ext@context */
 
@@ -467,7 +467,6 @@ static char *complete_dialplan_remove_extension(struct ast_cli_args *a)
 			*p = '\0';
 		le = strlen(exten);
 		lc = strlen(context);
-		lcid = strlen(cid);
 		len = strlen(a->word);
 		if (le == 0 || lc == 0)
 			goto error3;
@@ -933,7 +932,8 @@ static char *handle_cli_dialplan_add_extension(struct ast_cli_entry *e, int cmd,
 		if (strcmp(a->argv[6], "replace"))
 			return CLI_SHOWUSAGE;
 
-	whole_exten = ast_strdupa(a->argv[3]);
+	/* XXX overwrite argv[3] */
+	whole_exten = a->argv[3];
 	exten = strsep(&whole_exten,",");
 	if (strchr(exten, '/')) {
 		cidmatch = exten;
@@ -1457,15 +1457,15 @@ process_extension:
 					*cidmatch++ = '\0';
 					ast_shrink_phone_number(cidmatch);
 				}
-				pri = S_OR(strsep(&stringp, ","), "");
-				pri = ast_skip_blanks(pri);
-				pri = ast_trim_blanks(pri);
+				pri = ast_strip(S_OR(strsep(&stringp, ","), ""));
 				if ((label = strchr(pri, '('))) {
 					*label++ = '\0';
 					if ((end = strchr(label, ')'))) {
 						*end = '\0';
 					} else {
 						ast_log(LOG_WARNING, "Label missing trailing ')' at line %d\n", v->lineno);
+						ast_free(tc);
+						continue;
 					}
 				}
 				if ((plus = strchr(pri, '+'))) {
@@ -1478,17 +1478,27 @@ process_extension:
 						ipri = lastpri + 1;
 					} else {
 						ast_log(LOG_WARNING, "Can't use 'next' priority on the first entry at line %d!\n", v->lineno);
+						ast_free(tc);
+						continue;
 					}
 				} else if (!strcmp(pri, "same") || !strcmp(pri, "s")) {
 					if (lastpri > -2) {
 						ipri = lastpri;
 					} else {
 						ast_log(LOG_WARNING, "Can't use 'same' priority on the first entry at line %d!\n", v->lineno);
+						ast_free(tc);
+						continue;
 					}
 				} else if (sscanf(pri, "%30d", &ipri) != 1 &&
 					   (ipri = ast_findlabel_extension2(NULL, con, realext, pri, cidmatch)) < 1) {
 					ast_log(LOG_WARNING, "Invalid priority/label '%s' at line %d\n", pri, v->lineno);
 					ipri = 0;
+					ast_free(tc);
+					continue;
+				} else if (ipri < 1) {
+					ast_log(LOG_WARNING, "Invalid priority '%s' at line %d\n", pri, v->lineno);
+					ast_free(tc);
+					continue;
 				}
 				appl = S_OR(stringp, "");
 				/* Find the first occurrence of '(' */
@@ -1498,9 +1508,11 @@ process_extension:
 				} else {
 					char *orig_appl = ast_strdup(appl);
 
-					if (!orig_appl)
-						return -1;
-					
+					if (!orig_appl) {
+						ast_free(tc);
+						continue;
+					}
+
 					appl = strsep(&stringp, "(");
 
 					/* check if there are variables or expressions without an application, like: exten => 100,hint,DAHDI/g0/${GLOBAL(var)}  */
@@ -1527,8 +1539,8 @@ process_extension:
 						ipri += atoi(plus);
 					}
 					lastpri = ipri;
-					if (!ast_opt_dont_warn && !strcmp(realext, "_.")) {
-						ast_log(LOG_WARNING, "The use of '_.' for an extension is strongly discouraged and can have unexpected behavior.  Please use '_X.' instead at line %d\n", v->lineno);
+					if (!ast_opt_dont_warn && (!strcmp(realext, "_.") || !strcmp(realext, "_!"))) {
+						ast_log(LOG_WARNING, "The use of '%s' for an extension is strongly discouraged and can have unexpected behavior.  Please use '_X%c' instead at line %d\n", realext, realext[1], v->lineno);
 					}
 					if (ast_add_extension2(con, 0, realext, ipri, label, cidmatch, appl, strdup(data), ast_free_ptr, registrar)) {
 						ast_log(LOG_WARNING, "Unable to register extension at line %d\n", v->lineno);
@@ -1738,12 +1750,12 @@ static int pbx_load_module(void)
 
 static int load_module(void)
 {
-	if (pbx_load_module())
-		return AST_MODULE_LOAD_DECLINE;
- 
 	if (static_config && !write_protect_config)
 		ast_cli_register(&cli_dialplan_save);
 	ast_cli_register_multiple(cli_pbx_config, ARRAY_LEN(cli_pbx_config));
+
+	if (pbx_load_module())
+		return AST_MODULE_LOAD_DECLINE;
 
 	return AST_MODULE_LOAD_SUCCESS;
 }

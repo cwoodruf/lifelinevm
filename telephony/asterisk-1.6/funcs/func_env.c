@@ -23,7 +23,7 @@
 
 #include "asterisk.h"
 
-ASTERISK_FILE_VERSION(__FILE__, "$Revision: 266522 $")
+ASTERISK_FILE_VERSION(__FILE__, "$Revision: 182278 $")
 
 #include <sys/stat.h>
 
@@ -44,7 +44,6 @@ ASTERISK_FILE_VERSION(__FILE__, "$Revision: 266522 $")
 			</parameter>
 		</syntax>
 		<description>
-			<para>Variables starting with <literal>AST_</literal> are reserved to the system and may not be set.</para>
 		</description>
 	</function>
 	<function name="STAT" language="en_US">
@@ -107,7 +106,7 @@ static int env_read(struct ast_channel *chan, const char *cmd, char *data,
 static int env_write(struct ast_channel *chan, const char *cmd, char *data,
 		     const char *value)
 {
-	if (!ast_strlen_zero(data) && strncmp(data, "AST_", 4)) {
+	if (!ast_strlen_zero(data)) {
 		if (!ast_strlen_zero(value)) {
 			setenv(data, value, 1);
 		} else {
@@ -231,8 +230,7 @@ static struct ast_custom_function env_function = {
 
 static struct ast_custom_function stat_function = {
 	.name = "STAT",
-	.read = stat_read,
-	.read_max = 12,
+	.read = stat_read
 };
 
 static struct ast_custom_function file_function = {

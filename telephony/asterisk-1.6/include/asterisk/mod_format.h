@@ -44,7 +44,7 @@ struct ast_format {
 	char name[80];		/*!< Name of format */
 	char exts[80];		/*!< Extensions (separated by | if more than one) 
 	    			this format can read.  First is assumed for writing (e.g. .mp3) */
-	format_t format;		/*!< Format of frames it uses/provides (one only) */
+	int format;		/*!< Format of frames it uses/provides (one only) */
 	/*! 
 	 * \brief Prepare an input stream for playback. 
 	 * \return 0 on success, -1 on error.
@@ -102,7 +102,6 @@ struct ast_filestream {
 	struct ast_format *fmt;	/* need to write to the lock and usecnt */
 	int flags;
 	mode_t mode;
-	char *open_filename;
 	char *filename;
 	char *realfilename;
 	/*! Video file stream */

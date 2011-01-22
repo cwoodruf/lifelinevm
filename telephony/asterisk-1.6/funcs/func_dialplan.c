@@ -26,7 +26,7 @@
 
 #include "asterisk.h"
 
-ASTERISK_FILE_VERSION(__FILE__, "$Revision: 211539 $")
+ASTERISK_FILE_VERSION(__FILE__, "$Revision: 211580 $")
 
 #include "asterisk/module.h"
 #include "asterisk/channel.h"
@@ -105,7 +105,6 @@ static int isexten_function_read(struct ast_channel *chan, const char *cmd, char
 static struct ast_custom_function isexten_function = {
 	.name = "DIALPLAN_EXISTS",
 	.read = isexten_function_read,
-	.read_max = 2,
 };
 
 static int unload_module(void)

@@ -25,7 +25,7 @@
 
 #include "asterisk.h"
 
-ASTERISK_FILE_VERSION(__FILE__, "$Revision: 248946 $")
+ASTERISK_FILE_VERSION(__FILE__, "$Revision: 291264 $")
 
 #include "asterisk/network.h"
 
@@ -77,8 +77,8 @@ static void score_address(const struct sockaddr_in *sin, struct in_addr *best_ad
 		/* 172.20.0.0 - 172.29.255.255, but not 172.200.0.0 - 172.255.255.255 nor 172.2.0.0 - 172.2.255.255 */
 		} else if (address[4] == '2' && address[6] == '.') {
 			score = -5;
-		/* 172.30.0.0 - 172.31.255.255 */
-		} else if (address[4] == '3' && address[5] <= '1') {
+		/* 172.30.0.0 - 172.31.255.255, but not 172.3.0.0 - 172.3.255.255 */
+		} else if (address[4] == '3' && (address[5] == '0' || address[5] == '1')) {
 			score = -5;
 		/* All other 172 addresses are public */
 		} else {
@@ -237,7 +237,7 @@ static struct ast_ha *ast_duplicate_ha(struct ast_ha *original)
 {
 	struct ast_ha *new_ha;
 
-	if ((new_ha = ast_calloc(1, sizeof(*new_ha)))) {
+	if ((new_ha = ast_malloc(sizeof(*new_ha)))) {
 		/* Copy from original to new object */
 		ast_copy_ha(original, new_ha);
 	}
@@ -284,7 +284,7 @@ struct ast_ha *ast_append_ha(const char *sense, const char *stuff, struct ast_ha
 		path = path->next;
 	}
 
-	if (!(ha = ast_calloc(1, sizeof(*ha)))) {
+	if (!(ha = ast_malloc(sizeof(*ha)))) {
 		return ret;
 	}
 
@@ -387,6 +387,7 @@ int ast_get_ip_or_srv(struct sockaddr_in *sin, const char *value, const char *se
 		}
 	}
 	if ((hp = ast_gethostbyname(value, &ahp))) {
+		sin->sin_family = hp->h_addrtype;
 		memcpy(&sin->sin_addr, hp->h_addr, sizeof(sin->sin_addr));
 	} else {
 		ast_log(LOG_WARNING, "Unable to lookup '%s'\n", value);

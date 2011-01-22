@@ -31,7 +31,7 @@
 
 #include "asterisk.h"
 
-ASTERISK_FILE_VERSION(__FILE__, "$Revision: 247770 $")
+ASTERISK_FILE_VERSION(__FILE__, "$Revision: 247776 $")
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -126,9 +126,9 @@ static int softmix_bridge_join(struct ast_bridge *bridge, struct ast_bridge_chan
 	/* Setup frame parameters */
 	sc->frame.frametype = AST_FRAME_VOICE;
 #ifdef SOFTMIX_16_SUPPORT
-	sc->frame.subclass.codec = AST_FORMAT_SLINEAR16;
+	sc->frame.subclass = AST_FORMAT_SLINEAR16;
 #else
-	sc->frame.subclass.codec = AST_FORMAT_SLINEAR;
+	sc->frame.subclass = AST_FORMAT_SLINEAR;
 #endif
 	sc->frame.data.ptr = sc->final_buf;
 	sc->frame.datalen = SOFTMIX_DATALEN;
@@ -171,9 +171,9 @@ static enum ast_bridge_write_result softmix_bridge_write(struct ast_bridge *brid
 
 	/* If a frame was provided add it to the smoother */
 #ifdef SOFTMIX_16_SUPPORT
-	if (frame->frametype == AST_FRAME_VOICE && frame->subclass.codec == AST_FORMAT_SLINEAR16) {
+	if (frame->frametype == AST_FRAME_VOICE && frame->subclass == AST_FORMAT_SLINEAR16) {
 #else
-	if (frame->frametype == AST_FRAME_VOICE && frame->subclass.codec == AST_FORMAT_SLINEAR) {
+	if (frame->frametype == AST_FRAME_VOICE && frame->subclass == AST_FORMAT_SLINEAR) {
 #endif
 		ast_slinfactory_feed(&sc->factory, frame);
 	}

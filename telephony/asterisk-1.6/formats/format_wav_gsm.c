@@ -29,7 +29,7 @@
  
 #include "asterisk.h"
 
-ASTERISK_FILE_VERSION(__FILE__, "$Revision: 233692 $")
+ASTERISK_FILE_VERSION(__FILE__, "$Revision: 233694 $")
 
 #include "asterisk/mod_format.h"
 #include "asterisk/module.h"
@@ -48,7 +48,7 @@ ASTERISK_FILE_VERSION(__FILE__, "$Revision: 233692 $")
 #define	MSGSM_SAMPLES		(2*GSM_SAMPLES)	/* samples in an MSGSM block */
 
 /* begin binary data: */
-static char msgsm_silence[] = /* 65 */
+char msgsm_silence[] = /* 65 */
 {0x48,0x17,0xD6,0x84,0x02,0x80,0x24,0x49,0x92,0x24,0x89,0x02,0x80,0x24,0x49
 ,0x92,0x24,0x89,0x02,0x80,0x24,0x49,0x92,0x24,0x89,0x02,0x80,0x24,0x49,0x92
 ,0x24,0x09,0x82,0x74,0x61,0x4D,0x28,0x00,0x48,0x92,0x24,0x49,0x92,0x28,0x00
@@ -395,7 +395,7 @@ static struct ast_frame *wav_read(struct ast_filestream *s, int *whennext)
 	struct wavg_desc *fs = (struct wavg_desc *)s->_private;
 
 	s->fr.frametype = AST_FRAME_VOICE;
-	s->fr.subclass.codec = AST_FORMAT_GSM;
+	s->fr.subclass = AST_FORMAT_GSM;
 	s->fr.offset = AST_FRIENDLY_OFFSET;
 	s->fr.samples = GSM_SAMPLES;
 	s->fr.mallocd = 0;
@@ -432,8 +432,8 @@ static int wav_write(struct ast_filestream *s, struct ast_frame *f)
 		ast_log(LOG_WARNING, "Asked to write non-voice frame!\n");
 		return -1;
 	}
-	if (f->subclass.codec != AST_FORMAT_GSM) {
-		ast_log(LOG_WARNING, "Asked to write non-GSM frame (%s)!\n", ast_getformatname(f->subclass.codec));
+	if (f->subclass != AST_FORMAT_GSM) {
+		ast_log(LOG_WARNING, "Asked to write non-GSM frame (%d)!\n", f->subclass);
 		return -1;
 	}
 	/* XXX this might fail... if the input is a multiple of MSGSM_FRAME_SIZE

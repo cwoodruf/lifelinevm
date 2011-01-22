@@ -51,6 +51,9 @@ AC_ARG_ENABLE([debug],
     esac])
 AC_SUBST(MENUSELECT_DEBUG)
 
+AST_GCC_ATTRIBUTE(weak_import)
+AST_GCC_ATTRIBUTE(weakref)
+
 AC_FUNC_ALLOCA
 AC_CHECK_FUNCS([asprintf getloadavg setenv strcasestr strndup strnlen strsep unsetenv vasprintf])
 

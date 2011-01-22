@@ -34,7 +34,7 @@
 
 #include "asterisk.h"
 
-ASTERISK_FILE_VERSION(__FILE__, "$Revision: 253538 $")
+ASTERISK_FILE_VERSION(__FILE__, "$Revision: 297713 $")
 
 #include <signal.h>
 
@@ -78,9 +78,6 @@ ASTERISK_FILE_VERSION(__FILE__, "$Revision: 253538 $")
 					<option name="n">
 						<para>Playback the unreachable status message if we've run out
 						of steps to reach the or the callee has elected not to be reachable.</para>
-					</option>
-					<option name="d">
-						<para>Disable the 'Please hold while we try to connect your call' announcement.</para>
 					</option>
 				</optionlist>
 			</parameter>
@@ -162,15 +159,13 @@ struct findme_user {
 enum {
 	FOLLOWMEFLAG_STATUSMSG = (1 << 0),
 	FOLLOWMEFLAG_RECORDNAME = (1 << 1),
-	FOLLOWMEFLAG_UNREACHABLEMSG = (1 << 2),
-	FOLLOWMEFLAG_DISABLEHOLDPROMPT = (1 << 3)
+	FOLLOWMEFLAG_UNREACHABLEMSG = (1 << 2)
 };
 
 AST_APP_OPTIONS(followme_opts, {
 	AST_APP_OPTION('s', FOLLOWMEFLAG_STATUSMSG ),
 	AST_APP_OPTION('a', FOLLOWMEFLAG_RECORDNAME ),
 	AST_APP_OPTION('n', FOLLOWMEFLAG_UNREACHABLEMSG ),
-	AST_APP_OPTION('d', FOLLOWMEFLAG_DISABLEHOLDPROMPT ),
 });
 
 static int ynlongest = 0;
@@ -280,19 +275,18 @@ static void profile_set_param(struct call_followme *f, const char *param, const 
 }
 
 /*! \brief Add a new number */
-static struct number *create_followme_number(const char *number, int timeout, int numorder)
+static struct number *create_followme_number(char *number, int timeout, int numorder)
 {
 	struct number *cur;
-	char *buf = ast_strdupa(number);
 	char *tmp;
 
 	if (!(cur = ast_calloc(1, sizeof(*cur))))
 		return NULL;
 
 	cur->timeout = timeout;
-	if ((tmp = strchr(buf, ',')))
+	if ((tmp = strchr(number, ','))) 
 		*tmp = '\0';
-	ast_copy_string(cur->number, buf, sizeof(cur->number));
+	ast_copy_string(cur->number, number, sizeof(cur->number));
 	cur->order = numorder;
 	ast_debug(1, "Created a number, %s, order of , %d, with a timeout of %ld.\n", cur->number, cur->order, cur->timeout);
 
@@ -648,7 +642,7 @@ static struct ast_channel *wait_for_winner(struct findme_user_listptr *findme_us
 			f = ast_read(winner);
 			if (f) {
 				if (f->frametype == AST_FRAME_CONTROL) {
-					switch (f->subclass.integer) {
+					switch(f->subclass) {
 					case AST_CONTROL_HANGUP:
 						ast_verb(3, "%s received a hangup frame.\n", winner->name);
 						if (f->data.uint32) {
@@ -723,7 +717,7 @@ static struct ast_channel *wait_for_winner(struct findme_user_listptr *findme_us
 						ast_verb(3, "%s stopped sounds\n", winner->name);
 						break;
 					default:
-						ast_debug(1, "Dunno what to do with control type %d\n", f->subclass.integer);
+						ast_debug(1, "Dunno what to do with control type %d\n", f->subclass);
 						break;
 					}
 				} 
@@ -731,8 +725,8 @@ static struct ast_channel *wait_for_winner(struct findme_user_listptr *findme_us
 					if (winner->stream)
 						ast_stopstream(winner);
 					tmpuser->digts = 0;
-					ast_debug(1, "DTMF received: %c\n", (char) f->subclass.integer);
-					tmpuser->yn[tmpuser->ynidx] = (char) f->subclass.integer;
+					ast_debug(1, "DTMF received: %c\n",(char) f->subclass);
+					tmpuser->yn[tmpuser->ynidx] = (char) f->subclass;
 					tmpuser->ynidx++;
 					ast_debug(1, "DTMF string: %s\n", tmpuser->yn);
 					if (tmpuser->ynidx >= ynlongest) {
@@ -812,7 +806,6 @@ static void findmeexec(struct fm_args *tpargs)
 			break;
 
 	while (nm) {
-
 		ast_debug(2, "Number %s timeout %ld\n", nm->number,nm->timeout);
 
 		number = ast_strdupa(nm->number);
@@ -824,6 +817,14 @@ static void findmeexec(struct fm_args *tpargs)
 				rest++;
 			}
 
+			/* We check if that context exists, before creating the ast_channel struct needed */
+			if (!ast_exists_extension(caller, tpargs->context, number, 1, caller->cid.cid_num)) {
+				/* XXX Should probably restructure to simply skip this item, instead of returning. XXX */
+				ast_log(LOG_ERROR, "Extension '%s@%s' doesn't exist\n", number, tpargs->context);
+				free(findme_user_list);
+				return;
+			}
+
 			if (!strcmp(tpargs->context, ""))
 				snprintf(dialarg, sizeof(dialarg), "%s", number);
 			else
@@ -831,12 +832,11 @@ static void findmeexec(struct fm_args *tpargs)
 
 			tmpuser = ast_calloc(1, sizeof(*tmpuser));
 			if (!tmpuser) {
-				ast_log(LOG_WARNING, "Out of memory!\n");
 				ast_free(findme_user_list);
 				return;
 			}
 
-			outbound = ast_request("Local", ast_best_codec(caller->nativeformats), caller, dialarg, &dg);
+			outbound = ast_request("Local", ast_best_codec(caller->nativeformats), dialarg, &dg);
 			if (outbound) {
 				ast_set_callerid(outbound, caller->cid.cid_num, caller->cid.cid_name, caller->cid.cid_num);
 				ast_channel_inherit_variables(tpargs->chan, outbound);
@@ -1006,7 +1006,7 @@ static void end_bridge_callback_data_fixup(struct ast_bridge_config *bconfig, st
 	bconfig->end_bridge_callback_data = originator;
 }
 
-static int app_exec(struct ast_channel *chan, const char *data)
+static int app_exec(struct ast_channel *chan, void *data)
 {
 	struct fm_args targs = { 0, };
 	struct ast_bridge_config config;
@@ -1100,12 +1100,11 @@ static int app_exec(struct ast_channel *chan, const char *data)
 
 	if (!ast_fileexists(namerecloc, NULL, chan->language))
 		ast_copy_string(namerecloc, "", sizeof(namerecloc));
-	if (!ast_test_flag(&targs.followmeflags, FOLLOWMEFLAG_DISABLEHOLDPROMPT)) {
-		if (ast_streamfile(chan, targs.plsholdprompt, chan->language))
-			goto outrun;
-		if (ast_waitstream(chan, "") < 0)
-			goto outrun;
-	}
+
+	if (ast_streamfile(chan, targs.plsholdprompt, chan->language))
+		goto outrun;
+	if (ast_waitstream(chan, "") < 0)
+		goto outrun;
 	ast_moh_start(chan, S_OR(targs.mohclass, NULL), NULL);
 
 	targs.status = 0;

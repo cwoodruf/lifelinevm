@@ -26,7 +26,7 @@
 
 #include "asterisk.h"
 
-ASTERISK_FILE_VERSION(__FILE__, "$Revision: 211539 $")
+ASTERISK_FILE_VERSION(__FILE__, "$Revision: 211580 $")
 
 #include "asterisk/file.h"
 #include "asterisk/channel.h"
@@ -63,9 +63,9 @@ ASTERISK_FILE_VERSION(__FILE__, "$Revision: 211539 $")
 		</see-also>
 	</application>
  ***/	
-static const char app_morsecode[] = "Morsecode";
+static char *app_morsecode = "Morsecode";
 
-static const char * const morsecode[] = {
+static char *morsecode[] = {
 	"", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", /*  0-15 */
 	"", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", /* 16-31 */
 	" ",      /* 32 - <space> */
@@ -118,10 +118,10 @@ static void playtone(struct ast_channel *chan, int tone, int len)
 	ast_playtones_stop(chan);
 }
 
-static int morsecode_exec(struct ast_channel *chan, const char *data)
+static int morsecode_exec(struct ast_channel *chan, void *data)
 {
 	int res=0, ditlen, tone;
-	const char *digit;
+	char *digit;
 	const char *ditlenc, *tonec;
 
 	if (ast_strlen_zero(data)) {
@@ -147,7 +147,7 @@ static int morsecode_exec(struct ast_channel *chan, const char *data)
 
 	for (digit = data; *digit; digit++) {
 		int digit2 = *digit;
-		const char *dahdit;
+		char *dahdit;
 		if (digit2 < 0) {
 			continue;
 		}

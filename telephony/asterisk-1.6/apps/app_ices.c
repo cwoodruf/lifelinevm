@@ -29,7 +29,7 @@
  
 #include "asterisk.h"
 
-ASTERISK_FILE_VERSION(__FILE__, "$Revision: 196072 $")
+ASTERISK_FILE_VERSION(__FILE__, "$Revision: 153365 $")
 
 #include <signal.h>
 #include <fcntl.h>
@@ -58,7 +58,7 @@ ASTERISK_FILE_VERSION(__FILE__, "$Revision: 196072 $")
 		<description>
 			<para>Streams to an icecast server using ices (available separately).
 			A configuration file must be supplied for ices (see contrib/asterisk-ices.xml).</para>
-			<note><para>ICES version 2 client and server required.</para></note>
+			<note><para>ICES version 2 cient and server required.</para></note>
 		</description>
 	</application>
 
@@ -104,7 +104,7 @@ static int icesencode(char *filename, int fd)
 	_exit(0);
 }
 
-static int ices_exec(struct ast_channel *chan, const char *data)
+static int ices_exec(struct ast_channel *chan, void *data)
 {
 	int res = 0;
 	int fds[2];

@@ -288,7 +288,7 @@ with equal precedence are grouped within \{ \} symbols.
        Exactly the same as the ':' operator, except that the match is
        not anchored to the beginning of the string. Pardon any similarity
        to seemingly similar operators in other programming languages!
-       The ":" and "=\~" operators share the same precedence.
+       The ":" and "=\verb!~!" operators share the same precedence.
 
    \item \verb!expr1 ? expr2 :: expr3!
 
@@ -649,11 +649,11 @@ of possible concern with "legacy" extension.conf files:
     Basically, if the string or number is null, empty, or '0',
     a '1' is returned. Otherwise a '0' is returned.
 
-\item  Added the '=~' operator, just in case someone is just looking for
+\item  Added the '=\verb!~!' operator, just in case someone is just looking for
     match anywhere in the string. The only diff with the ':' is that
     match doesn't have to be anchored to the beginning of the string.
 
-\item  Added the conditional operator  'expr1 ? true\_expr : false\_expr'
+\item  Added the conditional operator  'expr1 ? true\_expr :: false\_expr'
     First, all 3 exprs are evaluated, and if expr1 is false, the 'false\_expr'
     is returned as the result. See above for details.
 
@@ -793,9 +793,6 @@ ${TIMESTAMP}           * Current date time in the format: YYYYMMDD-HHMMSS
                          (Deprecated; use ${STRFTIME(${EPOCH},,%Y%m%d-%H%M%S)})
 ${TRANSFER_CONTEXT}      Context for transferred calls
 ${FORWARD_CONTEXT}       Context for forwarded calls
-${DYNAMIC_PEERNAME}      The name of the channel on the other side when a dynamic
-                         feature is used.
-${DYNAMIC_FEATURENAME}   The name of the last triggered dynamic feature.
 ${UNIQUEID}            * Current call unique identifier
 ${SYSTEMNAME}          * value of the systemname option of asterisk.conf
 ${ENTITYID}            * Global Entity ID set automatically, or from asterisk.conf
@@ -856,10 +853,6 @@ ${QUEUE_MAX_PENALTY}      Maximum member penalty allowed to answer caller
 ${QUEUE_MIN_PENALTY}      Minimum member penalty allowed to answer caller
 ${QUEUESTATUS}            Status of the call, one of:
                           (TIMEOUT | FULL | JOINEMPTY | LEAVEEMPTY | JOINUNAVAIL | LEAVEUNAVAIL)
-${QUEUEPOSITION}        * When a caller is removed from a queue, his current position is logged
-                          in this variable. If the value is 0, then this means that the caller was
-						  serviced by a queue member. If non-zero, then this was the position in the
-						  queue the caller was in when he left.
 ${RECORDED_FILE}        * Recorded file in record()
 ${TALK_DETECTED}        * Result from talkdetect()
 ${TOUCH_MONITOR}          The filename base to use with Touch Monitor (auto record)
@@ -933,9 +926,7 @@ ${SIPDOMAIN}         * SIP destination domain of an inbound call (if appropriate
 ${SIPFROMDOMAIN}       Set SIP domain on outbound calls
 ${SIPUSERAGENT}      * SIP user agent (deprecated)
 ${SIPURI}            * SIP uri
-${SIP_CODEC}           Set the SIP codec for an inbound call
-${SIP_CODEC_INBOUND}   Set the SIP codec for an inbound call
-${SIP_CODEC_OUTBOUND}  Set the SIP codec for an outbound call
+${SIP_CODEC}           Set the SIP codec for a call
 ${SIP_URI_OPTIONS}   * additional options to add to the URI for an outgoing call
 ${RTPAUDIOQOS}         RTCP QoS report for the audio of this call
 ${RTPVIDEOQOS}         RTCP QoS report for the video of this call
@@ -999,54 +990,13 @@ ${SPYGROUP}           * A ':' (colon) separated list of group names.
 
 \subsection{OSP}
 \begin{verbatim}
-${OSPINHANDLE}          The inbound call OSP transaction handle.
-${OSPINTOKEN}           The inbound OSP token.
-${OSPINTIMELIMIT}       The inbound call duration limit in seconds.
-${OSPINPEERIP}          The last hop IP address.
-${OSPINNETWORKID}       The inbound source network ID.
-${OSPINNPRN}            The inbound routing number.
-${OSPINNPCIC}           The inbound carrier identification code.
-${OSPINNPDI}            The inbound number portability database dip indicator.
-${OSPINSPID}            The inbound service provider identity.
-${OSPINOCN}             The inbound operator company number.
-${OSPINSPN}             The inbound service provider name.
-${OSPINALTSPN}          The inbound alternate service provider name.
-${OSPINMCC}             The inbound mobile country code.
-${OSPINMNC}             The inbound mobile network code.
-${OSPINDIVUSER}         The inbound Diversion header user part.
-${OSPINDIVHOST}         The inbound Diversion header host part.
-${OSPINTOHOST}          The inbound To header host part.
-${OSPINCUSTOMINFOn}     The inbound custom information.
-                        Where n is the index beginning with 1 upto 8.
-${OSPOUTHANDLE}         The outbound call OSP transaction handle.
-${OSPOUTTOKEN}          The outbound OSP token.
-${OSPOUTTIMELIMIT}      The outbound call duration limit in seconds.
-${OSPOUTTECH}           The outbound channel technology.
-${OSPOUTCALLIDTYPES}    The outbound Call-ID types.
-${OSPOUTCALLID}         The outbound Call-ID. Only for H.323.
-${OSPDESTINATION}       The destination IP address.
-${OSPDESTREMAILS}       The number of remained destinations.
-${OSPOUTCALLING}        The outbound calling number.
-${OSPOUTCALLED}         The outbound called number.
-${OSPOUTNETWORKID}      The outbound destination network ID.
-${OSPOUTNPRN}           The outbound routing number.
-${OSPOUTNPCIC}          The outbound carrier identification code.
-${OSPOUTNPDI}           The outbound number portability database dip indicator.
-${OSPOUTSPID}           The outbound service provider identity.
-${OSPOUTOCN}            The outbound operator company number.
-${OSPOUTSPN}            The outbound service provider name.
-${OSPOUTALTSPN}         The outbound alternate service provider name.
-${OSPOUTMCC}            The outbound mobile country code.
-${OSPOUTMNC}            The outbound mobile network code.
-${OSPDIALSTR}           The outbound Dial command string.
-${OSPINAUDIOQOS}        The inbound call leg audio QoS string.
-${OSPOUTAUDIOQOS}       The outbound call leg audio QoS string.
-\end{verbatim}
-
-\subsection{Connected line digit manipulation}
-\begin{verbatim}
-${CONNECTED_LINE_SEND_CALLEE_MACRO}        Macro to call before sending a connected line update to the callee
-${CONNECTED_LINE_SEND_CALLEE_MACRO_ARGS}   Arguments to pass to ${CONNECTED_LINE_SEND_CALLEE_MACRO}
-${CONNECTED_LINE_SEND_CALLER_MACRO}        Macro to call before sending a connected line update to the caller
-${CONNECTED_LINE_SEND_CALLER_MACRO_ARGS}   Arguments to pass to ${CONNECTED_LINE_SEND_CALLER_MACRO}
+${OSPINHANDLE}          OSP handle of in_bound call
+${OSPINTIMELIMIT}       Duration limit for in_bound call
+${OSPOUTHANDLE}         OSP handle of out_bound call
+${OSPTECH}              OSP technology
+${OSPDEST}              OSP destination
+${OSPCALLING}           OSP calling number
+${OSPOUTTOKEN}          OSP token to use for out_bound call
+${OSPOUTTIMELIMIT}      Duration limit for out_bound call
+${OSPRESULTS}           Number of remained destinations
 \end{verbatim}

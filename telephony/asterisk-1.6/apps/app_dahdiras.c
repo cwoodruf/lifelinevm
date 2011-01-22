@@ -31,7 +31,7 @@
 
 #include "asterisk.h"
 
-ASTERISK_FILE_VERSION(__FILE__, "$Revision: 199479 $")
+ASTERISK_FILE_VERSION(__FILE__, "$Revision: 153468 $")
 
 #include <sys/ioctl.h>
 #include <sys/wait.h>
@@ -73,7 +73,7 @@ ASTERISK_FILE_VERSION(__FILE__, "$Revision: 199479 $")
 
  ***/
 
-static const char app[] = "DAHDIRAS";
+static char *app = "DAHDIRAS";
 
 #define PPP_MAX_ARGS	32
 #define PPP_EXEC	"/usr/sbin/pppd"
@@ -187,7 +187,7 @@ static void run_ras(struct ast_channel *chan, char *args)
 	ast_safe_fork_cleanup();
 }
 
-static int dahdiras_exec(struct ast_channel *chan, const char *data)
+static int dahdiras_exec(struct ast_channel *chan, void *data)
 {
 	int res=-1;
 	char *args;

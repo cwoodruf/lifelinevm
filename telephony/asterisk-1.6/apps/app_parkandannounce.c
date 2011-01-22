@@ -31,7 +31,7 @@
 
 #include "asterisk.h"
 
-ASTERISK_FILE_VERSION(__FILE__, "$Revision: 203638 $")
+ASTERISK_FILE_VERSION(__FILE__, "$Revision: 170047 $")
 
 #include "asterisk/file.h"
 #include "asterisk/channel.h"
@@ -85,7 +85,7 @@ ASTERISK_FILE_VERSION(__FILE__, "$Revision: 203638 $")
 
 static char *app = "ParkAndAnnounce";
 
-static int parkandannounce_exec(struct ast_channel *chan, const char *data)
+static int parkandannounce_exec(struct ast_channel *chan, void *data)
 {
 	int res = -1;
 	int lot, timeout = 0, dres;
@@ -145,7 +145,7 @@ static int parkandannounce_exec(struct ast_channel *chan, const char *data)
 	snprintf(buf, sizeof(buf), "%d", lot);
 	oh.parent_channel = chan;
 	oh.vars = ast_variable_new("_PARKEDAT", buf, "");
-	dchan = __ast_request_and_dial(dialtech, AST_FORMAT_SLINEAR, chan, args.dial, 30000, &outstate, chan->cid.cid_num, chan->cid.cid_name, &oh);
+	dchan = __ast_request_and_dial(dialtech, AST_FORMAT_SLINEAR, args.dial, 30000, &outstate, chan->cid.cid_num, chan->cid.cid_name, &oh);
 
 	if (dchan) {
 		if (dchan->_state == AST_STATE_UP) {

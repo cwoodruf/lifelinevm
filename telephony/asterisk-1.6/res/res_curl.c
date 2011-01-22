@@ -32,7 +32,7 @@
 
 #include "asterisk.h"
 
-ASTERISK_FILE_VERSION(__FILE__, "$Revision: 182848 $")
+ASTERISK_FILE_VERSION(__FILE__, "$Revision: 125055 $")
 
 #include <curl/curl.h>
 
@@ -71,3 +71,5 @@ static int load_module(void)
 }
 
 AST_MODULE_INFO_STANDARD(ASTERISK_GPL_KEY, "cURL Resource Module");
+
+

@@ -27,7 +27,7 @@
 
 #include "asterisk.h"
 
-ASTERISK_FILE_VERSION(__FILE__, "$Revision: 211539 $")
+ASTERISK_FILE_VERSION(__FILE__, "$Revision: 211580 $")
 
 #include "asterisk/file.h"
 #include "asterisk/channel.h"
@@ -67,7 +67,7 @@ ASTERISK_FILE_VERSION(__FILE__, "$Revision: 211539 $")
 
 static char *app_readfile = "ReadFile";
 
-static int readfile_exec(struct ast_channel *chan, const char *data)
+static int readfile_exec(struct ast_channel *chan, void *data)
 {
 	int res=0;
 	char *s, *varname=NULL, *file=NULL, *length=NULL, *returnvar=NULL;

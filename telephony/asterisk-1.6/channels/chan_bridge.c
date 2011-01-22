@@ -27,7 +27,7 @@
 
 #include "asterisk.h"
 
-ASTERISK_FILE_VERSION(__FILE__, "$Revision: 227580 $")
+ASTERISK_FILE_VERSION(__FILE__, "$Revision: 180369 $")
 
 #include <fcntl.h>
 #include <sys/signal.h>
@@ -39,6 +39,7 @@ ASTERISK_FILE_VERSION(__FILE__, "$Revision: 227580 $")
 #include "asterisk/pbx.h"
 #include "asterisk/sched.h"
 #include "asterisk/io.h"
+#include "asterisk/rtp.h"
 #include "asterisk/acl.h"
 #include "asterisk/callerid.h"
 #include "asterisk/file.h"
@@ -46,7 +47,7 @@ ASTERISK_FILE_VERSION(__FILE__, "$Revision: 227580 $")
 #include "asterisk/app.h"
 #include "asterisk/bridging.h"
 
-static struct ast_channel *bridge_request(const char *type, format_t format, const struct ast_channel *requestor, void *data, int *cause);
+static struct ast_channel *bridge_request(const char *type, int format, void *data, int *cause);
 static int bridge_call(struct ast_channel *ast, char *dest, int timeout);
 static int bridge_hangup(struct ast_channel *ast);
 static struct ast_frame *bridge_read(struct ast_channel *ast);
@@ -189,7 +190,7 @@ static int bridge_hangup(struct ast_channel *ast)
 }
 
 /*! \brief Called when we want to place a call somewhere, but not actually call it... yet */
-static struct ast_channel *bridge_request(const char *type, format_t format, const struct ast_channel *requestor, void *data, int *cause)
+static struct ast_channel *bridge_request(const char *type, int format, void *data, int *cause)
 {
 	struct bridge_pvt *p = NULL;
 
@@ -199,12 +200,12 @@ static struct ast_channel *bridge_request(const char *type, format_t format, con
 	}
 
 	/* Try to grab two Asterisk channels to use as input and output channels */
-	if (!(p->input = ast_channel_alloc(1, AST_STATE_UP, 0, 0, "", "", "", requestor ? requestor->linkedid : NULL, 0, "Bridge/%p-input", p))) {
+	if (!(p->input = ast_channel_alloc(1, AST_STATE_UP, 0, 0, "", "", "", 0, "Bridge/%p-input", p))) {
 		ast_free(p);
 		return NULL;
 	}
-	if (!(p->output = ast_channel_alloc(1, AST_STATE_UP, 0, 0, "", "", "", requestor ? requestor->linkedid : NULL, 0, "Bridge/%p-output", p))) {
-		p->input = ast_channel_release(p->input);
+	if (!(p->output = ast_channel_alloc(1, AST_STATE_UP, 0, 0, "", "", "", 0, "Bridge/%p-output", p))) {
+		ast_channel_free(p->input);
 		ast_free(p);
 		return NULL;
 	}

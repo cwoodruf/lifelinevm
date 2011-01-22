@@ -25,7 +25,7 @@
 
 #include "asterisk.h"
 
-ASTERISK_FILE_VERSION(__FILE__, "$Revision: 266090 $")
+ASTERISK_FILE_VERSION(__FILE__, "$Revision: 263587 $")
 
 #ifdef HAVE_SYS_STAT_H
 #include <sys/stat.h>
@@ -33,7 +33,13 @@ ASTERISK_FILE_VERSION(__FILE__, "$Revision: 266090 $")
 #include <regex.h>
 #include <sys/file.h> /* added this to allow to compile, sorry! */
 #include <signal.h>
+#include <sys/time.h>       /* for getrlimit(2) */
+#include <sys/resource.h>   /* for getrlimit(2) */
 #include <stdlib.h>         /* for closefrom(3) */
+#ifndef HAVE_CLOSEFROM
+#include <sys/types.h>
+#include <dirent.h>         /* for opendir(3)   */
+#endif
 #ifdef HAVE_CAP
 #include <sys/capability.h>
 #endif /* HAVE_CAP */
@@ -178,7 +184,7 @@ enum ast_getdata_result ast_app_getdata(struct ast_channel *c, const char *promp
 /* The lock type used by ast_lock_path() / ast_unlock_path() */
 static enum AST_LOCK_TYPE ast_lock_type = AST_LOCK_TYPE_LOCKFILE;
 
-int ast_app_getdata_full(struct ast_channel *c, const char *prompt, char *s, int maxlen, int timeout, int audiofd, int ctrlfd)
+int ast_app_getdata_full(struct ast_channel *c, char *prompt, char *s, int maxlen, int timeout, int audiofd, int ctrlfd)
 {
 	int res, to = 2000, fto = 6000;
 
@@ -198,28 +204,6 @@ int ast_app_getdata_full(struct ast_channel *c, const char *prompt, char *s, int
 
 	res = ast_readstring_full(c, s, maxlen, to, fto, "#", audiofd, ctrlfd);
 
-	return res;
-}
-
-int ast_app_run_macro(struct ast_channel *autoservice_chan, struct ast_channel *macro_chan, const char * const macro_name, const char * const macro_args)
-{
-	struct ast_app *macro_app;
-	int res;
-	char buf[1024];
-
-	macro_app = pbx_findapp("Macro");
-	if (!macro_app) {
-		ast_log(LOG_WARNING, "Cannot run macro '%s' because the 'Macro' application in not available\n", macro_name);
-		return -1;
-	}
-	snprintf(buf, sizeof(buf), "%s%s%s", macro_name, ast_strlen_zero(macro_args) ? "" : ",", S_OR(macro_args, ""));
-	if (autoservice_chan) {
-		ast_autoservice_start(autoservice_chan);
-	}
-	res = pbx_exec(macro_chan, macro_app, buf);
-	if (autoservice_chan) {
-		ast_autoservice_stop(autoservice_chan);
-	}
 	return res;
 }
 
@@ -427,7 +411,7 @@ static int linear_generator(struct ast_channel *chan, void *data, int len, int s
 	struct linear_state *ls = data;
 	struct ast_frame f = {
 		.frametype = AST_FRAME_VOICE,
-		.subclass.codec = AST_FORMAT_SLINEAR,
+		.subclass = AST_FORMAT_SLINEAR,
 		.data.ptr = buf + AST_FRIENDLY_OFFSET / 2,
 		.offset = AST_FRIENDLY_OFFSET,
 	};
@@ -697,8 +681,6 @@ static int __ast_play_and_record(struct ast_channel *chan, const char *playfile,
 	time_t start, end;
 	struct ast_dsp *sildet = NULL;   /* silence detector dsp */
 	int totalsilence = 0;
-	int dspsilence = 0;
-	int olddspsilence = 0;
 	int rfmt = 0;
 	struct ast_silence_generator *silgen = NULL;
 	char prependfile[80];
@@ -823,16 +805,17 @@ static int __ast_play_and_record(struct ast_channel *chan, const char *playfile,
 
 				/* Silence Detection */
 				if (maxsilence > 0) {
-					dspsilence = 0;
+					int dspsilence = 0;
 					ast_dsp_silence(sildet, f, &dspsilence);
-					if (olddspsilence > dspsilence) {
-						totalsilence += olddspsilence;
+					if (dspsilence) {
+						totalsilence = dspsilence;
+					} else {
+						totalsilence = 0;
 					}
-					olddspsilence = dspsilence;
 
-					if (dspsilence > maxsilence) {
+					if (totalsilence > maxsilence) {
 						/* Ended happily with silence */
-						ast_verb(3, "Recording automatically stopped after a silence of %d seconds\n", dspsilence/1000);
+						ast_verb(3, "Recording automatically stopped after a silence of %d seconds\n", totalsilence/1000);
 						res = 'S';
 						outmsg = 2;
 						break;
@@ -849,20 +832,20 @@ static int __ast_play_and_record(struct ast_channel *chan, const char *playfile,
 			} else if (f->frametype == AST_FRAME_DTMF) {
 				if (prepend) {
 				/* stop recording with any digit */
-					ast_verb(3, "User ended message by pressing %c\n", f->subclass.integer);
+					ast_verb(3, "User ended message by pressing %c\n", f->subclass);
 					res = 't';
 					outmsg = 2;
 					break;
 				}
-				if (strchr(acceptdtmf, f->subclass.integer)) {
-					ast_verb(3, "User ended message by pressing %c\n", f->subclass.integer);
-					res = f->subclass.integer;
+				if (strchr(acceptdtmf, f->subclass)) {
+					ast_verb(3, "User ended message by pressing %c\n", f->subclass);
+					res = f->subclass;
 					outmsg = 2;
 					break;
 				}
-				if (strchr(canceldtmf, f->subclass.integer)) {
-					ast_verb(3, "User cancelled message by pressing %c\n", f->subclass.integer);
-					res = f->subclass.integer;
+				if (strchr(canceldtmf, f->subclass)) {
+					ast_verb(3, "User cancelled message by pressing %c\n", f->subclass);
+					res = f->subclass;
 					outmsg = 0;
 					break;
 				}
@@ -907,16 +890,6 @@ static int __ast_play_and_record(struct ast_channel *chan, const char *playfile,
 	*duration = others[0] ? ast_tellstream(others[0]) / 8000 : 0;
 
 	if (!prepend) {
-		/* Reduce duration by a total silence amount */
-		if (olddspsilence <= dspsilence) {
-			totalsilence += dspsilence;
-		}
-
-        	if (totalsilence > 0)
-			*duration -= (totalsilence - 200) / 1000;
-		if (*duration < 0) {
-			*duration = 0;
-		}
 		for (x = 0; x < fmtcnt; x++) {
 			if (!others[x]) {
 				break;
@@ -926,9 +899,15 @@ static int __ast_play_and_record(struct ast_channel *chan, const char *playfile,
 			 * off the recording.  However, if we ended with '#', we don't want
 			 * to trim ANY part of the recording.
 			 */
-			if (res > 0 && dspsilence) {
-                                /* rewind only the trailing silence */
-				ast_stream_rewind(others[x], dspsilence - 200);
+			if (res > 0 && totalsilence) {
+				ast_stream_rewind(others[x], totalsilence - 200);
+				/* Reduce duration by a corresponding amount */
+				if (x == 0 && *duration) {
+					*duration -= (totalsilence - 200) / 1000;
+					if (*duration < 0) {
+						*duration = 0;
+					}
+				}
 			}
 			ast_truncstream(others[x]);
 			ast_closestream(others[x]);
@@ -946,8 +925,8 @@ static int __ast_play_and_record(struct ast_channel *chan, const char *playfile,
 				break;
 			}
 			/*!\note Same logic as above. */
-			if (dspsilence) {
-				ast_stream_rewind(others[x], dspsilence - 200);
+			if (totalsilence) {
+				ast_stream_rewind(others[x], totalsilence - 200);
 			}
 			ast_truncstream(others[x]);
 			/* add the original file too */
@@ -974,8 +953,8 @@ static int __ast_play_and_record(struct ast_channel *chan, const char *playfile,
 	return res;
 }
 
-static const char default_acceptdtmf[] = "#";
-static const char default_canceldtmf[] = "";
+static char default_acceptdtmf[] = "#";
+static char default_canceldtmf[] = "";
 
 int ast_play_and_record_full(struct ast_channel *chan, const char *playfile, const char *recordfile, int maxtime, const char *fmt, int *duration, int silencethreshold, int maxsilence, const char *path, const char *acceptdtmf, const char *canceldtmf)
 {
@@ -1091,38 +1070,27 @@ int ast_app_group_get_count(const char *group, const char *category)
 int ast_app_group_match_get_count(const char *groupmatch, const char *category)
 {
 	struct ast_group_info *gi = NULL;
-	regex_t regexbuf_group;
-	regex_t regexbuf_category;
+	regex_t regexbuf;
 	int count = 0;
 
 	if (ast_strlen_zero(groupmatch)) {
-		ast_log(LOG_NOTICE, "groupmatch empty\n");
 		return 0;
 	}
 
 	/* if regex compilation fails, return zero matches */
-	if (regcomp(&regexbuf_group, groupmatch, REG_EXTENDED | REG_NOSUB)) {
-		ast_log(LOG_ERROR, "Regex compile failed on: %s\n", groupmatch);
-		return 0;
-	}
-
-	if (!ast_strlen_zero(category) && regcomp(&regexbuf_category, category, REG_EXTENDED | REG_NOSUB)) {
-		ast_log(LOG_ERROR, "Regex compile failed on: %s\n", category);
+	if (regcomp(&regexbuf, groupmatch, REG_EXTENDED | REG_NOSUB)) {
 		return 0;
 	}
 
 	AST_RWLIST_RDLOCK(&groups);
 	AST_RWLIST_TRAVERSE(&groups, gi, group_list) {
-		if (!regexec(&regexbuf_group, gi->group, 0, NULL, 0) && (ast_strlen_zero(category) || (!ast_strlen_zero(gi->category) && !regexec(&regexbuf_category, gi->category, 0, NULL, 0)))) {
+		if (!regexec(&regexbuf, gi->group, 0, NULL, 0) && (ast_strlen_zero(category) || (!ast_strlen_zero(gi->category) && !strcasecmp(gi->category, category)))) {
 			count++;
 		}
 	}
 	AST_RWLIST_UNLOCK(&groups);
 
-	regfree(&regexbuf_group);
-	if (!ast_strlen_zero(category)) {
-		regfree(&regexbuf_category);
-	}
+	regfree(&regexbuf);
 
 	return count;
 }
@@ -1192,15 +1160,11 @@ unsigned int __ast_app_separate_args(char *buf, char delim, int remove_chars, ch
 	char *scan, *wasdelim = NULL;
 	int paren = 0, quote = 0;
 
-	if (!array || !arraylen) {
+	if (!buf || !array || !arraylen) {
 		return 0;
 	}
 
 	memset(array, 0, arraylen * sizeof(*array));
-
-	if (!buf) {
-		return 0;
-	}
 
 	scan = buf;
 
@@ -2031,7 +1995,45 @@ int ast_str_get_encoded_str(struct ast_str **str, int maxlen, const char *stream
 
 void ast_close_fds_above_n(int n)
 {
+#ifdef HAVE_CLOSEFROM
 	closefrom(n + 1);
+#else
+	long x, null;
+	struct rlimit rl;
+	DIR *dir;
+	char path[16], *result;
+	struct dirent *entry;
+	snprintf(path, sizeof(path), "/proc/%d/fd", (int) getpid());
+	if ((dir = opendir(path))) {
+		while ((entry = readdir(dir))) {
+			/* Skip . and .. */
+			if (entry->d_name[0] == '.') {
+				continue;
+			}
+			if ((x = strtol(entry->d_name, &result, 10)) && x > n) {
+				close(x);
+			}
+		}
+		closedir(dir);
+	} else {
+		getrlimit(RLIMIT_NOFILE, &rl);
+		if (rl.rlim_cur > 65535) {
+			/* A more reasonable value */
+			rl.rlim_cur = 65535;
+		}
+		null = open("/dev/null", O_RDONLY);
+		for (x = n + 1; x < rl.rlim_cur; x++) {
+			if (x != null) {
+				/* Side effect of dup2 is that it closes any existing fd without error.
+				 * This prevents valgrind and other debugging tools from sending up
+				 * false error reports. */
+				while (dup2(null, x) < 0 && errno == EINTR);
+				close(x);
+			}
+		}
+		close(null);
+	}
+#endif
 }
 
 int ast_safe_fork(int stop_reaper)
@@ -2086,61 +2088,5 @@ int ast_safe_fork(int stop_reaper)
 void ast_safe_fork_cleanup(void)
 {
 	ast_unreplace_sigchld();
-}
-
-int ast_app_parse_timelen(const char *timestr, int *result, enum ast_timelen unit)
-{
-	int res;
-	char u[10];
-#ifdef HAVE_LONG_DOUBLE_WIDER
-	long double amount;
-	#define FMT "%30Lf%9s"
-#else
-	double amount;
-	#define FMT "%30lf%9s"
-#endif
-	if (!timestr) {
-		return -1;
-	}
-
-	if ((res = sscanf(timestr, FMT, &amount, u)) == 0) {
-#undef FMT
-		return -1;
-	} else if (res == 2) {
-		switch (u[0]) {
-		case 'h':
-		case 'H':
-			unit = TIMELEN_HOURS;
-			break;
-		case 's':
-		case 'S':
-			unit = TIMELEN_SECONDS;
-			break;
-		case 'm':
-		case 'M':
-			if (toupper(u[1]) == 'S') {
-				unit = TIMELEN_MILLISECONDS;
-			} else if (u[1] == '\0') {
-				unit = TIMELEN_MINUTES;
-			}
-			break;
-		}
-	}
-
-	switch (unit) {
-	case TIMELEN_HOURS:
-		amount *= 60;
-		/* fall-through */
-	case TIMELEN_MINUTES:
-		amount *= 60;
-		/* fall-through */
-	case TIMELEN_SECONDS:
-		amount *= 1000;
-		/* fall-through */
-	case TIMELEN_MILLISECONDS:
-		;
-	}
-	*result = amount > INT_MAX ? INT_MAX : (int) amount;
-	return 0;
 }
 

@@ -16,7 +16,7 @@
 
 #include "asterisk.h"
 
-ASTERISK_FILE_VERSION(__FILE__, "$Revision: 256104 $")
+ASTERISK_FILE_VERSION(__FILE__, "$Revision: 211580 $")
 
 /*
  * There is some collision collision between netsmp and asterisk names,
@@ -236,31 +236,18 @@ static u_char *ast_var_channels_table(struct variable *vp, oid *name, size_t *le
 	u_char *ret = NULL;
 	int i, bit;
 	struct ast_str *out = ast_str_alloca(2048);
-	struct ast_channel_iterator *iter;
 
 	if (header_simple_table(vp, name, length, exact, var_len, write_method, ast_active_channels()))
 		return NULL;
 
 	i = name[*length - 1] - 1;
-
-	if (!(iter = ast_channel_iterator_all_new())) {
+	for (chan = ast_channel_walk_locked(NULL);
+		 chan && i;
+		 chan = ast_channel_walk_locked(chan), i--)
+		ast_channel_unlock(chan);
+	if (chan == NULL)
 		return NULL;
-	}
-
-	while ((chan = ast_channel_iterator_next(iter)) && i) {
-		ast_channel_unref(chan);
-		i--;
-	}
-
-	iter = ast_channel_iterator_destroy(iter);
-
-	if (chan == NULL) {
-		return NULL;
-	}
-
 	*var_len = sizeof(long_ret);
-
-	ast_channel_lock(chan);
 
 	switch (vp->magic) {
 	case ASTCHANINDEX:
@@ -451,8 +438,8 @@ static u_char *ast_var_channels_table(struct variable *vp, oid *name, size_t *le
 		}
 		break;
 	case ASTCHANCIDRDNIS:
-		if (chan->redirecting.from.number) {
-			strncpy(string_ret, chan->redirecting.from.number, sizeof(string_ret));
+		if (chan->cid.cid_rdnis) {
+			strncpy(string_ret, chan->cid.cid_rdnis, sizeof(string_ret));
 			string_ret[sizeof(string_ret) - 1] = '\0';
 			*var_len = strlen(string_ret);
 			ret = (u_char *)string_ret;
@@ -516,10 +503,7 @@ static u_char *ast_var_channels_table(struct variable *vp, oid *name, size_t *le
 	default:
 		break;
 	}
-
 	ast_channel_unlock(chan);
-	chan = ast_channel_unref(chan);
-
 	return ret;
 }
 
@@ -583,26 +567,13 @@ static u_char *ast_var_channel_types_table(struct variable *vp, oid *name, size_
 		long_ret = tech->transfer ? 1 : 2;
 		return (u_char *)&long_ret;
 	case ASTCHANTYPECHANNELS:
-	{
-		struct ast_channel_iterator *iter;
-
 		long_ret = 0;
-
-		if (!(iter = ast_channel_iterator_all_new())) {
-			return NULL;
-		}
-
-		while ((chan = ast_channel_iterator_next(iter))) {
-			if (chan->tech == tech) {
+		for (chan = ast_channel_walk_locked(NULL); chan; chan = ast_channel_walk_locked(chan)) {
+			if (chan->tech == tech)
 				long_ret++;
-			}
-			chan = ast_channel_unref(chan);
+			ast_channel_unlock(chan);
 		}
-
-		ast_channel_iterator_destroy(iter);
-
 		return (u_char *)&long_ret;
-	}
 	default:
 		break;
 	}
@@ -614,28 +585,16 @@ static u_char *ast_var_channel_bridge(struct variable *vp, oid *name, size_t *le
 {
 	static unsigned long long_ret;
 	struct ast_channel *chan = NULL;
-	struct ast_channel_iterator *iter;
 
 	long_ret = 0;
-
-	if (header_generic(vp, name, length, exact, var_len, write_method)) {
+	if (header_generic(vp, name, length, exact, var_len, write_method))
 		return NULL;
-	}
 
-	if (!(iter = ast_channel_iterator_all_new())) {
-		return NULL;
-	}
-
-	while ((chan = ast_channel_iterator_next(iter))) {
-		ast_channel_lock(chan);
-		if (ast_bridged_channel(chan)) {
+	while ((chan = ast_channel_walk_locked(chan))) {
+		if (ast_bridged_channel(chan))
 			long_ret++;
-		}
 		ast_channel_unlock(chan);
-		chan = ast_channel_unref(chan);
 	}
-
-	ast_channel_iterator_destroy(iter);
 
 	*var_len = sizeof(long_ret);
 
