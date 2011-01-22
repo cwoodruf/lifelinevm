@@ -29,7 +29,7 @@
  
 #include "asterisk.h"
 
-ASTERISK_FILE_VERSION(__FILE__, "$Revision: 251680 $")
+ASTERISK_FILE_VERSION(__FILE__, "$Revision: 251683 $")
 
 #include "asterisk/file.h"
 #include "asterisk/pbx.h"
@@ -121,7 +121,7 @@ AST_APP_OPTIONS(app_opts,{
 	AST_APP_OPTION('d', OPTION_DELETE)
 });
 
-static int record_exec(struct ast_channel *chan, const char *data)
+static int record_exec(struct ast_channel *chan, void *data)
 {
 	int res = 0;
 	int count = 0;
