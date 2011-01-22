@@ -194,6 +194,24 @@ struct ast_callerid {
 	int cid_tns;		/*!< Callerid Transit Network Select */
 };
 
+/*! \brief Typedef for a custom read function */
+typedef int (*ast_acf_read_fn_t)(struct ast_channel *, char *, char *, char *, size_t);
+
+/*! \brief Typedef for a custom write function */
+typedef int (*ast_acf_write_fn_t)(struct ast_channel *, char *, char *, const char *);
+
+/*! \brief Structure to handle passing func_channel_write info to channels via setoption */
+typedef struct {
+	/*! \brief ast_chan_write_info_t version. Must be incremented if structure is changed */
+	#define AST_CHAN_WRITE_INFO_T_VERSION 1
+	uint32_t version;
+	ast_acf_write_fn_t write_fn;
+	struct ast_channel *chan;
+	char *function;
+	char *data;
+	const char *value;
+} ast_chan_write_info_t;
+
 /*! \brief 
 	Structure to describe a channel "technology", ie a channel driver 
 	See for examples:
@@ -590,14 +608,42 @@ enum {
 };
 
 enum {
-	/*! Soft hangup by device */
+	/*!
+	 * Soft hangup requested by device or other internal reason.
+	 * Actual hangup needed.
+	 */
 	AST_SOFTHANGUP_DEV =       (1 << 0),
-	/*! Soft hangup for async goto */
+	/*!
+	 * Used to break the normal frame flow so an async goto can be
+	 * done instead of actually hanging up.
+	 */
 	AST_SOFTHANGUP_ASYNCGOTO = (1 << 1),
+	/*!
+	 * Soft hangup requested by system shutdown.  Actual hangup
+	 * needed.
+	 */
 	AST_SOFTHANGUP_SHUTDOWN =  (1 << 2),
+	/*!
+	 * Used to break the normal frame flow after a timeout so an
+	 * implicit async goto can be done to the 'T' exten if it exists
+	 * instead of actually hanging up.  If the exten does not exist
+	 * then actually hangup.
+	 */
 	AST_SOFTHANGUP_TIMEOUT =   (1 << 3),
+	/*!
+	 * Soft hangup requested by application/channel-driver being
+	 * unloaded.  Actual hangup needed.
+	 */
 	AST_SOFTHANGUP_APPUNLOAD = (1 << 4),
+	/*!
+	 * Soft hangup requested by non-associated party.  Actual hangup
+	 * needed.
+	 */
 	AST_SOFTHANGUP_EXPLICIT =  (1 << 5),
+	/*!
+	 * Used to break a bridge so the channel can be spied upon
+	 * instead of actually hanging up.
+	 */
 	AST_SOFTHANGUP_UNBRIDGE =  (1 << 6),
 };
 
@@ -1246,6 +1292,18 @@ int ast_autoservice_start(struct ast_channel *chan);
  */
 int ast_autoservice_stop(struct ast_channel *chan);
 
+/*!
+ * \brief Ignore certain frame types
+ * \note Normally, we cache DTMF, IMAGE, HTML, TEXT, and CONTROL frames
+ * while a channel is in autoservice and queue them up when taken out of
+ * autoservice.  When this is not desireable, this API may be used to
+ * cause the channel to ignore those frametypes after the channel is put
+ * into autoservice, but before autoservice is stopped.
+ * \retval 0 success
+ * \retval -1 channel is not in autoservice
+ */
+int ast_autoservice_ignore(struct ast_channel *chan, enum ast_frame_type ftype);
+
 /* If built with DAHDI optimizations, force a scheduled expiration on the
    timer fd, at which point we call the callback function / data */
 int ast_settimeout(struct ast_channel *c, int samples, int (*func)(const void *data), void *data);
@@ -1367,55 +1425,6 @@ static inline int ast_fdisset(struct pollfd *pfds, int fd, int max, int *start)
 			return pfds[x].revents;
 		}
 	return 0;
-}
-
-#ifndef HAVE_TIMERSUB
-static inline void timersub(struct timeval *tvend, struct timeval *tvstart, struct timeval *tvdiff)
-{
-	tvdiff->tv_sec = tvend->tv_sec - tvstart->tv_sec;
-	tvdiff->tv_usec = tvend->tv_usec - tvstart->tv_usec;
-	if (tvdiff->tv_usec < 0) {
-		tvdiff->tv_sec --;
-		tvdiff->tv_usec += 1000000;
-	}
-
-}
-#endif
-
-/*! \brief Waits for activity on a group of channels 
- * \param nfds the maximum number of file descriptors in the sets
- * \param rfds file descriptors to check for read availability
- * \param wfds file descriptors to check for write availability
- * \param efds file descriptors to check for exceptions (OOB data)
- * \param tvp timeout while waiting for events
- * This is the same as a standard select(), except it guarantees the
- * behaviour where the passed struct timeval is updated with how much
- * time was not slept while waiting for the specified events
- */
-static inline int ast_select(int nfds, fd_set *rfds, fd_set *wfds, fd_set *efds, struct timeval *tvp)
-{
-#ifdef __linux__
-	return select(nfds, rfds, wfds, efds, tvp);
-#else
-	if (tvp) {
-		struct timeval tv, tvstart, tvend, tvlen;
-		int res;
-
-		tv = *tvp;
-		gettimeofday(&tvstart, NULL);
-		res = select(nfds, rfds, wfds, efds, tvp);
-		gettimeofday(&tvend, NULL);
-		timersub(&tvend, &tvstart, &tvlen);
-		timersub(&tv, &tvlen, tvp);
-		if (tvp->tv_sec < 0 || (tvp->tv_sec == 0 && tvp->tv_usec < 0)) {
-			tvp->tv_sec = 0;
-			tvp->tv_usec = 0;
-		}
-		return res;
-	}
-	else
-		return select(nfds, rfds, wfds, efds, NULL);
-#endif
 }
 
 #define CHECK_BLOCKING(c) do { 	 \

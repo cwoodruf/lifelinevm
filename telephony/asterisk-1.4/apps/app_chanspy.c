@@ -31,7 +31,7 @@
 
 #include "asterisk.h"
 
-ASTERISK_FILE_VERSION(__FILE__, "$Revision: 234094 $")
+ASTERISK_FILE_VERSION(__FILE__, "$Revision: 284881 $")
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -633,7 +633,7 @@ static int common_exec(struct ast_channel *chan, const struct ast_flags *flags,
 			ast_channel_unlock(peer);
 
 			if (!ast_test_flag(flags, OPTION_QUIET)) {
-				if (ast_fileexists(peer_name, NULL, NULL) != -1) {
+				if (ast_fileexists(peer_name, NULL, NULL) > 0) {
 					res = ast_streamfile(chan, peer_name, chan->language);
 					if (!res)
 						res = ast_waitstream(chan, "");

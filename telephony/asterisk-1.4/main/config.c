@@ -28,7 +28,7 @@
 
 #include "asterisk.h"
 
-ASTERISK_FILE_VERSION(__FILE__, "$Revision: 241015 $")
+ASTERISK_FILE_VERSION(__FILE__, "$Revision: 283834 $")
 
 #include <stdio.h>
 #include <unistd.h>
@@ -222,7 +222,7 @@ void ast_variables_destroy(struct ast_variable *v)
 		v = v->next;
 		ast_destroy_comment(&vn->precomments);
 		ast_destroy_comment(&vn->sameline);
-		free(vn);
+		ast_free(vn);
 	}
 }
 
@@ -708,7 +708,7 @@ static int process_text_line(struct ast_config *cfg, struct ast_category **cat, 
 		if (*c) {
 			*c = '\0';
 			/* Find real argument */
-			c = ast_skip_blanks(c + 1);
+			c = ast_strip(c + 1);
 			if (!(*c))
 				c = NULL;
 		} else 
@@ -726,20 +726,13 @@ static int process_text_line(struct ast_config *cfg, struct ast_category **cat, 
 			if (c) {
 				cur = c;
 				/* Strip off leading and trailing "'s and <>'s */
-				if (*c == '"') {
-					/* Dequote */
-					while (*c) {
-						if (*c == '"') {
-							strcpy(c, c + 1); /* SAFE */
-							c--;
-						} else if (*c == '\\') {
-							strcpy(c, c + 1); /* SAFE */
-						}
-						c++;
+				if ((*c == '"') || (*c == '<')) {
+					char quote_char = *c;
+					if (quote_char == '<') {
+						quote_char = '>';
 					}
-				} else if (*c == '<') {
-					/* C-style include */
-					if (*(c + strlen(c) - 1) == '>') {
+
+					if (*(c + strlen(c) - 1) == quote_char) {
 						cur++;
 						*(c + strlen(c) - 1) = '\0';
 					}
@@ -1491,16 +1484,14 @@ static int config_command(int fd, int argc, char **argv)
 	
 	ast_mutex_lock(&config_lock);
 
-	ast_cli(fd, "\n\n");
 	for (eng = config_engine_list; eng; eng = eng->next) {
-		ast_cli(fd, "\nConfig Engine: %s\n", eng->name);
+		ast_cli(fd, "Config Engine: %s\n", eng->name);
 		for (map = config_maps; map; map = map->next)
 			if (!strcasecmp(map->driver, eng->name)) {
 				ast_cli(fd, "===> %s (db=%s, table=%s)\n", map->name, map->database,
 					map->table ? map->table : map->name);
 			}
 	}
-	ast_cli(fd,"\n\n");
 	
 	ast_mutex_unlock(&config_lock);
 

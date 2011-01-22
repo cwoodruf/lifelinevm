@@ -26,6 +26,12 @@
 /* Define to 1 if you have the `asprintf' function. */
 #undef HAVE_ASPRINTF
 
+/* Define to 1 if your GCC C compiler supports the 'weak_import' attribute. */
+#undef HAVE_ATTRIBUTE_weak_import
+
+/* Define to 1 if your GCC C compiler supports the 'weakref' attribute. */
+#undef HAVE_ATTRIBUTE_weakref
+
 /* Define to indicate the ${CURSES_DESCRIP} library */
 #undef HAVE_CURSES
 
@@ -100,9 +106,6 @@
 
 /* Define to the one symbol short name of this package. */
 #undef PACKAGE_TARNAME
-
-/* Define to the home page for this package. */
-#undef PACKAGE_URL
 
 /* Define to the version of this package. */
 #undef PACKAGE_VERSION

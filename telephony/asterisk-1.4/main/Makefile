@@ -27,7 +27,7 @@ OBJS=	io.o sched.o logger.o frame.o loader.o config.o channel.o \
 	netsock.o slinfactory.o ast_expr2.o ast_expr2f.o \
 	cryptostub.o sha1.o http.o fixedjitterbuf.o abstract_jb.o \
 	strcompat.o threadstorage.o dial.o astobj2.o global_datastores.o \
-	audiohook.o poll.o
+	audiohook.o poll.o test.o
 
 # we need to link in the objects statically, not as a library, because
 # otherwise modules will not have them available if none of the static
@@ -121,7 +121,7 @@ testexpr2: ast_expr2f.c ast_expr2.c ast_expr2.h
 	$(CC) -g -o testexpr2 ast_expr2f.o ast_expr2.o
 	rm ast_expr2.o ast_expr2f.o 
 
-asterisk.o channel.o: _ASTCFLAGS+=$(ZAPTEL_INCLUDE) $(DAHDI_INCLUDE)
+asterisk.o channel.o file.o: _ASTCFLAGS+=$(ZAPTEL_INCLUDE) $(DAHDI_INCLUDE)
 
 stdtime/localtime.o: _ASTCFLAGS+=$(AST_NO_STRICT_OVERFLOW)
 

@@ -62,7 +62,7 @@
 
 #include "asterisk.h"
 
-ASTERISK_FILE_VERSION(__FILE__, "$Revision: 266004 $")
+ASTERISK_FILE_VERSION(__FILE__, "$Revision: 287386 $")
 
 #include <stdlib.h>
 #include <errno.h>
@@ -574,10 +574,13 @@ static enum queue_member_status get_member_status(struct call_queue *q, int max_
 	struct member *member;
 	struct ao2_iterator mem_iter;
 	enum queue_member_status result = QUEUE_NO_MEMBERS;
+	int allpaused = 1, empty = 1;
 
 	ao2_lock(q);
 	mem_iter = ao2_iterator_init(q->members, 0);
 	while ((member = ao2_iterator_next(&mem_iter))) {
+		empty = 0;
+
 		if (max_penalty && (member->penalty > max_penalty)) {
 			ao2_ref(member, -1);
 			continue;
@@ -586,6 +589,8 @@ static enum queue_member_status get_member_status(struct call_queue *q, int max_
 		if (member->paused) {
 			ao2_ref(member, -1);
 			continue;
+		} else {
+			allpaused = 0;
 		}
 
 		switch (member->status) {
@@ -605,6 +610,10 @@ static enum queue_member_status get_member_status(struct call_queue *q, int max_
 	}
 	ao2_iterator_destroy(&mem_iter);
 	ao2_unlock(q);
+
+	if (!empty && allpaused) {
+		result = QUEUE_NO_REACHABLE_MEMBERS;
+	}
 	return result;
 }
 
@@ -1291,10 +1300,10 @@ static struct call_queue *find_queue_by_name_rt(const char *queuename, struct as
 		} else
 			tmp_name = v->name;
 
-		if (!ast_strlen_zero(v->value)) {
-			/* Don't want to try to set the option if the value is empty */
-			queue_set_param(q, tmp_name, v->value, -1, 0);
-		}
+		/* NULL values don't get returned from realtime; blank values should
+		 * still get set.  If someone doesn't want a value to be set, they
+		 * should set the realtime column to NULL, not blank. */
+		queue_set_param(q, tmp_name, v->value, -1, 0);
 	}
 
 	if (q->strategy == QUEUE_STRATEGY_ROUNDROBIN)
@@ -2312,7 +2321,9 @@ static struct callattempt *wait_for_answer(struct queue_ent *qe, struct callatte
 					/* Setup parameters */
 					o->chan = ast_request(tech, in->nativeformats, stuff, &status);
 					if (!o->chan) {
-						ast_log(LOG_NOTICE, "Unable to create local channel for call forward to '%s/%s'\n", tech, stuff);
+						ast_log(LOG_NOTICE,
+							"Forwarding failed to create channel to dial '%s/%s'\n",
+							tech, stuff);
 						o->stillgoing = 0;
 						numnochan++;
 					} else {
@@ -2337,8 +2348,9 @@ static struct callattempt *wait_for_answer(struct queue_ent *qe, struct callatte
 						if (o->chan->cid.cid_rdnis)
 							free(o->chan->cid.cid_rdnis);
 						o->chan->cid.cid_rdnis = ast_strdup(S_OR(in->macroexten, in->exten));
-						if (ast_call(o->chan, tmpchan, 0)) {
-							ast_log(LOG_NOTICE, "Failed to dial on local channel for call forward to '%s'\n", tmpchan);
+						if (ast_call(o->chan, stuff, 0)) {
+							ast_log(LOG_NOTICE, "Forwarding failed to dial '%s/%s'\n",
+								tech, stuff);
 							do_hang(o);
 							numnochan++;
 						}
@@ -3286,6 +3298,20 @@ static int try_calling(struct queue_ent *qe, const char *options, char *announce
 				ast_queue_log(queuename, qe->chan->uniqueid, member->membername, "TRANSFER", "%s|%s|%ld|%ld",
 					qe->chan->exten, qe->chan->context, (long) (callstart - qe->start),
 					(long) (time(NULL) - callstart));
+				if (qe->parent->eventwhencalled)
+					manager_event(EVENT_FLAG_AGENT, "AgentComplete",
+							"Queue: %s\r\n"
+							"Uniqueid: %s\r\n"
+							"Channel: %s\r\n"
+							"Member: %s\r\n"
+							"MemberName: %s\r\n"
+							"HoldTime: %ld\r\n"
+							"TalkTime: %ld\r\n"
+							"Reason: transfer\r\n"
+							"%s",
+							queuename, qe->chan->uniqueid, peer->name, member->interface, member->membername,
+							(long)(callstart - qe->start), (long)(time(NULL) - callstart),
+							qe->parent->eventwhencalled == QUEUE_EVENT_VARIABLES ? vars2manager(qe->chan, vars, sizeof(vars)) : "");
 			} else if (qe->chan->_softhangup) {
 				ast_queue_log(queuename, qe->chan->uniqueid, member->membername, "COMPLETECALLER", "%ld|%ld|%d",
 					(long) (callstart - qe->start), (long) (time(NULL) - callstart), qe->opos);
@@ -3325,6 +3351,21 @@ static int try_calling(struct queue_ent *qe, const char *options, char *announce
 				ast_channel_datastore_remove(qe->chan, tds);
 			}
 			update_queue(qe->parent, member, callcompletedinsl);
+		} else {
+			if (qe->parent->eventwhencalled)
+				manager_event(EVENT_FLAG_AGENT, "AgentComplete",
+						"Queue: %s\r\n"
+						"Uniqueid: %s\r\n"
+						"Channel: %s\r\n"
+						"Member: %s\r\n"
+						"MemberName: %s\r\n"
+						"HoldTime: %ld\r\n"
+						"TalkTime: %ld\r\n"
+						"Reason: transfer\r\n"
+						"%s",
+						queuename, qe->chan->uniqueid, peer->name, member->interface, member->membername, (long)(callstart - qe->start),
+						(long)(time(NULL) - callstart),
+						qe->parent->eventwhencalled == QUEUE_EVENT_VARIABLES ? vars2manager(qe->chan, vars, sizeof(vars)) : "");
 		}
 
 		if (transfer_ds) {

@@ -32,7 +32,7 @@
 
 #include "asterisk.h"
 
-ASTERISK_FILE_VERSION(__FILE__, "$Revision: 255503 $")
+ASTERISK_FILE_VERSION(__FILE__, "$Revision: 296000 $")
 
 #include <stdlib.h>
 #include <errno.h>
@@ -436,7 +436,16 @@ static struct ast_channel *wait_for_answer(struct ast_channel *in, struct dial_l
 		/* Turn off hold music, etc */
 		ast_deactivate_generator(in);
 		/* If we are calling a single channel, make them compatible for in-band tone purpose */
-		ast_channel_make_compatible(outgoing->chan, in);
+		if (ast_channel_make_compatible(outgoing->chan, in) < 0) {
+			/* If these channels can not be made compatible, 
+			 * there is no point in continuing.  The bridge
+			 * will just fail if it gets that far.
+			 */
+			*to = -1;
+			strcpy(status, "CONGESTION");
+			ast_cdr_failed(in->cdr);
+			return NULL;
+		}
 	}
 	
 	
@@ -534,7 +543,9 @@ static struct ast_channel *wait_for_answer(struct ast_channel *in, struct dial_l
 						ast_channel_inherit_variables(in, o->chan);
 						ast_channel_datastore_inherit(in, o->chan);
 					} else
-						ast_log(LOG_NOTICE, "Unable to create local channel for call forward to '%s/%s' (cause = %d)\n", tech, stuff, cause);
+						ast_log(LOG_NOTICE,
+							"Forwarding failed to create channel to dial '%s/%s' (cause = %d)\n",
+							tech, stuff, cause);
 				}
 				if (!c) {
 					ast_clear_flag(o, DIAL_STILLGOING);	
@@ -569,8 +580,9 @@ static struct ast_channel *wait_for_answer(struct ast_channel *in, struct dial_l
 					if (c->cid.cid_rdnis) 
 						free(c->cid.cid_rdnis);
 					c->cid.cid_rdnis = ast_strdup(S_OR(in->macroexten, in->exten));
-					if (ast_call(c, tmpchan, 0)) {
-						ast_log(LOG_NOTICE, "Failed to dial on local channel for call forward to '%s'\n", tmpchan);
+					if (ast_call(c, stuff, 0)) {
+						ast_log(LOG_NOTICE, "Forwarding failed to dial '%s/%s'\n",
+							tech, stuff);
 						ast_clear_flag(o, DIAL_STILLGOING);	
 						ast_hangup(c);
 						c = o->chan = NULL;
@@ -1173,7 +1185,7 @@ static int dial_exec_full(struct ast_channel *chan, void *data, struct ast_flags
 
 				*/
 				ast_answer(chan);
-				res = ast_play_and_record(chan, "priv-recordintro", privintro, 4, "gsm", &duration, 128, 2000, 0);  /* NOTE: I've reduced the total time to 4 sec */
+				res = ast_play_and_record(chan, "priv-recordintro", privintro, 4, "sln", &duration, 128, 2000, 0);  /* NOTE: I've reduced the total time to 4 sec */
 										/* don't think we'll need a lock removed, we took care of
 										   conflicts by naming the privintro file */
 				if (res == -1) {
@@ -1707,6 +1719,11 @@ static int dial_exec_full(struct ast_channel *chan, void *data, struct ast_flags
 		}
 
 		if (chan && peer && ast_test_flag(&opts, OPT_GOTO) && !ast_strlen_zero(opt_args[OPT_ARG_GOTO])) {
+			/* chan and peer are going into the PBX, they both
+			 * should probably get CDR records. */
+			ast_clear_flag(chan->cdr, AST_CDR_FLAG_DIALED);
+			ast_clear_flag(peer->cdr, AST_CDR_FLAG_DIALED);
+
 			replace_macro_delimiter(opt_args[OPT_ARG_GOTO]);
 			ast_parseable_goto(chan, opt_args[OPT_ARG_GOTO]);
 			/* peer goes to the same context and extension as chan, so just copy info from chan*/
@@ -1848,8 +1865,9 @@ static int dial_exec_full(struct ast_channel *chan, void *data, struct ast_flags
 				sentringing = 0;
 				ast_indicate(chan, -1);
 			}
-			/* Be sure no generators are left on it */
+			/* Be sure no generators are left on it and reset the visible indication */
 			ast_deactivate_generator(chan);
+			chan->visible_indication = 0;
 			/* Make sure channels are compatible */
 			res = ast_channel_make_compatible(chan, peer);
 			if (res < 0) {

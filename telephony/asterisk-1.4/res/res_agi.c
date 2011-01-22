@@ -29,7 +29,7 @@
 
 #include "asterisk.h"
 
-ASTERISK_FILE_VERSION(__FILE__, "$Revision: 237405 $")
+ASTERISK_FILE_VERSION(__FILE__, "$Revision: 295553 $")
 
 #include <sys/types.h>
 #include <netdb.h>
@@ -1240,7 +1240,7 @@ static int handle_getvariablefull(struct ast_channel *chan, AGI *agi, int argc, 
 
 	if ((argc != 4) && (argc != 5))
 		return RESULT_SHOWUSAGE;
-	if (argc == 5) {
+	if (argc == 5 && strcasecmp(chan->name, argv[4])) {
 		chan2 = ast_get_channel_by_name_locked(argv[4]);
 	} else {
 		chan2 = chan;
@@ -1651,7 +1651,7 @@ static char usage_recordfile[] =
 " to the offset without exceeding the end of the file.  \"silence\" is the number\n"
 " of seconds of silence allowed before the function returns despite the\n"
 " lack of dtmf digits or reaching timeout.  Silence value must be\n"
-" preceeded by \"s=\" and is also optional.\n";
+" preceded by \"s=\" and is also optional.\n";
 
 static char usage_autohangup[] =
 " Usage: SET AUTOHANGUP <time>\n"

@@ -91,6 +91,19 @@ srvlookup=yes                   ; Enable DNS SRV lookups on outbound calls
 ;vmexten=voicemail              ; dialplan extension to reach mailbox sets the 
                                 ; Message-Account in the MWI notify message 
                                 ; defaults to "asterisk"
+
+; Codec negotiation
+;
+; When Asterisk is receiving a call, the codec will initially be set to the
+; first codec in the allowed codecs defined for the user receiving the call
+; that the caller also indicates that it supports. But, after the caller
+; starts sending RTP, Asterisk will switch to using whatever codec the caller
+; is sending.
+;
+; When Asterisk is placing a call, the codec used will be the first codec in
+; the allowed codecs that the callee indicates that it supports. Asterisk will
+; *not* switch to whatever codec the callee is sending.
+;
 ;disallow=all                   ; First disallow all codecs
 ;allow=ulaw                     ; Allow codecs in order of preference
 ;allow=ilbc                     ; see doc/rtp-packetization for framing options
@@ -119,12 +132,14 @@ srvlookup=yes                   ; Enable DNS SRV lookups on outbound calls
                                  ; use 'never' to never use in-band signalling, even in cases
                                  ; where some buggy devices might not render it
                                  ; Valid values: yes, no, never Default: never
-;prematuremedia=no		 ; Some ISDN links send empty media frames before 
-				 ; the call is in ringing or progress state. The SIP 
-				 ; channel will then send 183 indicating early media
-				 ; which will be empty - thus users get no ring signal.
-				 ; Setting this to "no" will stop any media before we have
-				 ; call progress. Default is "yes".
+;prematuremedia=no               ; Some ISDN links send empty media frames before 
+                                 ; the call is in ringing or progress state. The SIP 
+                                 ; channel will then send 183 indicating early media
+                                 ; which will be empty - thus users get no ring signal.
+                                 ; Setting this to "yes" will stop any media before we have
+                                 ; call progress (meaning the SIP channel will not send 183 Session
+                                 ; Progress for early media). Default is "no". Also make sure that
+                                 ; the SIP peer is configured with progressinband=never. 
 ;useragent=Asterisk PBX          ; Allows you to change the user agent string
 ;promiscredir = no               ; If yes, allows 302 or REDIR to non-local SIP address
                                  ; Note that promiscredir when redirects are made to the
@@ -176,6 +191,9 @@ srvlookup=yes                   ; Enable DNS SRV lookups on outbound calls
 ;contactdeny=0.0.0.0/0.0.0.0           ; Use contactpermit and contactdeny to
 ;contactpermit=172.16.0.0/255.255.0.0  ; restrict at what IPs your users may
                                        ; register their phones.
+;forwardloopdetected=no         ; Attempt to forward a call locally if the
+                                ; destination replies with 482 Loop Detected
+                                ; default = yes
 
 ;
 ; If regcontext is specified, Asterisk will dynamically create and destroy a
