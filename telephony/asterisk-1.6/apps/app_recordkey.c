@@ -360,7 +360,7 @@ static int record_exec(struct ast_channel *chan, void *data)
 		} else if (f->frametype == AST_FRAME_DTMF) {
 			/* if we get a key save it and return it to the 
 			   dial plan mimicking the behavior of the Dialogic D/41D */
-                        snprintf(chan->exten, sizeof(chan->exten), "%c", f->subclass.integer);
+                        snprintf(chan->exten, sizeof(chan->exten), "%c", f->subclass);
                         chan->priority = 0;
 			ast_frfree(f);
 			pbx_builtin_setvar_helper(chan, "RECORD_STATUS", "DTMF");
