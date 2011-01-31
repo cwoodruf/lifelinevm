@@ -18,7 +18,7 @@ RANLIB=ranlib
 FIND=/usr/bin/find
 COMPRESS=:
 BASENAME=/usr/bin/basename
-SHELL=/bin/bash
+SHELL=/bin/sh
 LN=/bin/ln
 DOT=:
 STRIP=strip
@@ -28,7 +28,7 @@ DOWNLOAD=/usr/bin/wget
 SOUNDS_CACHE_DIR=
 RUBBER=:
 CATDVI=:
-KPATHSEA=/usr/bin/kpsewhich
+KPATHSEA=:
 XMLSTARLET=:
 MD5=md5sum
 SHA1SUM=sha1sum
@@ -78,11 +78,11 @@ AST_NO_STRICT_OVERFLOW=-fno-strict-overflow
 AST_SHADOW_WARNINGS=-Wshadow
 AST_FORTIFY_SOURCE=-D_FORTIFY_SOURCE=2
 
-ALSA_INCLUDE= 
-ALSA_LIB= -lasound -lm -ldl
+ALSA_INCLUDE=
+ALSA_LIB=
 
 CURL_INCLUDE=
-CURL_LIB=-lcurl
+CURL_LIB=
 
 CURSES_INCLUDE= 
 CURSES_LIB= -lcurses 
@@ -126,8 +126,8 @@ IODBC_LIB=
 JACK_INCLUDE=
 JACK_LIB=
 
-LDAP_INCLUDE= 
-LDAP_LIB= -lldap 
+LDAP_INCLUDE=
+LDAP_LIB=
 
 LUA_INCLUDE=
 LUA_LIB=
@@ -145,19 +145,19 @@ NETSNMP_LIB=-Wl,-Bsymbolic-functions -L/usr/lib -lnetsnmpagent -lnetsnmphelpers 
 NEWT_INCLUDE=
 NEWT_LIB=
 
-OGG_INCLUDE= 
-OGG_LIB= -logg 
+OGG_INCLUDE=
+OGG_LIB=
 
 OSPTK_INCLUDE=
 OSPTK_LIB=
 
 # ossaudio can optionally use ffmpeg, x11, sdl and sdl_image.
 # Because sdl_image in turn depends on sdl, we don't duplicate the include
-OSS_INCLUDE=   -I/usr/include/SDL -D_GNU_SOURCE=1 -D_REENTRANT  
-OSS_LIB=  -L/usr/lib -lSDL   -lX11 
+OSS_INCLUDE=    
+OSS_LIB=    
 
-PGSQL_INCLUDE=-I/usr/include/postgresql
-PGSQL_LIB=-L/usr/lib -lpq -lz
+PGSQL_INCLUDE=
+PGSQL_LIB=
 
 POPT_INCLUDE=
 POPT_LIB=
@@ -189,8 +189,8 @@ RADIUS_LIB=
 FFMPEG_INCLUDE=
 FFMPEG_LIB=
 
-X11_INCLUDE= 
-X11_LIB= -lX11 
+X11_INCLUDE=
+X11_LIB=
 
 SPANDSP_INCLUDE=
 SPANDSP_LIB=
@@ -204,17 +204,17 @@ SPEEXDSP_LIB=
 SQLITE_INCLUDE=
 SQLITE_LIB=
 
-SQLITE3_INCLUDE= 
-SQLITE3_LIB= -lsqlite3 
+SQLITE3_INCLUDE=
+SQLITE3_LIB=
 
-OPENSSL_INCLUDE= 
-OPENSSL_LIB= -lssl -lcrypto
+OPENSSL_INCLUDE=
+OPENSSL_LIB=
 
-CRYPTO_INCLUDE= 
-CRYPTO_LIB= -lcrypto 
+CRYPTO_INCLUDE=
+CRYPTO_LIB=
 
-TONEZONE_INCLUDE= 
-TONEZONE_LIB= -ltonezone  
+TONEZONE_INCLUDE=
+TONEZONE_LIB=
 
 USB_INCLUDE=
 USB_LIB=
@@ -222,8 +222,8 @@ USB_LIB=
 UNIXODBC_INCLUDE=
 UNIXODBC_LIB=
 
-VORBIS_INCLUDE= 
-VORBIS_LIB= -lvorbis -lm -lvorbisenc
+VORBIS_INCLUDE=
+VORBIS_LIB=
 
 VPB_INCLUDE=
 VPB_LIB=

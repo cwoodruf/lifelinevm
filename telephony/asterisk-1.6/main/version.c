@@ -7,7 +7,7 @@
 
 #include "asterisk/ast_version.h"
 
-static const char asterisk_version[] = "SVN--r293M";
+static const char asterisk_version[] = "SVN--r296M";
 
 static const char asterisk_version_num[] = "999999";
 

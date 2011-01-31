@@ -38,7 +38,7 @@
 #define HAVE_ALLOCA_H 1
 
 /* Define to 1 if you have the Advanced Linux Sound Architecture library. */
-#define HAVE_ALSA 1
+/* #undef HAVE_ALSA */
 
 /* Define to 1 if you have the <arpa/inet.h> header file. */
 #define HAVE_ARPA_INET_H 1
@@ -85,16 +85,16 @@
 #define HAVE_CHOWN 1
 
 /* Define to 1 if you have a functional curl library. */
-#define HAVE_CURL 1
+/* #undef HAVE_CURL */
 
 /* Define to 1 if you have the curses library. */
 #define HAVE_CURSES 1
 
 /* Define if your system has the DAHDI headers. */
-#define HAVE_DAHDI 1
+/* #undef HAVE_DAHDI */
 
 /* Define DAHDI headers version */
-#define HAVE_DAHDI_VERSION 230
+/* #undef HAVE_DAHDI_VERSION */
 
 /* Define to 1 if you have the <dirent.h> header file, and it defines `DIR'.
    */
@@ -183,7 +183,7 @@
 /* #undef HAVE_GTK */
 
 /* Define if your system has the GTK2 libraries. */
-#define HAVE_GTK2 1
+/* #undef HAVE_GTK2 */
 
 /* Define to 1 if you have the Iksemel Jabber Library library. */
 /* #undef HAVE_IKSEMEL */
@@ -235,7 +235,7 @@
 #define HAVE_LOCALTIME_R 1
 
 /* Define to 1 if you have the libtool library. */
-#define HAVE_LTDL 1
+/* #undef HAVE_LTDL */
 
 /* Define to 1 if you have the <malloc.h> header file. */
 #define HAVE_MALLOC_H 1
@@ -280,13 +280,13 @@
 #define HAVE_NETINET_IN_H 1
 
 /* Define to indicate the Net-SNMP library */
-#define HAVE_NETSNMP 1
+/* #undef HAVE_NETSNMP */
 
 /* Define to 1 if you have the newt library. */
 /* #undef HAVE_NEWT */
 
 /* Define to 1 if you have the OGG library. */
-#define HAVE_OGG 1
+/* #undef HAVE_OGG */
 
 /* Define to 1 if you have the OpenAIS library. */
 /* #undef HAVE_OPENAIS */
@@ -298,7 +298,7 @@
 /* #undef HAVE_OPENR2 */
 
 /* Define to 1 if you have the OpenSSL library. */
-#define HAVE_OPENSSL 1
+/* #undef HAVE_OPENSSL */
 
 /* Define to 1 if you have the OSP Toolkit library. */
 /* #undef HAVE_OSPTK */
@@ -310,7 +310,7 @@
 /* #undef HAVE_OSX_ATOMICS */
 
 /* Define to indicate the PostgreSQL library */
-#define HAVE_PGSQL 1
+/* #undef HAVE_PGSQL */
 
 /* Define to 1 if you have the popt library. */
 /* #undef HAVE_POPT */
@@ -539,7 +539,7 @@
 /* #undef HAVE_TINFO */
 
 /* Define to 1 if you have the tonezone library. */
-#define HAVE_TONEZONE 1
+/* #undef HAVE_TONEZONE */
 
 /* Define to 1 if you have the <unistd.h> header file. */
 #define HAVE_UNISTD_H 1
@@ -576,7 +576,7 @@
 /* #undef HAVE_VFORK_H */
 
 /* Define to 1 if you have the Vorbis library. */
-#define HAVE_VORBIS 1
+/* #undef HAVE_VORBIS */
 
 /* Define if your system has the VoiceTronix API libraries. */
 /* #undef HAVE_VPB */
@@ -606,52 +606,52 @@
 /* #undef LIBCURL_FEATURE_ASYNCHDNS */
 
 /* Defined if libcurl supports IDN */
-#define LIBCURL_FEATURE_IDN 1
+/* #undef LIBCURL_FEATURE_IDN */
 
 /* Defined if libcurl supports IPv6 */
-#define LIBCURL_FEATURE_IPV6 1
+/* #undef LIBCURL_FEATURE_IPV6 */
 
 /* Defined if libcurl supports KRB4 */
 /* #undef LIBCURL_FEATURE_KRB4 */
 
 /* Defined if libcurl supports libz */
-#define LIBCURL_FEATURE_LIBZ 1
+/* #undef LIBCURL_FEATURE_LIBZ */
 
 /* Defined if libcurl supports NTLM */
-#define LIBCURL_FEATURE_NTLM 1
+/* #undef LIBCURL_FEATURE_NTLM */
 
 /* Defined if libcurl supports SSL */
-#define LIBCURL_FEATURE_SSL 1
+/* #undef LIBCURL_FEATURE_SSL */
 
 /* Defined if libcurl supports SSPI */
 /* #undef LIBCURL_FEATURE_SSPI */
 
 /* Defined if libcurl supports DICT */
-#define LIBCURL_PROTOCOL_DICT 1
+/* #undef LIBCURL_PROTOCOL_DICT */
 
 /* Defined if libcurl supports FILE */
-#define LIBCURL_PROTOCOL_FILE 1
+/* #undef LIBCURL_PROTOCOL_FILE */
 
 /* Defined if libcurl supports FTP */
-#define LIBCURL_PROTOCOL_FTP 1
+/* #undef LIBCURL_PROTOCOL_FTP */
 
 /* Defined if libcurl supports FTPS */
-#define LIBCURL_PROTOCOL_FTPS 1
+/* #undef LIBCURL_PROTOCOL_FTPS */
 
 /* Defined if libcurl supports HTTP */
-#define LIBCURL_PROTOCOL_HTTP 1
+/* #undef LIBCURL_PROTOCOL_HTTP */
 
 /* Defined if libcurl supports HTTPS */
-#define LIBCURL_PROTOCOL_HTTPS 1
+/* #undef LIBCURL_PROTOCOL_HTTPS */
 
 /* Defined if libcurl supports LDAP */
-#define LIBCURL_PROTOCOL_LDAP 1
+/* #undef LIBCURL_PROTOCOL_LDAP */
 
 /* Defined if libcurl supports TELNET */
-#define LIBCURL_PROTOCOL_TELNET 1
+/* #undef LIBCURL_PROTOCOL_TELNET */
 
 /* Defined if libcurl supports TFTP */
-#define LIBCURL_PROTOCOL_TFTP 1
+/* #undef LIBCURL_PROTOCOL_TFTP */
 
 /* Define to 1 if `lstat' dereferences a symlink specified with a trailing
    slash. */

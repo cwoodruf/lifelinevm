@@ -44,8 +44,6 @@
 	<depend>misdn</depend>
 	<depend>suppserv</depend>
 </member>
-<member name="chan_multicast_rtp" displayname="Multicast RTP Paging Channel" remove_on_change="channels/chan_multicast_rtp.o channels/chan_multicast_rtp.so">
-</member>
 <member name="chan_nbs" displayname="Network Broadcast Sound Support" remove_on_change="channels/chan_nbs.o channels/chan_nbs.so">
 	<depend>nbs</depend>
 </member>

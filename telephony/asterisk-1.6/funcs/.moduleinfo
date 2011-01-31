@@ -7,8 +7,6 @@
 </member>
 <member name="func_blacklist" displayname="Look up Caller*ID name/number from blacklist database" remove_on_change="funcs/func_blacklist.o funcs/func_blacklist.so">
 </member>
-<member name="func_callcompletion" displayname="Call Control Configuration Function" remove_on_change="funcs/func_callcompletion.o funcs/func_callcompletion.so">
-</member>
 <member name="func_callerid" displayname="Caller ID related dialplan functions" remove_on_change="funcs/func_callerid.o funcs/func_callerid.so">
 </member>
 <member name="func_cdr" displayname="Call Detail Record (CDR) dialplan function" remove_on_change="funcs/func_cdr.o funcs/func_cdr.so">
@@ -16,8 +14,6 @@
 <member name="func_channel" displayname="Channel information dialplan functions" remove_on_change="funcs/func_channel.o funcs/func_channel.so">
 </member>
 <member name="func_config" displayname="Asterisk configuration file variable access" remove_on_change="funcs/func_config.o funcs/func_config.so">
-</member>
-<member name="func_connectedline" displayname="Connected Line dialplan function" remove_on_change="funcs/func_connectedline.o funcs/func_connectedline.so">
 </member>
 <member name="func_curl" displayname="Load external URL" remove_on_change="funcs/func_curl.o funcs/func_curl.so">
 	<depend>curl</depend>
@@ -58,13 +54,9 @@
 <member name="func_odbc" displayname="ODBC lookups" remove_on_change="funcs/func_odbc.o funcs/func_odbc.so">
 	<depend>res_odbc</depend>
 </member>
-<member name="func_pitchshift" displayname="Audio Effects Dialplan Functions" remove_on_change="funcs/func_pitchshift.o funcs/func_pitchshift.so">
-</member>
 <member name="func_rand" displayname="Random number dialplan function" remove_on_change="funcs/func_rand.o funcs/func_rand.so">
 </member>
 <member name="func_realtime" displayname="Read/Write/Store/Destroy values from a RealTime repository" remove_on_change="funcs/func_realtime.o funcs/func_realtime.so">
-</member>
-<member name="func_redirecting" displayname="Redirecting data dialplan function" remove_on_change="funcs/func_redirecting.o funcs/func_redirecting.so">
 </member>
 <member name="func_sha1" displayname="SHA-1 computation dialplan function" remove_on_change="funcs/func_sha1.o funcs/func_sha1.so">
 </member>
@@ -76,8 +68,6 @@
 	<use>speexdsp</use>
 </member>
 <member name="func_sprintf" displayname="SPRINTF dialplan function" remove_on_change="funcs/func_sprintf.o funcs/func_sprintf.so">
-</member>
-<member name="func_srv" displayname="SRV related dialplan functions" remove_on_change="funcs/func_srv.o funcs/func_srv.so">
 </member>
 <member name="func_strings" displayname="String handling dialplan functions" remove_on_change="funcs/func_strings.o funcs/func_strings.so">
 </member>
