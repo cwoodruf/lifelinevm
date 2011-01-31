@@ -270,8 +270,6 @@
 	<depend>misdn</depend>
 	<depend>suppserv</depend>
 </member>
-<member name="chan_multicast_rtp" displayname="Multicast RTP Paging Channel" remove_on_change="channels/chan_multicast_rtp.o channels/chan_multicast_rtp.so">
-</member>
 <member name="chan_nbs" displayname="Network Broadcast Sound Support" remove_on_change="channels/chan_nbs.o channels/chan_nbs.so">
 	<depend>nbs</depend>
 </member>
@@ -378,8 +376,6 @@
 </member>
 <member name="func_blacklist" displayname="Look up Caller*ID name/number from blacklist database" remove_on_change="funcs/func_blacklist.o funcs/func_blacklist.so">
 </member>
-<member name="func_callcompletion" displayname="Call Control Configuration Function" remove_on_change="funcs/func_callcompletion.o funcs/func_callcompletion.so">
-</member>
 <member name="func_callerid" displayname="Caller ID related dialplan functions" remove_on_change="funcs/func_callerid.o funcs/func_callerid.so">
 </member>
 <member name="func_cdr" displayname="Call Detail Record (CDR) dialplan function" remove_on_change="funcs/func_cdr.o funcs/func_cdr.so">
@@ -387,8 +383,6 @@
 <member name="func_channel" displayname="Channel information dialplan functions" remove_on_change="funcs/func_channel.o funcs/func_channel.so">
 </member>
 <member name="func_config" displayname="Asterisk configuration file variable access" remove_on_change="funcs/func_config.o funcs/func_config.so">
-</member>
-<member name="func_connectedline" displayname="Connected Line dialplan function" remove_on_change="funcs/func_connectedline.o funcs/func_connectedline.so">
 </member>
 <member name="func_curl" displayname="Load external URL" remove_on_change="funcs/func_curl.o funcs/func_curl.so">
 	<depend>curl</depend>
@@ -429,13 +423,9 @@
 <member name="func_odbc" displayname="ODBC lookups" remove_on_change="funcs/func_odbc.o funcs/func_odbc.so">
 	<depend>res_odbc</depend>
 </member>
-<member name="func_pitchshift" displayname="Audio Effects Dialplan Functions" remove_on_change="funcs/func_pitchshift.o funcs/func_pitchshift.so">
-</member>
 <member name="func_rand" displayname="Random number dialplan function" remove_on_change="funcs/func_rand.o funcs/func_rand.so">
 </member>
 <member name="func_realtime" displayname="Read/Write/Store/Destroy values from a RealTime repository" remove_on_change="funcs/func_realtime.o funcs/func_realtime.so">
-</member>
-<member name="func_redirecting" displayname="Redirecting data dialplan function" remove_on_change="funcs/func_redirecting.o funcs/func_redirecting.so">
 </member>
 <member name="func_sha1" displayname="SHA-1 computation dialplan function" remove_on_change="funcs/func_sha1.o funcs/func_sha1.so">
 </member>
@@ -447,8 +437,6 @@
 	<use>speexdsp</use>
 </member>
 <member name="func_sprintf" displayname="SPRINTF dialplan function" remove_on_change="funcs/func_sprintf.o funcs/func_sprintf.so">
-</member>
-<member name="func_srv" displayname="SRV related dialplan functions" remove_on_change="funcs/func_srv.o funcs/func_srv.so">
 </member>
 <member name="func_strings" displayname="String handling dialplan functions" remove_on_change="funcs/func_strings.o funcs/func_strings.so">
 </member>
@@ -499,25 +487,6 @@
 <member name="res_ais" displayname="SAForum AIS" remove_on_change="res/res_ais.o res/res_ais.so">
 	<depend>ais</depend>
 </member>
-<member name="res_calendar" displayname="Asterisk Calendar integration" remove_on_change="res/res_calendar.o res/res_calendar.so">
-</member>
-<member name="res_calendar_caldav" displayname="Asterisk CalDAV Calendar Integration" remove_on_change="res/res_calendar_caldav.o res/res_calendar_caldav.so">
-	<depend>neon</depend>
-	<depend>ical</depend>
-	<depend>libxml2</depend>
-</member>
-<member name="res_calendar_ews" displayname="Asterisk MS Exchange Web Service Calendar Integration" remove_on_change="res/res_calendar_ews.o res/res_calendar_ews.so">
-	<depend>neon29</depend>
-</member>
-<member name="res_calendar_exchange" displayname="Asterisk MS Exchange Calendar Integration" remove_on_change="res/res_calendar_exchange.o res/res_calendar_exchange.so">
-	<depend>neon</depend>
-	<depend>ical</depend>
-	<depend>iksemel</depend>
-</member>
-<member name="res_calendar_icalendar" displayname="Asterisk iCalendar .ics file integration" remove_on_change="res/res_calendar_icalendar.o res/res_calendar_icalendar.so">
-	<depend>neon</depend>
-	<depend>ical</depend>
-</member>
 <member name="res_clialiases" displayname="CLI Aliases" remove_on_change="res/res_clialiases.o res/res_clialiases.so">
 </member>
 <member name="res_clioriginate" displayname="Call origination and redirection from the CLI" remove_on_change="res/res_clioriginate.o res/res_clioriginate.so">
@@ -567,8 +536,6 @@
 	<conflict>win32</conflict>
 	<use>dahdi</use>
 </member>
-<member name="res_mutestream" displayname="Mute audio stream resources" remove_on_change="res/res_mutestream.o res/res_mutestream.so">
-</member>
 <member name="res_odbc" displayname="ODBC resource" remove_on_change="res/res_odbc.o res/res_odbc.so">
 	<depend>generic_odbc</depend>
 	<depend>ltdl</depend>
@@ -579,12 +546,6 @@
         <defaultenabled>no</defaultenabled>
 </member>
 <member name="res_realtime" displayname="Realtime Data Lookup/Rewrite" remove_on_change="res/res_realtime.o res/res_realtime.so">
-</member>
-<member name="res_rtp_asterisk" displayname="Asterisk RTP Stack" remove_on_change="res/res_rtp_asterisk.o res/res_rtp_asterisk.so">
-</member>
-<member name="res_rtp_multicast" displayname="Multicast RTP Engine" remove_on_change="res/res_rtp_multicast.o res/res_rtp_multicast.so">
-</member>
-<member name="res_security_log" displayname="Security Event Logging" remove_on_change="res/res_security_log.o res/res_security_log.so">
 </member>
 <member name="res_smdi" displayname="Simplified Message Desk Interface (SMDI) Resource" remove_on_change="res/res_smdi.o res/res_smdi.so">
 </member>

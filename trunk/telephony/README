@@ -32,7 +32,7 @@ I am running asterisk as the user asterisk in its own tree.
 The configure commands used to make the versions of asterisk were:
 
 cd asterisk-1.4 && \
-./configure --with-gsm=internal --prefix=/usr/local/asterisk-1.4 --enable-console
+./configure --with-gsm=internal --prefix=/usr/local/asterisk-1.4 --enable-dev-mode
 
 cd asterisk-1.6 && \
 ./configure --with-gsm=internal --prefix=/usr/local/asterisk-1.6 --enable-dev-mode
@@ -42,4 +42,14 @@ Then
 make && sudo su -c 'make install' asterisk
 
 I used a symlink /usr/local/asterisk to default to a specific version of asterisk (1.4 currently).
+
+Other notes:
+
+* The "--enable-dev-mode" option is probably not essential typically.
+
+* You may need to remove the menuselect.makeopts if you rebuild with a new version of asterisk
+
+* Version 1.6 changed substantially from June 2010 to January 2011 and may change substantially again.
+  This may mean having to manually update apps/app_readkey.c and apps/app_readkeys.c if there are major
+  updates in the future. 1.4 thankfully isn't being actively worked on.
 

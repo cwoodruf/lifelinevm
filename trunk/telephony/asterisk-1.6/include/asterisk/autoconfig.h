@@ -44,7 +44,7 @@
 #define HAVE_ALLOCA_H 1
 
 /* Define to 1 if you have the Advanced Linux Sound Architecture library. */
-#define HAVE_ALSA 1
+/* #undef HAVE_ALSA */
 
 /* Define to 1 if you have the <arpa/inet.h> header file. */
 #define HAVE_ARPA_INET_H 1
@@ -139,25 +139,25 @@
 #define HAVE_COSL 1
 
 /* Define to 1 if you have the OpenSSL Cryptography library. */
-#define HAVE_CRYPTO 1
+/* #undef HAVE_CRYPTO */
 
 /* Define to 1 if you have a functional curl library. */
-#define HAVE_CURL 1
+/* #undef HAVE_CURL */
 
 /* Define to 1 if you have the curses library. */
 #define HAVE_CURSES 1
 
 /* Define if your system has the DAHDI headers. */
-#define HAVE_DAHDI 1
+/* #undef HAVE_DAHDI */
 
 /* Define if your system has the DAHDI_HALF_FULL headers. */
-#define HAVE_DAHDI_HALF_FULL 1
+/* #undef HAVE_DAHDI_HALF_FULL */
 
 /* Define if your system has the DAHDI_LINEREVERSE_VMWI headers. */
-#define HAVE_DAHDI_LINEREVERSE_VMWI 1
+/* #undef HAVE_DAHDI_LINEREVERSE_VMWI */
 
 /* Define DAHDI headers version */
-#define HAVE_DAHDI_VERSION 230
+/* #undef HAVE_DAHDI_VERSION */
 
 /* Define to 1 if your system has /dev/urandom. */
 #define HAVE_DEV_URANDOM 1
@@ -287,7 +287,7 @@
 /* #undef HAVE_GTK */
 
 /* Define if your system has the GTK2 libraries. */
-#define HAVE_GTK2 1
+/* #undef HAVE_GTK2 */
 
 /* Define to 1 if you have the Hoard Memory Allocator library. */
 /* #undef HAVE_HOARD */
@@ -336,7 +336,7 @@
 /* #undef HAVE_JACK */
 
 /* Define to 1 if you have the OpenLDAP library. */
-#define HAVE_LDAP 1
+/* #undef HAVE_LDAP */
 
 /* Define to 1 if you have the <libintl.h> header file. */
 #define HAVE_LIBINTL_H 1
@@ -378,7 +378,7 @@
 #define HAVE_LOGL 1
 
 /* Define to 1 if you have the libtool library. */
-#define HAVE_LTDL 1
+/* #undef HAVE_LTDL */
 
 /* Define to 1 if you have the Lua library. */
 /* #undef HAVE_LUA */
@@ -432,7 +432,7 @@
 #define HAVE_NETINET_IN_H 1
 
 /* Define if your system has the NETSNMP libraries. */
-#define HAVE_NETSNMP 1
+/* #undef HAVE_NETSNMP */
 
 /* Define to 1 if you have the newt library. */
 /* #undef HAVE_NEWT */
@@ -444,7 +444,7 @@
 /* #undef HAVE_ODBC_WCHAR */
 
 /* Define to 1 if you have the OGG library. */
-#define HAVE_OGG 1
+/* #undef HAVE_OGG */
 
 /* Define to 1 if you have the OpenAIS library. */
 /* #undef HAVE_OPENAIS */
@@ -456,7 +456,7 @@
 /* #undef HAVE_OPENR2 */
 
 /* Define to 1 if you have the OpenSSL Secure Sockets Layer library. */
-#define HAVE_OPENSSL 1
+/* #undef HAVE_OPENSSL */
 
 /* Define this to indicate the ${OSPTK_DESCRIP} library */
 /* #undef HAVE_OSPTK */
@@ -468,10 +468,10 @@
 /* #undef HAVE_OSX_ATOMICS */
 
 /* Define to indicate the PostgreSQL library */
-#define HAVE_PGSQL 1
+/* #undef HAVE_PGSQL */
 
 /* Define to indicate presence of the pg_encoding_to_char API. */
-#define HAVE_PGSQL_pg_encoding_to_char 1
+/* #undef HAVE_PGSQL_pg_encoding_to_char */
 
 /* Define to 1 if your system defines IP_PKTINFO. */
 #define HAVE_PKTINFO 1
@@ -567,7 +567,7 @@
 /* #undef HAVE_SBIN_LAUNCHD */
 
 /* Define if your system has the SDL libraries. */
-#define HAVE_SDL 1
+/* #undef HAVE_SDL */
 
 /* Define to 1 if you have the Sdl Image library. */
 /* #undef HAVE_SDL_IMAGE */
@@ -609,7 +609,7 @@
 /* #undef HAVE_SQLITE */
 
 /* Define to 1 if you have the SQLite library. */
-#define HAVE_SQLITE3 1
+/* #undef HAVE_SQLITE3 */
 
 /* Define to 1 if you have the `sqrtl' function. */
 #define HAVE_SQRTL 1
@@ -800,7 +800,7 @@
 /* #undef HAVE_TINFO */
 
 /* Define to 1 if you have the tonezone library. */
-#define HAVE_TONEZONE 1
+/* #undef HAVE_TONEZONE */
 
 /* Define to 1 if you have the `trunc' function. */
 #define HAVE_TRUNC 1
@@ -846,7 +846,7 @@
 #define HAVE_VIDEODEV_H 1
 
 /* Define to 1 if you have the Vorbis library. */
-#define HAVE_VORBIS 1
+/* #undef HAVE_VORBIS */
 
 /* Define if your system has the VoiceTronix API libraries. */
 /* #undef HAVE_VPB */
@@ -867,10 +867,10 @@
 #define HAVE_WORKING_VFORK 1
 
 /* Define to 1 if you have the X11 library. */
-#define HAVE_X11 1
+/* #undef HAVE_X11 */
 
 /* Define to the version of the X11 library. */
-#define HAVE_X11_VERSION standard_path
+/* #undef HAVE_X11_VERSION */
 
 /* Define to 1 if you have the zlib compression library. */
 #define HAVE_ZLIB 1
@@ -882,52 +882,52 @@
 /* #undef LIBCURL_FEATURE_ASYNCHDNS */
 
 /* Defined if libcurl supports IDN */
-#define LIBCURL_FEATURE_IDN 1
+/* #undef LIBCURL_FEATURE_IDN */
 
 /* Defined if libcurl supports IPv6 */
-#define LIBCURL_FEATURE_IPV6 1
+/* #undef LIBCURL_FEATURE_IPV6 */
 
 /* Defined if libcurl supports KRB4 */
 /* #undef LIBCURL_FEATURE_KRB4 */
 
 /* Defined if libcurl supports libz */
-#define LIBCURL_FEATURE_LIBZ 1
+/* #undef LIBCURL_FEATURE_LIBZ */
 
 /* Defined if libcurl supports NTLM */
-#define LIBCURL_FEATURE_NTLM 1
+/* #undef LIBCURL_FEATURE_NTLM */
 
 /* Defined if libcurl supports SSL */
-#define LIBCURL_FEATURE_SSL 1
+/* #undef LIBCURL_FEATURE_SSL */
 
 /* Defined if libcurl supports SSPI */
 /* #undef LIBCURL_FEATURE_SSPI */
 
 /* Defined if libcurl supports DICT */
-#define LIBCURL_PROTOCOL_DICT 1
+/* #undef LIBCURL_PROTOCOL_DICT */
 
 /* Defined if libcurl supports FILE */
-#define LIBCURL_PROTOCOL_FILE 1
+/* #undef LIBCURL_PROTOCOL_FILE */
 
 /* Defined if libcurl supports FTP */
-#define LIBCURL_PROTOCOL_FTP 1
+/* #undef LIBCURL_PROTOCOL_FTP */
 
 /* Defined if libcurl supports FTPS */
-#define LIBCURL_PROTOCOL_FTPS 1
+/* #undef LIBCURL_PROTOCOL_FTPS */
 
 /* Defined if libcurl supports HTTP */
-#define LIBCURL_PROTOCOL_HTTP 1
+/* #undef LIBCURL_PROTOCOL_HTTP */
 
 /* Defined if libcurl supports HTTPS */
-#define LIBCURL_PROTOCOL_HTTPS 1
+/* #undef LIBCURL_PROTOCOL_HTTPS */
 
 /* Defined if libcurl supports LDAP */
-#define LIBCURL_PROTOCOL_LDAP 1
+/* #undef LIBCURL_PROTOCOL_LDAP */
 
 /* Defined if libcurl supports TELNET */
-#define LIBCURL_PROTOCOL_TELNET 1
+/* #undef LIBCURL_PROTOCOL_TELNET */
 
 /* Defined if libcurl supports TFTP */
-#define LIBCURL_PROTOCOL_TFTP 1
+/* #undef LIBCURL_PROTOCOL_TFTP */
 
 /* Define to 1 if `lstat' dereferences a symlink specified with a trailing
    slash. */
