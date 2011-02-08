@@ -560,12 +560,12 @@ HTML;
    title="$defprices" alt="$defprices">click to add defaults</a>
 </td></tr> 
 HTML;
+	} else {
 		if ($vend['llphone'] == "") $llphone = DEFPHONE;
 		else $llphone = $vend['llphone'];
 		$llphoneform = <<<HTML
 <tr><td> incoming phone </td><td> <input name="vend[llphone]" value="$llphone"></td></tr> 
 HTML;
-	} else {
 		if ($vend['parent'] != '') {
 			$parent = <<<HTML
 <tr>
@@ -599,21 +599,16 @@ HTML;
 $llphoneform
 <tr><td> vendor </td><td><input name="vend[vendor]" size=60 value="$vendor"></td></tr>
 <tr><td> notes </td><td><input name="vend[notes]" size=60 value="{$vend['notes']}"></td></tr>
-<tr><td> created </td><td> {$vend['created']} </td></tr>
-$parent
 <tr><td> address </td><td><input name="vend[address]" size=60 value="{$vend['address']}"></td></tr>
 <tr><td> phone </td><td><input name="vend[phone]" size=60 value="{$vend['phone']}"></td></tr>
 <tr><td> contact </td><td><input name="vend[contact]" size=60 value="{$vend['contact']}"></td></tr>
 <tr><td> email </td><td><input name="vend[email]" size=60 value="{$vend['email']}"></td></tr>
 <tr><td> fax </td><td><input name="vend[fax]" size=60 value="{$vend['fax']}"></td></tr>
-<tr><td> gst exempt </td><td> 
-	<input type=radio name=gstexempt value=0 $hasgst> No 
-	<input type=radio name=gstexempt value=1 $nogst> Yes</td></tr>
 $rateform
-<tr><td> months </td><td> {$vend['months']} </td></tr>
 <tr><td> gst number </td><td><input name="vend[gst_number]" size=60 value="{$vend['gst_number']}"></td></tr>
 $boxlimit
-<tr><td> status </td><td> {$vend['status']} </td></tr>
+<tr><td> updated </td><td> {$vend['created']} </td></tr>
+$parent
 </table>
 HTML;
 }
