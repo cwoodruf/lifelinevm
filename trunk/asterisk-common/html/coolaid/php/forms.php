@@ -4,7 +4,7 @@ require_once("php/coolaid-schema.php");
 $back = "<a href=/coolaid/admin.php>Back to admin</a>";
 $table = table_header();
 
-function table_header($cp=5,$cs=0,$b=0,$w=450,$style='') {
+function table_header($cp=5,$cs=0,$b=0,$w=550,$style='') {
 	return "<table cellpadding=$cp cellspacing=$cs border=$b width=$w $style>";
 }
 
@@ -130,7 +130,7 @@ HTML;
 	) {
 		$addtime_buttons = <<<HTML
 <input type=submit name=form value="Create a new voicemail box"> <p>
-<input type=submit name=form value="Add time to an existing box"> <p>
+<!-- <input type=submit name=form value="Add time to an existing box"> <p> -->
 HTML;
 	}
 
