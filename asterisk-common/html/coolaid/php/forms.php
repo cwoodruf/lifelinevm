@@ -336,12 +336,14 @@ function create_new_box($data) {
 		if (!preg_match('#^\d\d?$#',$boxes) or $boxes <= 0) die("create_new_box: invalid number of boxes");
 		if ($boxes > MAXBOXES) die("please select a smaller number of boxes than ".MAXBOXES);
 	}
-
+/*
+not needed by coolaid
 	$months = $_REQUEST['months'];
 	if (!preg_match('#^\d\d?$#',$months) or $months < 0) die("create_new_box: invalid number of months");
 	if ($months > MAXMONTHS) die("please select a smaller number of months than ".MAXMONTHS);
 
 	$totalmonths = $months * $boxes;
+*/
 	$vid = $ldata['vid'];
 
 	$llphone = $_REQUEST['personal']['llphone'];
@@ -496,7 +498,6 @@ function new_box_instructions($data,$box,$seccode,$amount,$personal) {
 $top
 $table
 <tr><td><b>Extension:</b></td><td><a href="?form=Search+Boxes&search=$box">{$bdata['llphone']} Ext $box</a></td></tr>
-<tr><td><b>Status:</b></td><td>{$bdata['status']} $paidto</td></tr>
 <tr><td><b>Name:</b></td><td>{$personal['name']}</td></tr>
 <tr><td><b>Paid to:</b></td><td>{$personal['paidto']}</td></tr>
 <tr><td><b>Status:</b></td><td>{$personal['status']}</td></tr>
