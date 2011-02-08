@@ -12,7 +12,8 @@ use File::Copy;
 use Time::Local qw/timelocal_nocheck/;
 no strict;
 our $salt;
-do 'Lifeline/salt';
+our $saltfile = 'Lifeline/salt';
+do $saltfile;
 use strict;
 
 # auto flush
@@ -80,6 +81,15 @@ sub init {
 	my $db_engine = $ll->get('db_engine');
 	my $db_host = $ll->get('db_host') || 'localhost';
 	my $db_port = $ll->get('db_port');
+	my $db_saltfile = $ll->get('db_saltfile') || $saltfile;
+print STDERR "saltfile $db_saltfile\n";
+	if ($db_saltfile ne $saltfile) {
+		no strict;
+print STDERR "salt $salt\n";
+		do $db_saltfile;
+print STDERR "salt $salt now\n";
+		use strict;
+	}
 	# required asterisk variables
 	if ($db_name !~ /^\w+$/ or $db_user eq '' or $db_secret eq '') {
 		die "missing database login information!";
