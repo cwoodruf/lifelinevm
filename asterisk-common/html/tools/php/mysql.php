@@ -14,12 +14,14 @@ function get_salestax($idate) {
 $net_due = 30; # grace period for paying invoices in days
 $min_months = 4; # minimum # months you can buy
 # personal information associated with a box
-$personal_fields = array(
-	'name' => 'Name',
-	'email' => 'Email',
-	'notes' => 'Notes',
-	'llphone' => 'Phone',
-);
+if (!isset($personal_fields)) {
+	$personal_fields = array(
+		'name' => 'Name',
+		'email' => 'Email',
+		'notes' => 'Notes',
+		'llphone' => 'Phone',
+	);
+}
 
 function squashedphone($phone) {
 	$squashedphone = preg_replace('#.*?((?:\d\D*){10}).*#',"$1",$phone);

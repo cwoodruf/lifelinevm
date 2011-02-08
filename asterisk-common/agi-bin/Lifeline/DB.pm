@@ -5,7 +5,7 @@ use Exporter;
 use DBI;
 our @ISA = qw/Exporter/;
 
-our @EXPORT = qw/$lldatafile @llmsgdirs $llmsgdir $coolaidmsgdir $ldb $lleol ll_deleted_boxes ll_revert_unused/;
+our @EXPORT = qw/$coolaiddatafile $lldatafile @llmsgdirs $llmsgdir $coolaidmsgdir $ldb $lleol ll_deleted_boxes ll_revert_unused/;
 
 our $username;
 our $password;
@@ -48,6 +48,7 @@ sub mkldb {
 }
 
 our $lldatafile = "/usr/local/asterisk/Lifeline/users.csv";
+our $coolaiddatafile = "/usr/local/asterisk/coolaid-msgs/lifeline/USERS.CSV";
 our $llmsgdir = "/usr/local/asterisk/lifeline-msgs";
 our $coolaidmsgdir = "/usr/local/asterisk/coolaid-msgs";
 our @llmsgdirs = ($llmsgdir, $coolaidmsgdir);
@@ -56,10 +57,11 @@ our $lleol = 90;
 
 # just get a list of deleted boxes
 sub ll_deleted_boxes {
-	my ($dh) = @_;
+	my ($dh,$table) = @_;
+	$table = 'boxes' unless defined $table;
 	$dh = $ldb unless defined $dh;
 	my %delbox;
-	my $getq = "select box from boxes where status = 'deleted'";
+	my $getq = "select box from $table where status = 'deleted'";
 	my $get = $dh->prepare($getq);
 	$get->execute or die $get->errstr;
 	while (my $row = $get->fetch) {

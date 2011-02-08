@@ -14,19 +14,20 @@ my $target = shift;
 $target = "/usr/local/asterisk/lifeline-msgs" if $target eq '';
 die "target $target is not a directory!" unless -d $target;
 
-my $delbox = ll_deleted_boxes();
+my $delbox = ll_deleted_boxes($ldb, 'coolaid.boxes');
 
 opendir SRC, $source or die "can't open directory $source: $!";
 
 while (my $item = readdir(SRC)) { 
 	next unless -f "$source/$item";
-next unless $item =~ /^513/;
 	next unless $item =~ m#(\d{4})(\d*)\.(MSG|GRT)$#;
 	my ($box,$msg,$type) = ($1,$2,$3);
+
 	if ($delbox->{$box}) {
 		print "box $box deleted ignoring $item\n";
 		next;
 	}
+
 	my $infile = "$source/$item";
 	$box = "$target/$box";
 	mkpath("$box/messages") or die "can't make $box/messages: $!" unless -d "$box/messages";
