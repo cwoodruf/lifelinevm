@@ -495,6 +495,8 @@ $table
 <tr><td><b>Extension:</b></td><td><a href="?form=Search+Boxes&search=$box">{$bdata['llphone']} Ext $box</a></td></tr>
 <tr><td><b>Status:</b></td><td>{$bdata['status']} $paidto</td></tr>
 <tr><td><b>Name:</b></td><td>{$personal['name']}</td></tr>
+<tr><td><b>Paid to:</b></td><td>{$personal['paidto']}</td></tr>
+<tr><td><b>Status:</b></td><td>{$personal['status']}</td></tr>
 <tr><td><b>Email:</b></td><td>{$personal['email']}</td></tr>
 <tr><td><b>Amount:</b></td><td>{$amount}</td></tr>
 <tr valign=top><td><b>Notes:</b></td><td>{$personal['notes']}</td></tr>
@@ -632,11 +634,21 @@ function mk_personal_input($bdata=array(),$vend=null) {
 		$phlen = strlen($myphone)+1;
 		$phonesel = "<input name=\"personal[llphone]\" value=\"$myphone\" size=\"$phlen\">";
 	}
+	$mystatus = $bdata['status']?$bdata['status']:'uses paidto date';
 	return <<<HTML
 <p>
 $table
 <tr><td><nobr>VM Phone:</nobr></td><td>$phonesel (incoming voicemail number)</td></tr>
 <tr><td>Name:</td><td><input size=32 name="personal[name]" value="{$bdata['name']}"></td></tr>
+<tr><td>Paid to:</td><td><input size=32 name="personal[paidto]" value="{$bdata['paidto']}"></td></tr>
+<tr><td>Status:</td><td>
+<select name="personal[status]">
+<option value="{$bdata['status']}" selected>$mystatus</option>
+<option value="">uses paidto date</option>
+<option value="permanent">permanent</option>
+<option value="deleted">deleted</option>
+</select>
+</td></tr>
 <tr valign=top>
     <td>Email:</td>
     <td><input size=40 name="personal[email]" value="{$bdata['email']}"><br>
@@ -1155,7 +1167,7 @@ function search_form($data) {
 <input type=submit name=form value="Search Boxes">
 <br>
 Boxes: &nbsp;
-<a href="admin.php?form=Search Boxes&search=add [0-9]* months&vid={$data['vid']}">Show unused</a> &nbsp;&nbsp;
+<!-- <a href="admin.php?form=Search Boxes&search=add [0-9]* months&vid={$data['vid']}">Show unused</a> &nbsp;&nbsp; -->
 <a href="admin.php?form=Search Boxes&search=-deleted">Show active</a> &nbsp;&nbsp;
 <a href="admin.php?form=Search Boxes&search=">Show all</a> &nbsp;&nbsp;
 <a href="admin.php?form=Search Boxes&search=deleted&vid={$data['vid']}">Show deleted</a> &nbsp;&nbsp;
@@ -1190,11 +1202,13 @@ HTML;
 <a href="index.php?box=$box&seccode={$row['seccode']}&llphone={$row['llphone']}"
    target=_blank>instructions</a>
 HTML;
+/* not needed for coolaid
 		if ($permcheck['boxes']) {
 			$add = "$url$box&form=add\">add</a>";
 			$sub = "$url$box&form=sub\">subtract</a>";
 			$del = "$url$box&form=del\">delete</a>";
 		}
+*/
 		# removed to avoid potential privacy complaints 
 		# and to allow us to put vm and web on different servers more easily
 		$msg = "$url$box&listen=1\">messages</a>";
@@ -1228,7 +1242,7 @@ $notesbr$loginbr
 <td><nobr>show <a href="admin.php?form=Call+Activity&box=$box">activity</a> / $edit box &nbsp;&nbsp;</nobr></td>
 <td>
 <nobr>
-$add or $sub time $div $del box $div $chsc $div $instr
+<!-- $add or $sub time $div $del box $div --> $chsc $div $instr
 </nobr>
 </td>
 </tr>
