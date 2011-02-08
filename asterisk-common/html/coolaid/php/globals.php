@@ -26,12 +26,12 @@ define("INVOICEBLOCKED", INVOICEOVERDUE + 30);
 define("LOGINOUTPUTLIMIT",100);
 
 # default phone number if the vendor doesn't have a phone associated with them
-define("DEFPHONE","778 410-2093"); # this is just a victoria test number from link2voip.com
+define("DEFPHONE","250 383-5144"); # this is just a victoria test number from link2voip.com
 $phone = DEFPHONE;
 
 # where things are
 $lib = '/usr/local/asterisk/html/tools/php';
-define("SALTFILE","/usr/local/asterisk/agi-bin/Lifeline/salt");
+define("SALTFILE","/usr/local/asterisk/agi-bin/Lifeline/salt-coolaid");
 $asterisk = '/usr/local/asterisk/sbin/asterisk';
 $asterisk_dir = "/usr/local/asterisk/var/lib/asterisk";
 $asterisk_sounds = "$asterisk_dir/sounds";
@@ -87,3 +87,13 @@ $lightgray = '#E3E3E3';
 define("DBLOGINFILE","$lib/.mysql.php");
 $ll_dbname = 'coolaid';
 eval(file_get_contents("/usr/local/asterisk/agi-bin/Lifeline/database"));
+# personal information associated with a box - this should override mysql.php
+$personal_fields = array(
+        'name' => 'Name',
+        'email' => 'Email',
+        'paidto' => 'Paid to',
+        'status' => 'Status',
+        'notes' => 'Notes',
+        'llphone' => 'Phone',
+);
+
