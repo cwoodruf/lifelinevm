@@ -259,6 +259,8 @@ $boxeswidget
 <br>
 <span id="entrydesc" style="font-style: italic; font-size: small;">click * to enter a specific box number</span>
 <br>
+<!--
+Not needed for coolaid
 Valid for &nbsp; 
 <input size=2 name=months value="$months"
  onchange="getElementById('payment_amount').value=get_retail_price(this.value);"
@@ -267,6 +269,7 @@ Valid for &nbsp;
 <span id="entrydesc" style="font-style: italic; font-size: small; font-weight: bold;">
 enter 0 months for a unlimited time box</span>
 <br>
+-->
 $personal
 $payment_form
 <br>
@@ -640,7 +643,7 @@ function mk_personal_input($bdata=array(),$vend=null) {
 $table
 <tr><td><nobr>VM Phone:</nobr></td><td>$phonesel (incoming voicemail number)</td></tr>
 <tr><td>Name:</td><td><input size=32 name="personal[name]" value="{$bdata['name']}"></td></tr>
-<tr><td>Paid to:</td><td><input size=32 name="personal[paidto]" value="{$bdata['paidto']}"></td></tr>
+<tr><td>Paid to:</td><td><input size=20 name="personal[paidto]" value="{$bdata['paidto']}"> YYYY-MM-DD</td></tr>
 <tr><td>Status:</td><td>
 <select name="personal[status]">
 <option value="{$bdata['status']}" selected>$mystatus</option>
