@@ -2,7 +2,13 @@
 <head>
 <title>Lifeline Voice Mail Society</title>
 <link rel=stylesheet type=text/css href="css/index.css">
+<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.4.2/jquery.min.js"></script>
 <script type=text/javascript>
+function toggle(what) {
+	$('.panel').each(function () { $(this).css('visibility','hidden');}); 
+	$(what).css('visibility','visible');
+}
+
 var slartybartfast = '@';
 var ignoreme = '';
 ignoreme = ignoreme + '<'; ignoreme = ignoreme + 'a'; ignoreme = ignoreme + ' '; ignoreme = ignoreme + 'h'; ignoreme = ignoreme + 'r'; ignoreme = ignoreme + 'e'; ignoreme = ignoreme + 'f'; ignoreme = ignoreme + '='; ignoreme = ignoreme + '"'; ignoreme = ignoreme + 'm'; ignoreme = ignoreme + 'a'; ignoreme = ignoreme + 'i'; ignoreme = ignoreme + 'l'; ignoreme = ignoreme + 't'; ignoreme = ignoreme + 'o'; ignoreme = ignoreme + ':'; ignoreme = ignoreme + 'v'; ignoreme = ignoreme + 'm'; ignoreme = ignoreme + 'a'; ignoreme = ignoreme + 'i'; ignoreme = ignoreme + 'l'; ignoreme = ignoreme + 't';
@@ -12,13 +18,12 @@ var ignoreend = ""; ignoreend = ignoreend + '<'; ignoreend = ignoreend + '/'; ig
 </script>
 </head>
 <body vlink=#660099 link=#686868 alink=#686868 bgcolor=lightyellow>
-<table cellpadding=10 width=900><tr>
-<td valign="top">
-	<img class="logo" src=/images/phone_guy.gif width=200 height=200>
-</td>
+<div class="logo">
+<img src="images/Lifeline.gif" alt="Lifeline Voice Mail Society" title="Lifeline Voice Mail Society">
+</div>
+<table cellpadding=10 width=690><tr>
 <td>
 	<div class="intro">
-	<h1>Lifeline Voice Mail</h1>
 	Need a <b>phone number</b> but don't want the hassle and expense of a cell or land line phone?<br>
 	We are a <b>non-profit voice mail provider</b> located in Vancouver, BC. We provide affordable<br>
 	voice mail <i>virtual phone numbers</i>. Anyone can leave you a message with your virtual phone<br>
@@ -30,65 +35,45 @@ var ignoreend = ""; ignoreend = ignoreend + '<'; ignoreend = ignoreend + '/'; ig
 	</script>
 	</div>
 	<div class="menu">
-	<a href="#getvoicemail" class="hoverhilite">Get Voice Mail!</a>
-	<a href="#news" class="hoverhilite">News</a>
-	<a href="#groups" class="hoverhilite">Community Groups</a>
-	<a href="#links" class="hoverhilite">Links</a>
+	<a href="javascript: void(0);" onclick="toggle('#getvm');"  class="hoverhilite">Get Voice Mail!</a>
+	<a href="javascript: void(0);" onclick="toggle('#news');"   class="hoverhilite">News</a>
+	<a href="javascript: void(0);" onclick="toggle('#groups');" class="hoverhilite">Community Groups</a>
+	<a href="javascript: void(0);" onclick="toggle('#links');" class="hoverhilite">Links</a>
 	</div>
-	<div class="retail-top">
+
+<!-- start of toggled panels -->
+	<div id="getvm" class="panel retail-top">
 	<a name="getvoicemail">
 	<h2>Get a Voice Mail <i>Virtual Phone!</i></h2>
 	<div class="retail">
-	Welcome to our newest <b>retail partner</b> 
-	<nobr><a href="http://mission-possible.ca/" class="retail">Mission Possible</a></nobr>! 
-	You can get voice mail in person at Mission Possible 
-	<nobr><b>Monday to Friday 9 AM to 3 PM.</b></nobr>
-	<nobr><a href="http://mission-possible.ca/" class="retail">Mission Possible</a></nobr> is located at 
+	Our newest retail partner is
+	<nobr><a href="http://mission-possible.ca/" class="retail">Mission Possible</a></nobr> 
+	located at 
 	<nobr><a href="http://maps.google.com/?q=543 Powell Street, Vancouver, BC, Canada" class="retail">
 	543 Powell Street</a></nobr> just east of Oppenheimer park in Vancouver.
+	<p>
+	You can get voice mail in person at Mission Possible 
+	<nobr><b>Monday to Friday 9 AM to 3 PM.</b></nobr>
 	</div>
 
 	<h2>Pay for voicemail online or by mail</h2>
 
-	<table cellpadding=10 cellspacing=0 border=1 width=100% bgcolor=#FFFFFF>
-	<tr valign=top><td width=50%>
 	<a name="bymail">
-	<nobr><b>Pay by mail</b></nobr> and
-	<span class="yell">
-	save $3.00</span> 
+	<table cellpadding=10 cellspacing=0 border=1 width=100% bgcolor=#FFFFFF>
+	<tr valign=top><td width=42%>
+	<b>Pay by mail</b>
 	<p>
-	<i style="size: small; color: #0F0F0F; margin: 10px">Use a convenient online form:</i>
+	<i class="mailin-instructions">Use a convenient online form:</i>
 	<p>
 	<ul>
-	<li><i><a href="pay.php?months=6">Buy <b>6 months</b> now for $12 <br>(was $15.00)</a></i><br><br>
-	<li><i><a href="pay.php?months=12">Buy <b>1 year</b> now for $22 <br>(was $25.00)</a></i><br><br>
+	<li><i><a href="pay.php?months=6">Buy <b>6 months</b> for $15.00</a></i><br><br>
+	<li><i><a href="pay.php?months=12">Buy <b>1 year</b> for $25.00</a></i><br><br>
 	</ul>
 
-	</td><td width=50%>
+	</td><td width=58%>
 
-	Or <b>pay online</b> with <b><a href="https://www.paypal.com">Paypal</a>:</b><br>
-<!--
-	<form action="https://www.paypal.com/cgi-bin/webscr" method="post">
-	<input type="hidden" name="cmd" value="_s-xclick">
-	<input type="hidden" name="hosted_button_id" value="SYCNHQJR8AG6W">
-	<table>
-	<tr><td><input type="hidden" name="on0" value="months"></td></tr><tr><td><select name="os0">
-	<option value="6 Months">6 Months $15.00</option>
-	<option value="12 Months">12 Months $25.00</option>
-	</select> </td></tr>
-	<tr><td>
-	<input type="hidden" name="on1" value="Your voice mail box number">
-	Your voice mail box number:<br></td></tr>
-	<tr><td><input type="text" name="os1" maxlength="60" value=""><br>
-	<i style="font-size: small">Enter "new subscription" if you do not have a voice mail box yet.</i>
-	</td></tr>
-	</table>
-	<input type="hidden" name="currency_code" value="CAD">
-	<input type="image" src="https://www.paypal.com/en_US/i/btn/btn_buynowCC_LG.gif" 
-		border="0" name="submit" alt="PayPal - The safer, easier way to pay online!">
-	<img alt="" border="0" src="https://www.paypal.com/en_US/i/scr/pixel.gif" width="1" height="1">
-	</form>
--->
+	<b>Pay online</b> with <b><a href="https://www.paypal.com">Paypal</a>:</b>
+	<p>
 <form action="https://www.paypal.com/cgi-bin/webscr" method="post">
 <input type="hidden" name="cmd" value="_xclick">
 <input type="hidden" name="business" value="lifelinevoicemailsociety@gmail.com">
@@ -101,7 +86,9 @@ var ignoreend = ""; ignoreend = ignoreend + '<'; ignoreend = ignoreend + '/'; ig
 <input type="hidden" name="shipping" value="0.00">
 <input type="hidden" name="bn" value="PP-BuyNowBF:btn_buynowCC_LG.gif:NonHostedGuest">
 <table>
-<tr><td><input type="hidden" name="on0" value="subscription">subscription</td></tr><tr><td><select name="os0">
+<tr><td>
+	<input type="hidden" name="on0" value="subscription">
+	<select name="os0">
 	<option value="6 Months">6 Months $15.00</option>
 	<option value="12 Months">12 Months $25.00</option>
 </select> </td></tr>
@@ -119,10 +106,9 @@ var ignoreend = ""; ignoreend = ignoreend + '<'; ignoreend = ignoreend + '/'; ig
 <input type="image" src="https://www.paypal.com/en_US/i/btn/btn_buynowCC_LG.gif" border="0" name="submit" alt="PayPal - The safer, easier way to pay online!">
 <img alt="" border="0" src="https://www.paypal.com/en_US/i/scr/pixel.gif" width="1" height="1">
 </form>
-
 	</td></tr></table>
 	</div>
-	<div class="news">
+	<div id="news" class="panel hide">
 	<a name="news">
 	<h3>News</h3>
 	<p><b>Get email reminders</b> for your messages.  
@@ -140,22 +126,22 @@ var ignoreend = ""; ignoreend = ignoreend + '<'; ignoreend = ignoreend + '/'; ig
 	Instead use our convenient <a href="#bymail">mail in form</a>.
 	</div>
 
-	<div class="groups">
+	<div id="groups" class="panel hide">
 	<a name="groups">
 	<h3>Community Groups</h3>
 	Do you work with disadvantaged or low income people? Enhance the services you offer with voice mail 
 	<u>virtual phone numbers</u> for your clients.
 	<p>
-	We offer a <u>turn key</u> system with <b>no equipment or technical expertise required</b> that
+	We offer a <u>turn key</u> system with no equipment or technical expertise required that
 	makes it easy to administer a small or large number of voice mail clients allowing you to
 	concentrate on the vital services you provide. We are particularly interested in groups who
-	are willing to accept clients on a walk-in basis. Don't forget to ask about our <b>free trial.</b>
+	are willing to accept clients on a walk-in basis.
 	<p>
 	<script>document.write(ignoreme);</script>Em<alskg>ai<alskjg>l us<script>document.write(ignoreend);</script>
 	for more information.
 	</div>
 	
-	<div class="links">
+	<div id="links" class="panel hide">
 	<a name="links">
 	<h4>Links</h4>
 	<ul>
