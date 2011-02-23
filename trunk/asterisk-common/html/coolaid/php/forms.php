@@ -264,7 +264,7 @@ HTML;
 	$end = form_end($data);
 	$trans = ll_generate_trans($vend,'boxes');
 	$personal = mk_personal_input(null,$vend);
-	$payment_form = payment_form($box,defpayment($vend,$months));
+	# redundant for coolaid: $payment_form = payment_form($box,defpayment($vend,$months));
 	return <<<HTML
 $top
 <input type=hidden name=trans value="$trans">
