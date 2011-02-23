@@ -371,7 +371,7 @@ not needed by coolaid
 		list ($box,$seccode,$paidto) = 
 			ll_new_box($trans,$vend,$months,$llphone,$min_box,$max_box,'ll_check_boxlimit');
 		$amount = ll_update_payment($box,$vid,$ldata['login'],$months,$_REQUEST['payment']);
-		ll_update_personal($vend,$box,$_REQUEST['personal']);
+		update_personal($data,($update=false),$box,'created box');
 
 		return new_box_instructions($data,$box,$seccode,$amount,$_REQUEST['personal']);
 	}
@@ -380,7 +380,7 @@ not needed by coolaid
 		list ($box,$seccode,$paidto) = 
 			ll_new_box($trans,$vend,$months,$llphone,$min_box,$max_box,'ll_check_boxlimit');
 		$amount = ll_update_payment($box,$vid,$ldata['login'],$months,$_REQUEST['payment'],$boxes);
-		ll_update_personal($vend,$box,$_REQUEST['personal']);
+		update_personal($data,($update=false),$box,'created box');
 
 		$bdata = $_REQUEST['personal'];
 		$bdata['box'] = $box;
@@ -1057,14 +1057,15 @@ $end;
 HTML;
 }
 
-function update_personal($data) {
+function update_personal($data,$update=true,$box=null,$notes=null) {
 	global $table, $vend,$ldata;
 	$top = form_top($data);
 	$end = form_end($data);
-	$box = $_REQUEST['box'];
+	$box = ($box == null) ? $_REQUEST['box']: $box;
 	if (!preg_match('#^\d+$#',$box)) 
 		die("update_personal: box should be a number not $box!");
 
+/* not needed by coolaid
 	if (preg_match('#^\s*(2\d\d\d-\d\d-\d\d)#',$_REQUEST['startdate'],$m)) {
 		$startdate = $m[1];
 		$onemonth = date('Y-m-d',strtotime('+2 weeks'));
@@ -1073,12 +1074,16 @@ function update_personal($data) {
 		ll_set_paidto($box,$startdate);
 		$notes = "Start date added";
 	} else {
-		$notes = "Edited personal data";
-	}
+*/
+		if ($notes == null) {
+			$notes = "status: ".$_REQUEST['personal']['status'];
+			if (!$notes) $notes = "Edited personal data";
+		}
+#	}
 
 	# try and figure out the number of months from the date - this is probably going to make errors sometimes
-	$bdata = ll_box($box);
-	if ($bdata['paidto'] == '0000-00-00') $bdata['paidto'] = date('Y-m-d');
+	if ($update) $bdata = ll_box($box);
+	if (!$update or $bdata['paidto'] == '0000-00-00') $bdata['paidto'] = date('Y-m-d');
 	$months = round((strtotime($_REQUEST['personal']['paidto']) - strtotime($bdata['paidto'])) / (30 * 86400));
 	if ($months < 0) $months = 0;
 
