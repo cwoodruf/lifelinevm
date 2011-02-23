@@ -34,6 +34,14 @@ sub mkdsn {
 	$dsn;
 }
 
+sub drdatadb {
+	no strict;
+	do '/home/asterisk/agi/Lifeline/drdatadb';
+	my $dsn = &mkdsn($drdatahost,$drdataport);
+	DBI->connect($dsn,$drdatauser,$drdatapass) or die DBI::errstr;
+	use strict;
+}
+
 sub mkdbh {
 	my ($dbname) = @_;
 	my $dsn = &mkdsn($host,$port,$dbname);
