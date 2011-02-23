@@ -33,12 +33,25 @@ function get_retail_price(months) {
 </script>
 JS;
 	}
+	$calendar_script = <<<JS
+<link rel="stylesheet" href="css/jquery.calendar.css" type="text/css" media="screen" />
+<script type="text/javascript" src="js/jquery-1.5.min.js"></script>
+<script type="text/javascript" src="js/jquery.calendar.js"></script>
+<script type="text/javascript">
+$(document).ready(function() {
+    $('#date-input').calendar({
+        triggerElement: '#date-input-trigger'
+    });
+});
+</script>
+JS;
 	return <<<HTML
 <html>
 <head>
 <title>Voicemail Admin: $title</title>
 <link rel=stylesheet type=text/css href=/coolaid/css/admin.css>
 $retail_script
+$calendar_script
 </head>
 <body bgcolor=$verylightgray>
 HTML;
@@ -644,7 +657,12 @@ function mk_personal_input($bdata=array(),$vend=null) {
 $table
 <tr><td><nobr>VM Phone:</nobr></td><td>$phonesel (incoming voicemail number)</td></tr>
 <tr><td>Name:</td><td><input size=32 name="personal[name]" value="{$bdata['name']}"></td></tr>
-<tr><td>Paid to:</td><td><input size=20 name="personal[paidto]" value="{$bdata['paidto']}"> YYYY-MM-DD</td></tr>
+<tr><td>Paid to:</td>
+<td>
+<input size=10 id="date-input" name="personal[paidto]" value="{$bdata['paidto']}"> YYYY-MM-DD
+<img src="images/calendar.png" id="date-input-trigger" alt="calendar" title="click to open a calendar" 
+     style="vertical-align: middle; cursor: pointer;">
+</td></tr>
 <tr><td>Status:</td><td>
 <select name="personal[status]">
 <option value="{$bdata['status']}" selected>$mystatus</option>
@@ -653,6 +671,7 @@ $table
 <option value="deleted">deleted</option>
 </select>
 </td></tr>
+<tr><td>Amount:</td><td><input size=6 name="personal[amount]" value="0.00" ></td></tr>
 <tr valign=top>
     <td>Email:</td>
     <td><input size=40 name="personal[email]" value="{$bdata['email']}"><br>
@@ -1046,7 +1065,6 @@ function update_personal($data) {
 	if (!preg_match('#^\d+$#',$box)) 
 		die("update_personal: box should be a number not $box!");
 
-	ll_update_personal($vend,$box,$_REQUEST['personal']);
 	if (preg_match('#^\s*(2\d\d\d-\d\d-\d\d)#',$_REQUEST['startdate'],$m)) {
 		$startdate = $m[1];
 		$onemonth = date('Y-m-d',strtotime('+2 weeks'));
@@ -1058,9 +1076,16 @@ function update_personal($data) {
 		$notes = "Edited personal data";
 	}
 
-	$amount = ll_update_payment($box,$ldata['vid'],$ldata['login'],($months=0),
-		array('paidon' => date('Y-m-d H:i:s'),'amount' => 0, 'notes' => $notes)
+	# try and figure out the number of months from the date - this is probably going to make errors sometimes
+	$bdata = ll_box($box);
+	if ($bdata['paidto'] == '0000-00-00') $bdata['paidto'] = date('Y-m-d');
+	$months = round((strtotime($_REQUEST['personal']['paidto']) - strtotime($bdata['paidto'])) / (30 * 86400));
+	if ($months < 0) $months = 0;
+
+	$amount = ll_update_payment($box,$ldata['vid'],$ldata['login'],$months,
+		array('paidon' => date('Y-m-d H:i:s'),'amount' => $_REQUEST['personal']['amount'], 'notes' => $notes)
 	);
+	ll_update_personal($vend,$box,$_REQUEST['personal']);
 
 	$bdata = ll_box($box,($refresh=true));
 	return <<<HTML
@@ -1072,6 +1097,7 @@ $table
 <tr valign=top><td><b>Notes:</b></td><td>{$bdata['notes']}</td></tr>
 <tr><td><b>Status:</b></td><td>{$bdata['status']}</td></tr>
 <tr><td><b><nobr>Paid to:</nobr></b></td><td>{$bdata['paidto']}</td></tr>
+<tr><td><b><nobr>Amount Paid:</nobr></b></td><td>{$_REQUEST['personal']['amount']}</td></tr>
 <tr><td colspan=2 align=right>
 <b>PRINT THIS:</b>
 <a href="index.php?box=$box&seccode={$bdata['seccode']}&llphone={$bdata['llphone']}" 
