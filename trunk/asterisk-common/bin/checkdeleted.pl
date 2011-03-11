@@ -14,13 +14,17 @@ my $pat = qr/^(coolaid|lifeline)$/;
 die "$who should be $pat" unless $who =~ $pat;
 my $basepath = "/usr/local/asterisk/$who-msgs/";
 
-my $get = $ldb->prepare("select box from $who.boxes where status = 'deleted'");
+my $get = $ldb->prepare(
+	"select box,status,paidto from $who.boxes ".
+	"where status = 'deleted' or datediff(now(),paidto) > 90 ".
+	"order by box "
+);
 $get->execute or die $get->errstr;
 
 while (my $row = $get->fetch) {
-	my ($box) = @$row;
+	my ($box, $status, $paidto) = @$row;
 	my $srchdir = "$basepath/$box";
-	print "checking $srchdir\n" if $opt{v};
+	print "checking $box (status $status, paidto $paidto) $srchdir\n" if $opt{v};
 	warn "$srchdir not a directory!" unless $srchdir;
 	finddepth(\&wanted, $srchdir);
 }
