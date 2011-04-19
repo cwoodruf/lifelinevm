@@ -70,7 +70,7 @@ if (ref $existing ne 'ARRAY') {
 my $ins = $ldb->prepare(
 	"replace into coolaid.boxes set box=?,seccode=md5(?),vid=6971,name=?,notes=?,llphone=?,paidto=?,status=?"
 );
-
+$coolaiddatafile = shift || $coolaiddatafile;
 open IN, $coolaiddatafile or die "can't open $coolaiddatafile: $!";
 my %month = (
 	Jan => 1,

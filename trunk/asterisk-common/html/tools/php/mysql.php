@@ -592,8 +592,7 @@ function ll_new_box($trans,$vend,$months,$llphone,$min_box,$max_box,$creditcheck
 
 function ll_is_available($bdata) {
 	$paidtoepoch = strtotime($bdata['paidto']);
-	if ($bdata['status'] == 'deleted' 
-		or ($bdata['status'] == '' and time() - $paidtoepoch > DELBOXAFTER*DAY)) 
+	if ($bdata['status'] == 'deleted' )
 	{
 		return true;
 	}
@@ -709,8 +708,7 @@ function ll_check_time($vend,$box,$months) {
 	if (($addmonths = ll_box_add_months($bdata)) > 0) {
 		$newmonths = $addmonths + $months;
 		# this can be zero or less as we can delete months from it
-		if ($newmonths < 0) die("invalid number of months: should be more than {$m[1]}!");
-		$udata['status'] = "add $newmonths months";
+		if ($newmonths > 0) $udata['status'] = "add $newmonths months";
 
 	# if the box has no paidto date at all
 	} else if ($bdata['paidto'] == 0) {

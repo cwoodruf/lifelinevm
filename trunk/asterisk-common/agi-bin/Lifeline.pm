@@ -82,12 +82,9 @@ sub init {
 	my $db_host = $ll->get('db_host') || 'localhost';
 	my $db_port = $ll->get('db_port');
 	my $db_saltfile = $ll->get('db_saltfile') || $saltfile;
-print STDERR "saltfile $db_saltfile\n";
 	if ($db_saltfile ne $saltfile) {
 		no strict;
-print STDERR "salt $salt\n";
 		do $db_saltfile;
-print STDERR "salt $salt now\n";
 		use strict;
 	}
 	# required asterisk variables
