@@ -16,10 +16,11 @@ my %handles = (
 );
 
 # first set status on old boxes as deleted
-my $oldbox;
+our $oldbox;
 foreach my $db (qw/lifeline coolaid/) {
 	my $delq = "update boxes set status='deleted' ".
-		"where status <> 'deleted' and paidto > 0 and datediff(current_date(),paidto) > $lleol";
+		"where status <> 'deleted' and status not like 'add % months' ".
+		"and paidto > 0 and datediff(current_date(),paidto) > $lleol";
 	print "$delq\n" if $opt{v};
 
 	my $deleted = $handles{$db}->do($delq) or die $handles{$db}->errstr;

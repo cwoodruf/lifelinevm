@@ -7,6 +7,7 @@ our @ISA = qw/Exporter/;
 
 our @EXPORT = qw/$coolaiddatafile $lldatafile @llmsgdirs $llmsgdir $coolaidmsgdir $ldb $lleol ll_deleted_boxes ll_revert_unused/;
 
+our $ll_retire_days = 90;
 our $username;
 our $password;
 our $port;
@@ -69,7 +70,7 @@ sub ll_deleted_boxes {
 	$table = 'boxes' unless defined $table;
 	$dh = $ldb unless defined $dh;
 	my %delbox;
-	my $getq = "select box from $table where status = 'deleted'";
+	my $getq = "select box from $table where status = 'deleted' ";
 	my $get = $dh->prepare($getq);
 	$get->execute or die $get->errstr;
 	while (my $row = $get->fetch) {

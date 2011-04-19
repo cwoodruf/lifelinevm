@@ -18,7 +18,7 @@ my $basepath = "/usr/local/asterisk/$who-msgs/";
 
 my $get = $ldb->prepare(
 	"select box,status,paidto from $who.boxes ".
-	"where status = 'deleted' or datediff(now(),paidto) > 90 ".
+	"where status = 'deleted' or status like 'add % months' or datediff(now(),paidto) > 90 ".
 	"order by box "
 );
 $get->execute or die $get->errstr;
