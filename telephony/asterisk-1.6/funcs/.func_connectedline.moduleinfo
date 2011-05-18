@@ -1,0 +1,2 @@
+<member name="func_connectedline" displayname="Connected Line dialplan function" remove_on_change="funcs/func_connectedline.o funcs/func_connectedline.so">
+</member>

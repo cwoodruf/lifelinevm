@@ -1,0 +1,14 @@
+<category name="MENUSELECT_TESTS" displayname="Test Modules" remove_on_change="tests/modules.link">
+<member name="test_astobj2" displayname="ASTOBJ2 Unit Test" remove_on_change="tests/test_astobj2.o tests/test_astobj2.so">
+	<depend>TEST_FRAMEWORK</depend>
+</member>
+<member name="test_expr" displayname="Expression evaluation tests" remove_on_change="tests/test_expr.o tests/test_expr.so">
+	<depend>TEST_FRAMEWORK</depend>
+</member>
+<member name="test_poll" displayname="Poll test" remove_on_change="tests/test_poll.o tests/test_poll.so">
+	<depend>TEST_FRAMEWORK</depend>
+</member>
+<member name="test_skel" displayname="Skeleton (sample) Test" remove_on_change="tests/test_skel.o tests/test_skel.so">
+	<depend>TEST_FRAMEWORK</depend>
+</member>
+</category>
