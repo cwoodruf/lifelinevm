@@ -1,3 +1,0 @@
-asterisk-common: all asterisk related configuration that is know to work with both asterisk 1.4 and 1.6
-
-telephony: asterisk reference code for 1.4 and 1.6 and legacy dialogic code including DOS exe files.

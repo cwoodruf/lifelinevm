@@ -1,2 +1,0 @@
-<member name="app_recordkey" displayname="Record application with single key capture" remove_on_change="apps/app_recordkey.o apps/app_recordkey.so">
-</member>
