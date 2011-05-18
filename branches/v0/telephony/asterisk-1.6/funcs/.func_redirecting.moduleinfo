@@ -1,0 +1,2 @@
+<member name="func_redirecting" displayname="Redirecting data dialplan function" remove_on_change="funcs/func_redirecting.o funcs/func_redirecting.so">
+</member>

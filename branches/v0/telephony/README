@@ -1,0 +1,55 @@
+dialogic: 
+
+This is the legacy dialogic software for Lifeline. It was designed to run on old 286, 386 and 486 systems.
+This will only work with the old D/41d, Dialog/4, Proline/2v etc cards that used the old dialogic api.
+The dialogic driver software that we used ran on DOS and the Windows 98 family of operating (somewhat) 
+systems. The application is quite stable on these old systems and can be left running for months on
+end. 
+
+However ... the source code is pretty messy and was going to be refactored into modules but at that 
+point the hardware was already obsolete. It was developed with MSVC++ version 1.5.
+
+While the hardware may be obsolete it can still be bought on ebay. Finding computers with ISA slots
+is getting more difficult unless you want to spend a great deal of money to get one built.
+
+An emulation layer for this old dialogic API would probably be a useful project at some point.
+
+asterisk-1.4, asterisk-1.6:
+
+This is a reference build of asterisk that is known to work. Its identical to 1.4.32 but contains
+the apps/app_recordkeys.c (RecordKeys) asterisk application that can branch based on used input
+while recording. RecordKeys is not part of the current asterisk distribution but I have send along
+a patch: https://issues.asterisk.org/view.php?id=17487
+
+This version of RecordKey also differs from Record in that it does not automatically delete 
+messages and stop the application on hang up.
+
+Both key capture and tolerant hang up are needed to make the user interface less confusing for
+people who are not comfortable working with IVR systems.
+
+I am running asterisk as the user asterisk in its own tree.
+
+The configure commands used to make the versions of asterisk were:
+
+cd asterisk-1.4 && \
+./configure --with-gsm=internal --prefix=/usr/local/asterisk-1.4 --enable-dev-mode
+
+cd asterisk-1.6 && \
+./configure --with-gsm=internal --prefix=/usr/local/asterisk-1.6 --enable-dev-mode
+
+Then 
+
+make && sudo su -c 'make install' asterisk
+
+I used a symlink /usr/local/asterisk to default to a specific version of asterisk (1.4 currently).
+
+Other notes:
+
+* The "--enable-dev-mode" option is probably not essential typically.
+
+* You may need to remove the menuselect.makeopts if you rebuild with a new version of asterisk
+
+* Version 1.6 changed substantially from June 2010 to January 2011 and may change substantially again.
+  This may mean having to manually update apps/app_readkey.c and apps/app_readkeys.c if there are major
+  updates in the future. 1.4 thankfully isn't being actively worked on.
+

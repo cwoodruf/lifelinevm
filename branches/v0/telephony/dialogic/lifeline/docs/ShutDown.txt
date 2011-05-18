@@ -1,0 +1,21 @@
+Shutdown process:
+
+1) turn off lifeline: 
+   a) change to view mode (keep pressing esc)
+   b) press Alt-X
+   c) enter password
+   d) close window
+
+2) restart computer:
+    a) open start menu
+    b) select "Restart"
+    c) click OK
+    d) wait
+    e) if the computer doesn't restart  in 60 seconds
+       do a warm boot of the computer (press small white
+       button on front)
+
+When the lifeline program restarts it may not be visible
+on the screen. Look for it on the taskbar. To turn it
+back into a window click the button on the taksbar and
+press Alt-Enter.
