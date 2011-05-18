@@ -1,0 +1,23 @@
+create table voicemeupcalls(
+		`unique_id` varchar(32) primary key,
+                `date` date, 
+                `time` time,
+                `direction` varchar(32),
+                `source` varchar(32),
+                `destination` varchar(32),
+                `client_peer_id` varchar(32),
+                `country_id` varchar(32),
+                `country` varchar(32),
+                `state_id` varchar(32),
+                `state` varchar(32),
+                `district` varchar(32),
+                `duration` varchar(32),
+                `callerid_name` varchar(32),
+                `callerid_number` varchar(32),
+                `bindings` varchar(32),
+                `status` varchar(32),
+                `normalized` varchar(32),
+                `billed_amount` varchar(32),
+                `current_rate` varchar(32),
+                `monthly_usage` varchar(32)
+);

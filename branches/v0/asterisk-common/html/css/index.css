@@ -1,0 +1,103 @@
+body, div {
+	font-size: 14px;
+	font-family: helvetica,arial,verdana,sans-serif;
+	line-height: 17px;
+}
+h1 i { font-size: 19px; }
+h2 i { font-size: 17px; }
+h3 i { font-size: 16px; }
+a { font-size: 15px; text-decoration: none; }
+a b { font-size: 15.5px; text-decoration: underline; }
+h1 { font-size: 18px; }
+h2 { font-size: 16px; }
+h3 { font-size: 15px; }
+.yell {
+	color: red;
+	text-decoration: underline; 
+	font-weight: bold;
+	font-style: italic;
+}
+div.hide {
+	visibility: hidden;
+}
+div.show {
+	visibility: visible;
+}
+div.logo {
+	background-color: green;
+	width: 702px;
+	margin-left: 12px;
+	margin-top: -8px;
+	margin-bottom: -12px;
+	padding-top: 12px;
+	padding-left: 10px;
+	padding-bottom: 15px;
+}
+div.panel, div.intro {
+	position: absolute;
+	clear: both;
+	background: #F6F6F6;
+	margin-top: 0;
+	padding: 5px;
+	padding-right: 10px;
+	padding-left: 10px;
+	border: 1px black solid;
+	width: 690px;
+	border-top: none;
+}
+div.intro {
+	position: static;
+}
+div.intro {
+	margin-top: 0px;
+	margin-bottom: -15px;
+	border-bottom: none;
+	padding-bottom: 40px;
+}
+div.intro a {
+	margin: 8px;
+	font-weight: bold;
+	font-style: italic;
+	float: right;
+}
+
+div.retail {
+	background: #FFE6FF;
+	margin: 5px;
+	padding: 5px;
+}
+a.retail {
+	background: #FFFFFF;
+	color: black;
+	font-weight: bold;
+	text-decoration: underline;
+}
+div.menu {
+	height: 45px;
+	margin-top: 15px;
+	margin-left: 0;
+	list-style: none;
+	background: #FFFFFF;
+	border: 1px solid black;
+}
+a.hoverhilite {
+	height: 19px;
+	float: left;
+	padding: 13px;
+	text-decoration: none;
+	color: black;
+}
+a.hoverhilite:hover {
+	background: #FFE6FF;
+	text-decoration: underline;
+}
+div.bottomspacer {
+	height: 1000px;
+	clear: both;
+}
+i.mailin-instructions {
+	font-size: small; 
+	color: #0F0F0F; 
+	margin: 10px;
+}
+
