@@ -34,7 +34,7 @@ sip.ca1.link2voip.com:5060     N      lifelineback       105 Registered         
 
 my $restart = 0;
 my $count = 0;
-my ($host, $dnsmgr, $user, $refresh, $state,@time);
+my ($host, $hosts, $dnsmgr, $user, $refresh, $state,@time);
 my $version = (($sipregs =~ m#dnsmgr#) ? '1.6' : '1.4');
 print "version $version\n" if $opt{v};
 foreach my $reg (split "\n", $sipregs) {
@@ -47,6 +47,8 @@ foreach my $reg (split "\n", $sipregs) {
 	}
 	if ($state ne $notfailed) {
 		print STDERR "bad sip registration for $user\@$host: $state (@time)\n";
+		(my $domain = $host) =~ s/.*?\.(.*?)\.com.*/$1/;
+		$hosts .= "$domain ";
 		$restart = 1;
 	}
 	$count++;
@@ -55,7 +57,7 @@ foreach my $reg (split "\n", $sipregs) {
 if ($restart) {
 	my $cmd = "$asterisk $restartcmd";
 	print "doing: $cmd\n" if $opt{v};
-	system qq/echo "doing $cmd" | $mail -s "lifelinevm.net sip restart" $mailto/
+	system qq/echo "doing $cmd\nhosts: $hosts" | $mail -s "lifelinevm.net sip restart" $mailto/
 		if $opt{m};
 	system $cmd and warn "problem restarting asterisk: $!";
 } elsif ($count == 0) {
