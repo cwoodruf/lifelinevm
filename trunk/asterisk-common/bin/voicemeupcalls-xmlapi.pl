@@ -7,7 +7,7 @@ use strict;
 my %opt;
 getopts('vm:t:', \%opt);
 
-my $auth_token = 'add token here';
+my $auth_token = '8fa0b3a8d3029ed9fecf0e35071d7842';
 my $client_account_id = '80015026';
 my $baseurl = "http://developer.voicemeup.com/xml_engine/xml_engine.php";
 my $auth = "result_limit=1000&client_account_id=$client_account_id&auth_token=$auth_token";
@@ -120,7 +120,8 @@ while ($xml =~ m#<call_details unique_id="(.*?)">(.*?)</call_details>#sg) {
 }
 print scalar(localtime),": notanswered $notanswered, count $count, threshold $opt{t}, email $opt{m} ";
 if ($opt{m} =~ /\@/ and defined $opt{t}) {
-	if ($notanswered >= $opt{t}) {
+	my @now = localtime;
+	if ($notanswered >= $opt{t} or ($count == 0 and $now[2] >= 7 and $now[2] <= 20)) {
 		print "sending email";
 		open MAIL, "| /usr/bin/mail -s 'unanswered calls' '$opt{m}'";
 		print MAIL "unanswered $notanswered, total $count";
