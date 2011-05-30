@@ -12,13 +12,13 @@ while (<>) {
 	chomp;
 	unless (m/"/) {
 		@fields = split ",";
-		$insq = "replace into voicemeupcalls (unique_id,".(join ",", @fields).",ts) ".
-				"values (?,".(join ",", map {"?"} @fields).",?)";
+		$insq = "update voicemeupcalls set ".(join ",", map { "$_=?" } @fields).",ts=? ".
+			"where unique_id=?";
 		$ins = $ldb->prepare($insq);
 		next;
 	}
 	warn "no fields!\n$_" and next unless defined @fields;
 	print "adding $_\n" unless $opt{q};
 	my %data; @data{@fields} = my @values = map { s/^"//; s/"$//; $_ } split '","';
-	$ins->execute($data{call_hash},@values,$data{date}.' '.$data{'time'}) or die $ins->errstr.":\n$insq\n@values";
+	$ins->execute(@values,$data{date}.' '.$data{'time'},$data{call_hash}) or die $ins->errstr.":\n$insq\n@values";
 }
