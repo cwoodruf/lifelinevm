@@ -12,6 +12,7 @@ use File::Copy;
 use Time::Local qw/timelocal_nocheck/;
 no strict;
 our $salt;
+our $agidir = '.';
 our $saltfile = 'Lifeline/salt';
 do $saltfile;
 use strict;
@@ -128,6 +129,8 @@ sub init {
 			$ll->{status} = $exists->[4];
 			$ll->{vid} = $exists->[5];
 			$ll->{announcement} = $exists->[6];
+			$ll->{emailconfirmed} = $exists->[7];
+			$ll->{llphone} = $exists->[8];
 			if (
 				defined $ll->{md5_seccode}
 				and $ll->valid_paidto($pt_cutoff)
@@ -151,7 +154,9 @@ sub findbox {
 	do $ll->{meta} if -f $ll->{meta};
 	if (defined $ll->{db} and ($ll->{refresh} or ref $exists ne 'ARRAY')) {
 		$exists = $ll->{db}->selectrow_arrayref(
-			"select seccode,UNIX_TIMESTAMP(paidto),new_msgs,email,status,vid,announcement ".
+			"select ".
+			"seccode, UNIX_TIMESTAMP(paidto), new_msgs, email, status, vid, announcement, ".
+			"emailconfirmed, llphone ".
 			"from boxes where box='$ll->{box}' "
 		);
 		if (open CACHE, "> $ll->{meta}") { 
@@ -188,6 +193,9 @@ sub dialplan_export {
 	$ll->set('paidto',$ll->{paidto});
 	$ll->set('md5_seccode',$ll->{md5_seccode});
 	$ll->set('new_msgs',$ll->{new_msgs});
+	$ll->set('phone',$ll->{llphone});
+	$ll->set('email',$ll->{email});
+	$ll->set('emailconfirmed',$ll->{emailconfirmed});
 	$ll->set('announcement',$ll->{announcement});
 	$ll;
 }
@@ -329,8 +337,23 @@ sub log_to_file {
 sub greeting {
 	my $ll = shift;
 	my $mygrt = $ll->{grt}.'.'.$ll->{rectype};
-	my $greeting = (-f $mygrt and (stat($mygrt))[7] > $min_msg_size) ? $ll->{grt} : $def_grt;
+	my $greeting;
+	if (-f $mygrt and (stat($mygrt))[7] > $min_msg_size) {
+		$ll->{saybox} = 0;
+		$greeting = $ll->{grt};
+	} else {
+		$ll->{saybox} = 1;
+		$greeting = $def_grt;
+	}
 	$greeting;
+}
+
+sub saybox {
+	my $ll = shift;
+	if (!defined $ll->{saybox}) {
+		$ll->greeting;
+	}
+	$ll->{saybox};
 }
 
 # makes a new message name

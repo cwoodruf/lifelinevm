@@ -4,3 +4,4 @@ use Lifeline;
 use strict;
 my $ll = Lifeline->init(refresh => 1);
 $ll->set('greeting',$ll->greeting);
+$ll->set('saybox',$ll->saybox);
