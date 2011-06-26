@@ -119,9 +119,19 @@ while ($xml =~ m#<call_details unique_id="(.*?)">(.*?)</call_details>#sg) {
 	$ins->execute or die $ins->errstr;
 }
 print scalar(localtime),": notanswered $notanswered, count $count, threshold $opt{t}, email $opt{m} ";
+
+# when to alert if there are no calls based on localtime's day of week value (6) Sun=0
+my @nocallalerts;
+@nocallalerts[0,6] = map { {start=>9,end=>20} } (0,6);
+@nocallalerts[1..5] = map { {start=>7,end=>20} } (1..5);
+
 if ($opt{m} =~ /\@/ and defined $opt{t}) {
 	my @now = localtime;
-	if ($notanswered >= $opt{t} or ($count == 0 and $now[2] >= 7 and $now[2] <= 20)) {
+	if ($notanswered >= $opt{t} or 
+		($count == 0 
+			and $now[2] >= $nocallalerts[$now[6]]{start} 
+			and $now[2] <= $nocallalerts[$now[6]]{end})
+	) {
 		print "sending email";
 		open MAIL, "| /usr/bin/mail -s 'unanswered calls' '$opt{m}'";
 		print MAIL "unanswered $notanswered, total $count";
