@@ -547,6 +547,10 @@ function ll_log($vend,$cdata) {
 function ll_new_box($trans,$vend,$months,$llphone,$min_box,$max_box,$creditcheck='ll_check_months') {
 	global $ldata, $salt;
 
+	$vmnewboxsem = sem_get(6823269);
+	if ($vmnewboxsem) sem_acquire($vmnewboxsem);
+	else print "ERROR: can't get semaphore $vmnewboxsem for ll_new_box<br>\n";
+
 	if (!preg_match('#^\d+$#',$min_box) or !preg_match('#^\d+$#',$max_box)) {
 		die("new_box: bad box range $min_box, $max_box!");
 	}
@@ -588,6 +592,8 @@ function ll_new_box($trans,$vend,$months,$llphone,$min_box,$max_box,$creditcheck
 	ll_log($vend,array('newpaidto'=>$paidto,'box'=>$box,'months'=>$months,'action'=>'new_box'));
 	if (ll_save_to_table('update','vendors',$vdata,'vid',$vend['vid'])) 
 		return array($box,$seccode,$paidto);
+
+	if ($vmnewboxsem) sem_release($vmnewboxsem);
 }
 
 function ll_is_available($bdata) {
