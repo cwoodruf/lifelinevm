@@ -636,6 +636,10 @@ function ll_find_available_box($min_box,$max_box) {
 }
 
 function ll_set_paidto($box,$startdate) {
+	$vmnewboxsem = sem_get(6823269);
+	if ($vmnewboxsem) sem_acquire($vmnewboxsem);
+	else print "ERROR: can't get semaphore $vmnewboxsem for ll_set_paidto<br>\n";
+
 	$bdata = ll_box($box);
 	if (!is_array($bdata)) die("ll_set_paidto: no data for box $box!");
 	if ($bdata['paidto'] > 0) die("this box has already been claimed by {$bdata['login']}!");
@@ -650,6 +654,8 @@ function ll_set_paidto($box,$startdate) {
 			ll_save_to_table('update','boxes',$update,'box',$box);
 		}
 	}
+
+	if ($vmnewboxsem) sem_release($vmnewboxsem);
 }
 
 function ll_showcode($seccode) {
