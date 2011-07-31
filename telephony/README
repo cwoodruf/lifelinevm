@@ -31,10 +31,12 @@ I am running asterisk as the user asterisk in its own tree.
 
 The configure commands used to make the versions of asterisk were:
 
-cd asterisk-1.4 && \
+asterisk 1.4: 
+[in the asterisk 1.4 source directory]
 ./configure --with-gsm=internal --prefix=/usr/local/asterisk-1.4 --enable-dev-mode
 
-cd asterisk-1.6 && \
+asterisk 1.6:
+[in the asterisk 1.6 source directory]
 ./configure --with-gsm=internal --prefix=/usr/local/asterisk-1.6 --enable-dev-mode
 
 Then 
