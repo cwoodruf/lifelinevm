@@ -125,6 +125,10 @@
 </member>
 <member name="app_record" displayname="Trivial Record Application" remove_on_change="apps/app_record.o apps/app_record.so">
 </member>
+<member name="app_recordkey" displayname="Record application with single key capture" remove_on_change="apps/app_recordkey.o apps/app_recordkey.so">
+</member>
+<member name="app_recordkeys" displayname="Record application with multiple key capture" remove_on_change="apps/app_recordkeys.o apps/app_recordkeys.so">
+</member>
 <member name="app_rpt" displayname="Radio Repeater/Remote Base Application" remove_on_change="apps/app_rpt.o apps/app_rpt.so">
 	<depend>dahdi</depend>
 	<depend>tonezone</depend>
@@ -499,6 +503,28 @@
 		</member>
 		<member name="LOADABLE_MODULES" displayname="Runtime module loading">
 			<defaultenabled>yes</defaultenabled>
+		</member>
+	</category>
+	<category name="MENUSELECT_CFLAGS" displayname="Compiler Flags - Development">
+		<member name="DEBUG_SCHEDULER" displayname="Enable Scheduler Debugging Output">
+		</member>
+		<member name="DEBUG_THREADLOCALS" displayname="Enable Thread-Local-Storage Debugging">
+		</member>
+		<member name="DETECT_DEADLOCKS" displayname="Detect Deadlocks">
+			<depend>DEBUG_THREADS</depend>
+		</member>
+		<member name="DO_CRASH" displayname="Crash on fatal errors">
+		</member>
+		<member name="DUMP_SCHEDULER" displayname="Dump Scheduler Contents for Debugging">
+		</member>
+		<member name="MTX_PROFILE" displayname="Enable Code Profiling Using TSC Counters">
+		</member>
+		<member name="TEST_FRAMEWORK" displayname="Enable Test Framework API">
+		</member>
+		<member name="BETTER_BACKTRACES" displayname="Use libbfd to generate better inline backtraces">
+			<depend>BFD</depend>
+			<depend>DLADDR</depend>
+			<defaultenabled>no</defaultenabled>
 		</member>
 	</category>
 	<category name="MENUSELECT_EMBED" displayname="Module Embedding" positive_output="yes" remove_on_change="main/asterisk">
