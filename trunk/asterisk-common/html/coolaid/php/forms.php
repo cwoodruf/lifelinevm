@@ -1304,7 +1304,7 @@ function purchase_time_form($data) {
 $top
 Amount for <input name="month" value="$month" size=12>: 
 &nbsp;&nbsp; 
-$<input size=10 name=amount value="100.00"> 
+$<input size=10 name=amount value="80.00"> 
 &nbsp;&nbsp;
 <input type=submit name=action value="Generate invoice" class=action>
 $end
