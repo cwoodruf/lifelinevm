@@ -14,7 +14,7 @@ define("DELBOXAFTER",90);
 define("DAY",86400);
 define("MINBOX",1000);
 define("MAXBOX",9999);
-define("DEFRATE",2.5);
+define("DEFRATE",2);
 define("DEFPRICES","1=3.00;2=6.00;3=9.00;4=10.00;5=12.50;6=15.00;7=17.00;8=19.00;9=21.00;10=23.00;11=25.00;12=25.00");
 define("INVOICEOVERDUE", 90);
 define("INVOICEBLOCKED", INVOICEOVERDUE + 30);
