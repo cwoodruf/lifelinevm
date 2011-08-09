@@ -8,6 +8,8 @@ eval(file_get_contents(SALTFILE));
 function get_salestax($idate) {
 	if ($idate < '2010-07-01') {
 		return array( 'rate' => 0.05, 'name' => 'GST' );
+	} else if ($idate >= '2011-08-08') {
+		return array( 'rate' => 0, 'name' => 'HST' );
 	}
 	return array( 'rate' => 0.12, 'name' => 'HST' );
 }
