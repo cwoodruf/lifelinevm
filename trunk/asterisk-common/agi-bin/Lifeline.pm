@@ -191,6 +191,7 @@ sub dialplan_export {
 	$ll->set('mygrt',$ll->{grt});
 	$ll->set('rectype',$ll->{rectype});
 	$ll->set('paidto',$ll->{paidto});
+	$ll->set('permanent',(($ll->{status} =~ m/permanent/i) ? 1 : 0));
 	$ll->set('md5_seccode',$ll->{md5_seccode});
 	$ll->set('new_msgs',$ll->{new_msgs});
 	$ll->set('phone',$ll->{llphone});
