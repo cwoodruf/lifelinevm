@@ -1,0 +1,143 @@
+This directory contains all the lifeline voicemail specific code shared by both
+asterisk 1.6 and 1.4. See the telephony/README for installation instructions for
+asterisk. Asterisk should be installed and working before installing the contents 
+of this directory. 
+
+For these instructions I am assuming you have set up a sym link to your install of
+asterisk: /usr/local/asterisk
+
+First clear out the existing programs in agi-bin:
+
+> rm /usr/local/asterisk/var/lib/asterisk/agi-bin/*
+
+Then change to the lifelinevm/asterisk-common directory as the asterisk user:
+> cd lifelinevm/asterisk-common
+
+Copy the agi interface to the agi-bin directory:
+
+> cp agi-bin/*.pm agi-bin/*.pl /usr/local/asterisk/var/lib/asterisk/agi-bin
+> mkdir /usr/local/asterisk/var/lib/asterisk/agi-bin/Lifeline
+> cp agi-bin/Lifeline/* /usr/local/asterisk/var/lib/asterisk/agi-bin/Lifeline
+
+Copy the lifeline asterisk interface that uses the agi interface to etc/asterisk:
+
+> cp etc/asterisk/lifeline.conf /usr/local/asterisk/etc/asterisk
+
+Copy the sample extensions.conf file:
+
+> cp etc/asterisk/extensions.conf /usr/local/asterisk/etc/asterisk
+
+We'll be editing this file later once the database and message directory is set up.
+
+Copy the sound files used by lifeline:
+
+> cp sounds/*.gsm /usr/local/asterisk/var/lib/asterisk/sounds/
+
+Now create a mysql database. Log in to mysql as root:
+
+> mysql -uroot -p
+
+In mysql create a database, a user and use the schema to build the database:
+
+mysql> create database lifeline;
+Query OK, 1 row affected (0.00 sec)
+
+mysql> grant all on lifeline.* to 'll'@'localhost' identified by 'somepassword';
+Query OK, 0 rows affected (0.00 sec)
+
+mysql> use lifeline;
+Database changed
+
+mysql> \. lifeline-schema.mysql
+
+Make sure to change 'somepassword' above to an appropriate password.
+
+Next make the salt file for passwords:
+
+> cd /usr/local/asterisk/var/lib/asterisk/agi-bin/Lifeline
+> nano salt
+$salt = 'some long random string';
+
+Make a database file used by scripts outside of agi for the database:
+
+> nano database
+$username = 'll';
+$password = 'somepassword';
+$port = '3306';
+$host = '127.0.0.1';
+
+Make a directory for messages to be stored:
+
+> mkdir /usr/local/asterisk/lifeline-msgs
+
+Now tie all this together in the extensions.conf file (example with our sample settings):
+
+> cd /usr/local/asterisk/etc/asterisk
+> nano extensions.conf
+[general]
+static=yes
+writeprotect=no
+autofallthrough=no
+#include lifeline.conf ; this has to be in the general section
+
+[globals]
+
+[from-pstn]
+; used for logging
+exten => 6045551212,1,Set(callstart=${EPOCH})
+; this Wait is optional but useful if you have redundant servers
+exten => 6045551212,n,Wait(1)
+exten => 6045551212,n,Set(msgdir=/usr/local/asterisk/lifeline-msgs)
+exten => 6045551212,n,Set(db_name=lltest);
+exten => 6045551212,n,Set(db_user=ll);
+exten => 6045551212,n,Set(db_host=127.0.0.1)
+exten => 6045551212,n,Set(db_port=3306)
+exten => 6045551212,n,Set(db_secret=somepassword)
+exten => 6045551212,n,Goto(lifeline,s,1)
+exten => t,1,Hangup()
+
+[default]
+include => from-pstn
+
+;--------------- end extensions.conf
+
+You'll want to change 6045551212 to the phone number people will be using to 
+connect to you.  This may vary depending on how you connect to your VoIP ISP. 
+The above configuration will work if you use DNIS (ie the ISP sends you the 
+phone number called in on). 
+
+To make the changes live restart asterisk:
+
+For 1.6:
+> asterisk -rx 'core restart now'
+
+or for 1.4:
+> asterisk -rx 'restart now'
+
+You should be able to call in to the system at this point. To make a vm box you'll
+need to set up the web interface. I typically copy the contents of the web interface
+to /usr/local/asterisk/html and then link to it in the apache configuration:
+
+> cp -r {your svn dir}/lifelinevm/asterisk-common/html /usr/local/asterisk
+
+As root on ubuntu add an alias to the web configuration:
+
+root> nano /etc/apache2/sites-enabled/000-default
+Alias /lifeline /usr/local/asterisk/html/lifeline
+<Directory "/usr/local/asterisk/html/lifeline">
+    Options +FollowSymLinks
+    # you may want other options here
+</Directory>
+
+Restart the apache server:
+root>service apache2 restart
+
+If you go to the /lifeline page on your server now you should see an instruction page
+for the vm system.
+
+Going to /lifeline/admin.php will bring up a login page. To make the first log in to
+mysql:
+
+> mysql -ull -p -Dlifeline
+
+mysql> 
