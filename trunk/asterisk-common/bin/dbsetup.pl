@@ -43,7 +43,9 @@ if ($getsu->rows) {
 		print "\n";
 	}
 }
+print "This user is only used to create emailable links for new logins at the moment ...\n";
 userset('super');
+print "The root user is the main user for administering the voice mail system.\n";
 userset('root');
 
 print <<TXT;
@@ -86,7 +88,7 @@ sub userset {
 
 	my ($md5name, $md5pw, $vid, $perms);
 	if ($type eq 'root') {
-		print "\nEnter vendor name: ";
+		print "Enter vendor name for root user: ";
 		my $vendor = <STDIN>;
 		chomp $vendor;
 		my $insv = $ldb->prepare(
@@ -96,6 +98,7 @@ sub userset {
 		my $getvid = $ldb->selectrow_arrayref("select last_insert_id() from vendors") or die $ldb->errstr;
 		$vid = $getvid->[0];
 		print "created vendor $vid\n";
+		$ldb->do("update vendors set parent=vid where parent is null") or die $ldb->errstr;
 		$perms = 'edit:boxes:invoices:logins:vendors';
 		$md5name = $suname;
 		
@@ -109,6 +112,6 @@ sub userset {
 		"values (?,md5(?),now(),?,?,'$type user')"
 	);
 	$ins->execute($md5name,$supw,$vid,$perms) or die $ins->errstr;
-	print "\ncreated $type user\n";
+	print "created $type user\n";
 }
 
