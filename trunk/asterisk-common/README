@@ -19,6 +19,17 @@ Copy the agi interface to the agi-bin directory:
 > cp agi-bin/*.pm agi-bin/*.pl /usr/local/asterisk/var/lib/asterisk/agi-bin
 > mkdir /usr/local/asterisk/var/lib/asterisk/agi-bin/Lifeline
 > cp agi-bin/Lifeline/* /usr/local/asterisk/var/lib/asterisk/agi-bin/Lifeline
+> mkdir /usr/local/asterisk/var/lib/asterisk/agi-bin/Asterisk
+> cp agi-bin/Asterisk/* /usr/local/asterisk/var/lib/asterisk/agi-bin/Asterisk
+
+Add the PERL5LIB environment variable to the end of .bashrc for user asterisk:
+
+> nano /home/asterisk/.bashrc
+export PERL5LIB=/usr/local/asterisk/var/lib/asterisk/agi-bin
+> source /home/asterisk/.bashrc
+
+If your home directory for asterisk is different or you are using a different shell
+from bash this may be different.
 
 Copy the lifeline asterisk interface that uses the agi interface to etc/asterisk:
 
@@ -26,9 +37,9 @@ Copy the lifeline asterisk interface that uses the agi interface to etc/asterisk
 
 Copy the sample extensions.conf file:
 
-> cp etc/asterisk/extensions.conf /usr/local/asterisk/etc/asterisk
+> cp etc/asterisk/extensions-ll-example.conf /usr/local/asterisk/etc/asterisk
 
-We'll be editing this file later once the database and message directory is set up.
+We'll be editing this file later once the database and message directory are set up.
 
 Copy the sound files used by lifeline:
 
@@ -89,8 +100,8 @@ Make a database file used by scripts outside of agi for the database
 $ll_database = 'lifeline';
 $ll_login = $username = 'll';
 $ll_password = $password = 'somepassword';
-$port = '3306';
-$host = 'localhost';
+$ll_port = $port = '3306';
+$ll_host = $host = 'localhost';
 
 ASTERISK CONFIGURATION FOR LIFELINE
 Make a directory for messages to be stored:
