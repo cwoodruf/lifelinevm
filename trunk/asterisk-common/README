@@ -6,6 +6,7 @@ of this directory.
 For these instructions I am assuming you have set up a sym link to your install of
 asterisk: /usr/local/asterisk
 
+ASTERISK SETUP
 First clear out the existing programs in agi-bin:
 
 > rm /usr/local/asterisk/var/lib/asterisk/agi-bin/*
@@ -33,16 +34,33 @@ Copy the sound files used by lifeline:
 
 > cp sounds/*.gsm /usr/local/asterisk/var/lib/asterisk/sounds/
 
+DATABASE SETUP
+There are two business models used by the voice mail service. In one multiple vendors
+buy months of voice mail time. This allows them to create boxes which then expire on 
+a specific date. When they run out of time they buy more as they need it. The lifeline
+database and web interface use this model. The mediawiki documentation is in lldocs.
+
+An additional model "coolaid" is used for the situation where you have one vendor who
+has a set number of boxes they are allowed to use. They can make boxes that exist 
+indefinitely. The coolaid database and web interface uses this model. Documentation db
+is cooldocs.
+
 Now create a mysql database. Log in to mysql as root:
 
 > mysql -uroot -p
 
-In mysql create a database, a user and use the schema to build the database:
+In mysql create databases, a user and use the schemas to build the database:
 
 mysql> create database lifeline;
 Query OK, 1 row affected (0.00 sec)
 
+mysql> create database lldocs;
+Query OK, 1 row affected (0.00 sec)
+
 mysql> grant all on lifeline.* to 'll'@'localhost' identified by 'somepassword';
+Query OK, 0 rows affected (0.00 sec)
+
+mysql> grant all on lldocs.* to 'lldocs'@'localhost' identified by 'somepassword';
 Query OK, 0 rows affected (0.00 sec)
 
 mysql> use lifeline;
@@ -50,6 +68,12 @@ Database changed
 
 mysql> \. lifeline-schema.mysql
 
+mysql> use lldocs;
+Database changed
+
+mysql> \. lldocs-schema.mysql
+
+SET UP PASSWORD FILES
 Make sure to change 'somepassword' above to an appropriate password.
 
 Next make the salt file for passwords:
@@ -64,8 +88,9 @@ Make a database file used by scripts outside of agi for the database:
 $username = 'll';
 $password = 'somepassword';
 $port = '3306';
-$host = '127.0.0.1';
+$host = 'localhost';
 
+ASTERISK CONFIGURATION FOR LIFELINE
 Make a directory for messages to be stored:
 
 > mkdir /usr/local/asterisk/lifeline-msgs
@@ -104,7 +129,8 @@ include => from-pstn
 You'll want to change 6045551212 to the phone number people will be using to 
 connect to you.  This may vary depending on how you connect to your VoIP ISP. 
 The above configuration will work if you use DNIS (ie the ISP sends you the 
-phone number called in on). 
+phone number called in on). The lifeline.conf should be in the etc/asterisk
+directory as well (see instructions above).
 
 To make the changes live restart asterisk:
 
@@ -119,6 +145,10 @@ need to set up the web interface. I typically copy the contents of the web inter
 to /usr/local/asterisk/html and then link to it in the apache configuration:
 
 > cp -r {your svn dir}/lifelinevm/asterisk-common/html /usr/local/asterisk
+> nano /usr/local/asterisk/html/tools/php/.mysql.php
+<?php
+$ll_login = 'll';
+$ll_password = 'somepassword';
 
 As root on ubuntu add an alias to the web configuration:
 
@@ -135,9 +165,21 @@ root>service apache2 restart
 If you go to the /lifeline page on your server now you should see an instruction page
 for the vm system.
 
-Going to /lifeline/admin.php will bring up a login page. To make the first log in to
-mysql:
+Going to /lifeline/admin.php will bring up a login page. To set up the database copy
+over the utility scripts to /usr/local/asterisk:
 
-> mysql -ull -p -Dlifeline
+> cp -r {svn directory}/lifelinevm/asterisk-common/bin /usr/local/asterisk
 
-mysql> 
+Run the lifelinesetup.pl script from this directory:
+
+> cd /usr/local/asterisk/bin
+> ./dbsetup.pl
+
+Follow the prompts to create an initial super user for the web interface.
+You can create new vendor accounts from /lifeline/admin.php and you can invite new
+users to make logins for themselves from /lifeline/emailsignup.php. (To do the same 
+for the coolaid style interface replace "lifeline" with "coolaid".)
+
+Note the web tools should be modified to work with the specifics of your installation.
+
+
