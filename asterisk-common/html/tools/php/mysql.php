@@ -1,6 +1,6 @@
 <?php # mysql related php "middleware"
 # $Id: mysql.php,v 1.14 2008/10/26 04:59:15 root Exp root $
-require_once(DBLOGINFILE); 
+if (define(DBLOGINFILE)) @include(DBLOGINFILE); 
 eval(file_get_contents(SALTFILE)); 
 
 ###############################################################################
