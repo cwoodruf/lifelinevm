@@ -43,41 +43,72 @@ if ($getsu->rows) {
 		print "\n";
 	}
 }
+userset('super');
+userset('root');
 
-print "Enter a super user user name: ";
-my $suname = <STDIN>;
-chomp $suname;
-my $md5name = md5_hex($suname);
-if ($names{$md5name} and !$opt{f}) {
-	print "A super user with this name exists! Continue? [Y|n] ";
-	my $yn = <STDIN>;
-	exit if $yn =~ /^[Nn]/;
-}
-
-print "Enter password for superuser: ";
-ReadMode('noecho');
-my $supw = <STDIN>;
-chomp $supw;
-ReadMode(0);
-print "\nRe-enter password: ";
-ReadMode('noecho');
-my $supwconf = <STDIN>;
-chomp $supwconf;
-ReadMode(0);
-
-die "passwords don't match!" unless $supw eq $supwconf;
-
-my $ins = $ldb->prepare(
-	"replace into users (login,password,created,perms,notes) ".
-	"values (md5(?),md5(?),now(),'s','super user')"
-);
-$ins->execute($suname,$supw) or die $ins->errstr;
 print <<TXT;
 
-Successfully created new super user.
+Successfully created new super user and root user.
 
-You will want to create at least one vendor from the .../admin.php web page.
-You can create invitation emails for new users with the .../emailsignup.php web page.
+You will want to update the root vendor information in the .../admin.php page.
+
+Use the superuser login to make invitation emails for new users with the .../emailsignup.php web page.
 
 TXT
+
+sub userset {
+	my ($type) = @_;
+	die "don't know type $type!" unless $type =~ /super|root/;
+
+	print "Enter a $type user user name: ";
+	my $suname = <STDIN>;
+	chomp $suname;
+	my $md5name = md5_hex($suname);
+	if ($names{$md5name} and !$opt{f}) {
+		print "A $type user with this name exists! Continue? [Y|n] ";
+		my $yn = <STDIN>;
+		exit if $yn =~ /^[Nn]/;
+	}
+
+	print "Enter password for $type user: ";
+	ReadMode('noecho');
+	my $supw = <STDIN>;
+	chomp $supw;
+	ReadMode(0);
+	print "\nRe-enter password: ";
+	ReadMode('noecho');
+	my $supwconf = <STDIN>;
+	chomp $supwconf;
+	ReadMode(0);
+	print "\n";
+
+	die "passwords don't match!" unless $supw eq $supwconf;
+
+	my ($md5name, $md5pw, $vid, $perms);
+	if ($type eq 'root') {
+		print "\nEnter vendor name: ";
+		my $vendor = <STDIN>;
+		chomp $vendor;
+		my $insv = $ldb->prepare(
+			"insert into vendors (vendor,acctype) values (?,'login')"
+		);
+		$insv->execute($vendor) or die $insv->errstr;
+		my $getvid = $ldb->selectrow_arrayref("select last_insert_id() from vendors") or die $ldb->errstr;
+		$vid = $getvid->[0];
+		print "created vendor $vid\n";
+		$perms = 'edit:boxes:invoices:logins:vendors';
+		$md5name = $suname;
+		
+	} elsif ($type eq 'super') {
+		$vid = 0;
+		$perms = 's';
+		$md5name = md5_hex($suname);
+	}
+	my $ins = $ldb->prepare(
+		"replace into users (login,password,created,vid,perms,notes) ".
+		"values (?,md5(?),now(),?,?,'$type user')"
+	);
+	$ins->execute($md5name,$supw,$vid,$perms) or die $ins->errstr;
+	print "\ncreated $type user\n";
+}
 
