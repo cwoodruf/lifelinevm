@@ -1,32 +1,34 @@
-# example cron used by the main asterisk server for the first 3 months of operation
-# 5 5 * * * /usr/local/asterisk/bin/dbbackup.sh > /usr/local/asterisk/bin/dbbackup.out 2>&1 
-
-# make a daily tar file of messages in case they get mucked up - nice if you can afford the space
-# 20 3 * * * /usr/bin/find /home/asterisk/messages -name 'messages-*.tgz' -mtime +4 -exec /bin/rm {} \;
-# 25 3 * * * /bin/tar czf /home/asterisk/messages/messages-`/bin/date +%Y%m%d`.tgz /usr/local/asterisk/*-msgs/
-
-# update any new messages to / from secondary servers 
-# 0 * * * * /usr/local/asterisk/bin/sync-msgs.sh >> /usr/local/asterisk/bin/sync-msgs.out 2>&1
-
-# status line visible in web admin
-# 0-59/10 * * * * /usr/local/asterisk/bin/aststatus.pl
-
-# get twitter updates of news
-# 14 7 * * * /usr/local/asterisk/bin/gettweets.pl > /usr/local/asterisk/bin/gettweets.out 2>&1
-
-
-# the registration step in sip is the most error prone 
-# checkregistry.pl does a sip reload if registration isn't "Registered"
-# also checks that asterisk is running and restarts it as necessary
-# 1-59/10 * * * * /usr/local/asterisk/bin/checkregistry.pl -v -mcalvmobile@callbackpack.com >> /usr/local/asterisk/bin/checkregistry.out 2>&1
-
-# restart asterisk every day (just in case something is getting cached that shouldn't be)
-# 20 2 * * * /usr/local/asterisk/sbin/asterisk -rx 'logger rotate' >> /usr/local/asterisk/bin/checkregistry.out
-# 22 2 * * * /usr/local/asterisk/sbin/asterisk -rx 'restart when convenient' >> /usr/local/asterisk/bin/checkregistry.out 2>&1
-
-# use voicemeup's api to get call information - have been doing this by hand
-# 5 0 * * * /usr/local/asterisk/bin/getcalls.sh > /usr/local/asterisk/bin/getcalls.out 2>&1
-
-# was originally used to grab data from the old dialogic / dos lifeline and import it into the new
-# 5 5 * * * /usr/local/asterisk/bin/update.sh > /usr/local/asterisk/bin/update.out 2>&1 
-
+##############################################################################################################
+## example cron used by the main asterisk server as of 2011-09-27
+## m h  dom mon dow   command
+#6 6 * * * /usr/local/asterisk/bin/cleanup.pl -v > /home/asterisk/bin/cleanup.out 2>&1
+#16 6 * * * /usr/local/asterisk/bin/checkdeleted.pl -d lifeline >> /home/asterisk/bin/checkdeleted.out 2>&1
+#0 * * * * /usr/local/asterisk/bin/sync-msgs.sh >> /usr/local/asterisk/bin/sync-msgs.out 2>&1
+#5 2 * * * /usr/local/asterisk/bin/dbbackup.sh > /usr/local/asterisk/bin/dbbackup.out 2>&1
+#0 * * * * /usr/local/asterisk/bin/aststatus.pl
+#30 * * * * /usr/local/asterisk/bin/gettweets.pl
+#20 12 * * * /usr/bin/find /home/asterisk/messages -name 'messages-*.tgz' -mtime +14 -exec /bin/rm {} \;
+#25 12 * * * /bin/tar czf /home/asterisk/messages/messages-`/bin/date +%Y%m%d`.tgz /usr/local/asterisk/*-msgs/
+#0-59/2 * * * * /usr/local/asterisk/bin/checkregistry.pl -v -mcalvmobile@callbackpack.com >> /usr/local/asterisk/bin/checkregistry.out 2>&1
+#5 * * * * /usr/local/asterisk/bin/voicemeupcalls-xmlapi.pl -t2 -mcalvmobile@callbackpack.com >> /usr/local/asterisk/bin/voicemeupcalls-xmlapi.out 2>&1
+#10 1 * * * /usr/local/asterisk/sbin/asterisk -rx 'logger rotate' >> /usr/local/asterisk/bin/checkregistry.out
+#11 1 * * * /usr/local/asterisk/sbin/asterisk -rx 'restart when convenient' >> /usr/local/asterisk/bin/checkregistry.out 2>&1
+## 1 0 * * * /home/asterisk/bin/sync_drdata_vmu.pl -u >> /home/asterisk/bin/sync_drdata_vmu.out 2>&1
+##############################################################################################################
+## example cron used by backup asterisk server
+## m h  dom mon dow   command
+#35 5 * * * /home/asterisk/asterisk/bin/sync.sh > /home/asterisk/bin/sync.out 2>&1
+#0-59/20 * * * * /usr/local/asterisk/bin/checkregistry.pl -v >> /usr/local/asterisk/bin/checkregistry.out
+#0-59/30 * * * * /usr/local/asterisk/bin/check-slave.pl
+##############################################################################################################
+## example cron used by other backup server (sync of messages via rsync, also checks if main server is alive)
+## m h  dom mon dow   command
+## crontab for lifeline backup server
+#0-59/15 * * * * /home/asterisk/bin/alive.pl -v -mcalvmobile@callbackpack.com >> /home/asterisk/bin/alive.out
+#35 4 * * * /home/asterisk/asterisk/bin/sync.sh > /home/asterisk/bin/sync.out 2>&1
+#0-59/20 * * * * /usr/local/asterisk/bin/checkregistry.pl -v >> /usr/local/asterisk/bin/checkregistry.out
+#0-59/30 * * * * /usr/local/bin/check-slave-drdata.pl
+#19,38,57 * * * * /usr/bin/nice /usr/bin/rsync --delete -rct asterisk@lifelinevm.net:/usr/local/asterisk/lifeline-msgs/ /usr/local/asterisk/lifeline-msgs
+#26,52 * * * * /usr/bin/nice /usr/bin/rsync --delete -rct asterisk@lifelinevm.net:/usr/local/asterisk/coolaid-msgs/ /usr/local/asterisk/coolaid-msgs
+#
+#
