@@ -1,3 +1,13 @@
 asterisk-common: all asterisk related configuration that is know to work with both asterisk 1.4 and 1.6
 
 telephony: asterisk reference code for 1.4 and 1.6 and legacy dialogic code including DOS exe files.
+
+Installing: this has been installed on ubuntu 10.04 LTS 
+the web tools depend on the apache2, php5, php5-mysql ubuntu packages
+the telephony interface depends on the libdbd-mysql-perl ubuntu package as well as perl
+both of them depend on mysql being installed. Example install command (run as root): 
+
+aptitude install apache2 mysql-client mysql-server libdbd-mysql-perl php5 php5-cli php5-mysql
+
+See the asterisk-common/README and telephony/README for details on installing the asterisk
+server and web tools/agi interface respectively.
