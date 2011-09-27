@@ -20,10 +20,23 @@ $0 [-f|-h]
 TXT
 }
 
-print "building the numrange table\n";
-for (my $i=0; $i<10_000; $i++) {
-	$ldb->do("insert ignore into numrange (i) values ('$i')") or die $ldb->errstr;
+print "Enter database name you'd like to set up with super user and root user: ";
+my $dbname = <STDIN>;
+chomp $dbname;
+my $checkdb = $ldb->prepare("select i from $dbname.numrange");
+eval {
+	$checkdb->execute or die $checkdb->errstr;
+};
+print "\n\ninvalid db name - did you create this db yet? See asterisk-common/README for more info.\n" and exit
+	if $@;
+
+unless ($checkdb->rows) {
+	print "building the numrange table\n";
+	for (my $i=0; $i<10_000; $i++) {
+		$ldb->do("insert ignore into numrange (i) values ('$i')") or die $ldb->errstr;
+	}
 }
+$checkdb->finish;
 
 print "looking for existing super users\n";
 my $getsu = $ldb->prepare("select * from users where perms = 's'");
