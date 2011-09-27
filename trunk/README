@@ -12,4 +12,6 @@ aptitude install apache2 mysql-client mysql-server libdbd-mysql-perl php5 php5-c
 (the ncurses packages seem to be required for asterisk to build)
 
 See the asterisk-common/README and telephony/README for details on installing the asterisk
-server and web tools/agi interface respectively.
+server and web tools/agi interface respectively. See the CRON file for various crontabs used
+by different servers. The system will mostly work without any cron jobs except that boxes
+that are out of service will not get cleaned up. 
