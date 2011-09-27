@@ -165,7 +165,7 @@ HTML;
 
 	if (preg_match('#logins#',$data['perms'])) 
 		$users = '<input type=submit name=action value="Manage account and users"><p>';
-		if ($data['vid'] == ROOTVID) {
+		if ($data['vid'] == $data['parent']) {
 			$users .= '<input type=submit name=action value="Recent logins"><p>';
 		}
 	return <<<HTML
