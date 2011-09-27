@@ -78,5 +78,9 @@ $lavender = '#E6E6FA';
 $gray = '#909090';
 $lightgray = '#D3D3D3';
 # database
-$ll_dbname = 'lifeline';
-eval(file_get_contents("/usr/local/asterisk/agi-bin/Lifeline/database"));
+if (file_exists("/usr/local/asterisk/agi-bin/Lifeline/database")) {
+	eval(file_get_contents("/usr/local/asterisk/agi-bin/Lifeline/database"));
+} else if (file_exists("/usr/local/asterisk/var/lib/asterisk/agi-bin/Lifeline/database")) {
+	eval(file_get_contents("/usr/local/asterisk/var/lib/asterisk/agi-bin/Lifeline/database"));
+}
+

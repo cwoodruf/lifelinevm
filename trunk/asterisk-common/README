@@ -82,11 +82,13 @@ Next make the salt file for passwords:
 > nano salt
 $salt = 'some long random string';
 
-Make a database file used by scripts outside of agi for the database:
+Make a database file used by scripts outside of agi for the database 
+(example filled in with our data):
 
 > nano database
-$username = 'll';
-$password = 'somepassword';
+$ll_database = 'lifeline';
+$ll_login = $username = 'll';
+$ll_password = $password = 'somepassword';
 $port = '3306';
 $host = 'localhost';
 
