@@ -183,5 +183,7 @@ users to make logins for themselves from /lifeline/emailsignup.php. (To do the s
 for the coolaid style interface replace "lifeline" with "coolaid".)
 
 Note the web tools should be modified to work with the specifics of your installation.
+Also note that you may have to fiddle with web server user or permissions to get asterisk
+to report uptime correctly. A work around would be to run a regular cron with the uptime.
 
 
