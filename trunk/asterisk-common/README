@@ -126,7 +126,7 @@ exten => 6045551212,1,Set(callstart=${EPOCH})
 ; this Wait is optional but useful if you have redundant servers
 exten => 6045551212,n,Wait(1)
 exten => 6045551212,n,Set(msgdir=/usr/local/asterisk/lifeline-msgs)
-exten => 6045551212,n,Set(db_name=lltest);
+exten => 6045551212,n,Set(db_name=lifeline);
 exten => 6045551212,n,Set(db_user=ll);
 exten => 6045551212,n,Set(db_host=127.0.0.1)
 exten => 6045551212,n,Set(db_port=3306)
