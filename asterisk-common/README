@@ -84,6 +84,9 @@ Database changed
 
 mysql> \. lldocs-schema.mysql
 
+Similarly you can set up coolaid and cooldocs for the coolaid style website by using
+the coolaid-schema.mysql and cooldocs-schema.mysql files to load the databases.
+
 SET UP PASSWORD FILES
 Make sure to change 'somepassword' above to an appropriate password.
 
@@ -197,4 +200,10 @@ Note the web tools should be modified to work with the specifics of your install
 Also note that you may have to fiddle with web server user or permissions to get asterisk
 to report uptime correctly. A work around would be to run a regular cron with the uptime.
 
+DOCUMENTATION WEBSITES
 
+Both the coolaid and lifeline versions of the websites have documentation links. Copy
+the mediawiki directories from html/lifeline and html/coolaid over and make sure the
+docs links in these directories work. You will have to change the database credentials
+for these installations to work. Look for the LocalSettings.php files in the mediawiki
+directories and change the database password, user and emails to suitable values.
