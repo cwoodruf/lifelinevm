@@ -1,6 +1,6 @@
 <?php # mysql related php "middleware"
 # $Id: mysql.php,v 1.14 2008/10/26 04:59:15 root Exp root $
-if (define(DBLOGINFILE)) @include(DBLOGINFILE); 
+if (defined(DBLOGINFILE)) @include(DBLOGINFILE); 
 eval(file_get_contents(SALTFILE)); 
 
 ###############################################################################
@@ -38,13 +38,14 @@ function ll_connect () {
 	if (empty($ll_dbname)) $ll_dbname = 'lifeline';
 	if (preg_match('#^\d+$#',$ll_port)) $port = ";port=$ll_port";
 	try {
-		$lldb = new PDO("mysql:dbname=$ll_dbname;host=$ll_host$port",$ll_login,$ll_password);
+		$dsn = "mysql:dbname=$ll_dbname;host=$ll_host$port";
+		$lldb = new PDO($dsn, $ll_login,$ll_password);
 	} catch (Exception $e) {
 		# if the login fails try localhost
 		try {
-			print "connect error: using localhost!<br>\n";
+			print "connect error: using defaults!<br>\n";
 			$lldb = new PDO(
-				"mysql:dbname=$ll_dbname;unix_socket=/tmp/mysql-lifeline.sock",
+				"mysql:dbname=$ll_dbname",
 				$ll_login,$ll_password
 			);
 		} catch (Exception $e) {
