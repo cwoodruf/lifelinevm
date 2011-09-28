@@ -54,8 +54,8 @@ $wgLogo             = "$wgScriptPath/images/help.png";
 $wgEnableEmail      = false;
 $wgEnableUserEmail  = false; # UPO
 
-$wgEmergencyContact = "cwoodruf@gmail.com";
-$wgPasswordSender = "cwoodruf@gmail.com";
+$wgEmergencyContact = "";
+$wgPasswordSender = "";
 
 $wgEnotifUserTalk = false; # UPO
 $wgEnotifWatchlist = false; # UPO
@@ -65,8 +65,8 @@ $wgEmailAuthentication = false;
 $wgDBtype           = "mysql";
 $wgDBserver         = "localhost";
 $wgDBname           = "cooldocs";
-$wgDBuser           = "coolaid";
-$wgDBpassword       = "XVm5aGU4n3VFx";
+$wgDBuser           = "";
+$wgDBpassword       = "";
 
 # MySQL specific settings
 $wgDBprefix         = "";
