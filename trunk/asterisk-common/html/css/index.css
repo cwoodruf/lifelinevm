@@ -47,18 +47,26 @@ div.panel, div.intro {
 }
 div.intro {
 	position: static;
-}
-div.intro {
+	padding-left: 20px;
+	padding-right: 20px;
+	width: 670px;
 	margin-top: 0px;
 	margin-bottom: -15px;
 	border-bottom: none;
 	padding-bottom: 40px;
+}
+div.intro b {
+	font-style: italic;
+	color: #950059;
 }
 div.intro a {
 	margin: 8px;
 	font-weight: bold;
 	font-style: italic;
 	float: right;
+}
+span.intro.link {
+	text-decoration: underline;
 }
 
 div.retail {
