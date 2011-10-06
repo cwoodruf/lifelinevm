@@ -26,7 +26,7 @@ div.show {
 div.logo {
 	background-color: green;
 	width: 702px;
-	margin-left: 12px;
+	margin-left: 120px;
 	margin-top: -8px;
 	margin-bottom: -12px;
 	padding-top: 12px;
@@ -100,4 +100,6 @@ i.mailin-instructions {
 	color: #0F0F0F; 
 	margin: 10px;
 }
-
+#maintable {
+	margin-left: 108px;
+}
