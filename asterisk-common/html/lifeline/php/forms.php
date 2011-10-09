@@ -110,7 +110,7 @@ function credit_left($vid) {
 }
 
 function main_form($data) {
-	global $ldata, $permcheck, $min_purchase, $overdue, $overdueblock;
+	global $ldata, $permcheck, $min_purchase, $overdue, $overdueblock, $vdata;
 
 	$top = form_top($data,false); 
 	$end = form_end($data);
@@ -148,13 +148,14 @@ $remaining
 HTML;
 			}
 		}
-		$purchase .= <<<HTML
-<nobr>
+		if (($outstanding = list_invoices($vdata,false,false)) === false) {
+			$purchase .= <<<HTML
 <input type=submit name=form value="Show all invoices"> 
-<input type=submit name=form value="Show unpaid invoices">
-</nobr>
 <p>
 HTML;
+		} else {
+			$purchase .= $outstanding;
+		}
 	}
 	if (!$overdueblock and $ldata['months'] > 0) {
 		$addtime_buttons = <<<HTML
@@ -1405,27 +1406,35 @@ $end
 HTML;
 }
 
-function list_invoices($data,$showall=false) {
+function list_invoices($data,$showall=false,$singlepage=true) {
 	global $ldata,$lightgray;
 	if ($data['vid'] != $ldata['vid'] and !ll_has_access($ldata,$data)) 
 		die("Error: you are trying to view someone else's invoices.");
 	$table = table_header(3,0,0,850);
-	$top = form_top($data); 
-	$end = form_end($data);
+	if ($singlepage) {
+		$top = form_top($data); 
+		$end = form_end($data);
+	}
 	$vend = ll_vendor($data['vid']);
 	$invoices = ll_invoices($showall,$vend);
+	if (!$singlepage and count($invoices) == 0) return false;
+
 	$owing = ll_get_owing($data);
 	$owing = $owing > 0 ? sprintf('(%.2f owing)', $owing) : '';
 	$invoiced = sprintf('$%.2f',ll_get_invoiced($data));
 	$vendor = $vend['vendor'];
 	$squashedphone = squashedphone($vend['phone']);
-	$invtype = $showall ? 'All' : 'Unpaid';
+	list($invtype, $invalt) = $showall ? array('All','unpaid') : array('','all');
 	$html = <<<HTML
 $top
-<h3>$invtype invoices for $vendor $owing</h3>
-<a href="admin.php?form=Show+all+invoices">Show all</a> &nbsp;&nbsp;
-<a href="admin.php?form=Show+unpaid+invoices">Show unpaid</a>
+<h3>$invtype Invoices for $vendor $owing</h3>
+<a href="admin.php?form=Show+$invalt+invoices">Show $invalt</a>
 <p>
+HTML;
+	if (count($invoices) == 0) {
+		return ($html .= "<h3>No invoices</h3>\n");
+	}
+	$html .= <<<HTML
 $table
 <tr><th>invoice</th><th>vendor</th><th>created</th><th>tax</th><th>total</th><th>paid</th></tr>
 HTML;
