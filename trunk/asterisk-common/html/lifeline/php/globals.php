@@ -28,7 +28,6 @@ $phone = DEFPHONE;
 
 # where things are
 $lib = '/usr/local/asterisk/html/tools/php';
-define("DBLOGINFILE","$lib/.mysql.php");
 define("SALTFILE","/usr/local/asterisk/agi-bin/Lifeline/salt");
 $asterisk = '/usr/local/asterisk/sbin/asterisk';
 $asterisk_dir = "/usr/local/asterisk/var/lib/asterisk";
@@ -83,4 +82,4 @@ if (file_exists("/usr/local/asterisk/agi-bin/Lifeline/database")) {
 } else if (file_exists("/usr/local/asterisk/var/lib/asterisk/agi-bin/Lifeline/database")) {
 	eval(file_get_contents("/usr/local/asterisk/var/lib/asterisk/agi-bin/Lifeline/database"));
 }
-
+$ll_dbname = 'lifeline';

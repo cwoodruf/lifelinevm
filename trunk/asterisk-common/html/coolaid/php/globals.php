@@ -90,6 +90,7 @@ if (file_exists("/usr/local/asterisk/agi-bin/Lifeline/database")) {
 } else if (file_exists("/usr/local/asterisk/var/lib/asterisk/agi-bin/Lifeline/database")) {
         eval(file_get_contents("/usr/local/asterisk/var/lib/asterisk/agi-bin/Lifeline/database"));
 }
+$ll_dbname = 'coolaid';
 # personal information associated with a box - this should override mysql.php
 $personal_fields = array(
         'name' => 'Name',
