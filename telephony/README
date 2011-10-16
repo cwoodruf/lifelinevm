@@ -16,12 +16,12 @@ An emulation layer for this old dialogic API would probably be a useful project 
 
 asterisk-1.4, asterisk-1.6:
 
-This is a reference build of asterisk that is known to work. Its identical to 1.4.* but contains
+This is a reference build of asterisk that is known to work. Its identical to asterisk but contain
 the apps/app_recordkeys.c (RecordKeys) asterisk application that can branch based on used input
 while recording. RecordKeys is not part of the current asterisk distribution but I have send along
 a patch: https://issues.asterisk.org/view.php?id=17487
 
-This version of RecordKey also differs from Record in that it does not automatically delete 
+This version of RecordKeys also differs from Record in that it does not automatically delete 
 messages and stop the application on hang up.
 
 Both key capture and tolerant hang up are needed to make the user interface less confusing for
@@ -71,6 +71,6 @@ Other notes:
 * You may need to remove the menuselect.makeopts if you rebuild with a new version of asterisk
 
 * Version 1.6 changed substantially from June 2010 to January 2011 and may change substantially again.
-  This may mean having to manually update apps/app_readkey.c and apps/app_readkeys.c if there are major
+  This may mean having to manually update apps/app_recordkey.c and apps/app_recordkeys.c if there are major
   updates in the future. 1.4 thankfully isn't being actively worked on.
 
