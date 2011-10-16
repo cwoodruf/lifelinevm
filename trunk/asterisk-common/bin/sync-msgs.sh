@@ -6,7 +6,7 @@
 # TODO find a way to recognize when an caller has deleted messages on a backup
 # the modification date doesn't seem to get changed when they do a delete??
 
-for msgdir in /usr/local/asterisk/lifeline-msgs/ /usr/local/asterisk/coolaid-msgs
+for msgdir in /usr/local/asterisk/lifeline-msgs/ /usr/local/asterisk/coolaid-msgs/
 do
 	us=asterisk@aibackup.dyndns.org
 	findcmd="/usr/bin/find $msgdir -regex '.*\(\.[0-9]+\|greeting\)\.gsm' \
@@ -15,7 +15,7 @@ do
 	echo $findcmd 
 	lastupdate="/bin/touch ~/.lastupdated"
 	localbackup=10.2.170.10
-	remotebackup=174.142.73.33
+	remotebackup=66.152.64.75
 
 	echo sync-msgs: FROM $localbackup TO main $msgdir using ssh
 	/usr/bin/ssh asterisk@$localbackup "$findcmd"
