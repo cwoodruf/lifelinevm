@@ -64,16 +64,18 @@ sub init {
 
 	# base directory (where messages go) is determined from the dial plain
 	$basedir = $ll->get('msgdir');
-	mkdir $basedir, 0777 or warn "can't make basedir $basedir: $!" unless -d $basedir;
-	$logdir = "$basedir/logs";
-	mkdir $logdir, 0777 or warn "can't make logdir $logdir: $!" unless -d $logdir;
-	$log = "$logdir/log.txt";
-	$error_log = "$logdir/error_log.txt";
+	if (defined $basedir) {
+		mkdir $basedir, 0777 or warn "can't make basedir $basedir: $!" unless -d $basedir;
+		$logdir = "$basedir/logs";
+		mkdir $logdir, 0777 or warn "can't make logdir $logdir: $!" unless -d $logdir;
+		$log = "$logdir/log.txt";
+		$error_log = "$logdir/error_log.txt";
 
-	$ll->{dir} = "$basedir/$ll->{box}";
-	$ll->{msgdir} = "$ll->{dir}/messages";
-	$ll->{grt} = "$ll->{dir}/greeting";
-	$ll->{rectype} = "gsm";
+		$ll->{dir} = "$basedir/$ll->{box}";
+		$ll->{msgdir} = "$ll->{dir}/messages";
+		$ll->{grt} = "$ll->{dir}/greeting";
+		$ll->{rectype} = "gsm";
+	}
 
 	# set up the database from the dial plan
 	my $db_name = $ll->get('db_name');
@@ -317,6 +319,19 @@ sub log_calls {
 	my $vid = $ll->{vid} || "";
 	$ins->execute($box,$vid,$action,$status,$message,$callerid,$host,$callstart) or warn $ins->errstr;
 }
+
+sub log_free_calls {
+	my $ll = shift;
+	my $sipuri = shift;
+	my $sipuser = ($sipuri=~/^sip:([\w\-]*)/)[0];
+	my $event = shift;
+	my $callstart = $ll->get('callstart');
+	my $ins = $ll->{db}->prepare(
+		"insert ignore into free_calls (sipuri,sipuser,event,callstart,modified) ".
+		"values (?,?,?,?,now())"
+	);
+	$ins->execute($sipuri,$sipuser,$event,$callstart) or warn $ins->errstr;
+}	
 
 sub log_err {
 	my $ll = shift;
