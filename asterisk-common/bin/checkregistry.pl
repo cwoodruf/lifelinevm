@@ -38,6 +38,7 @@ my ($host, $hosts, $dnsmgr, $user, $refresh, $state,@time);
 my $version = (($sipregs =~ m#dnsmgr#) ? '1.6' : '1.4');
 print "version $version\n" if $opt{v};
 foreach my $reg (split "\n", $sipregs) {
+	next if $reg =~ /^Asterisk ending/;
 	if ($version eq '1.6') {
 		($host, $dnsmgr, $user, $refresh, $state,@time)  = split /\s+/, $reg;
 		next if $host =~ /^(?:Host|Unable|\d+)$/;
