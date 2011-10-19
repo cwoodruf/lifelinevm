@@ -32,3 +32,14 @@
 #26,52 * * * * /usr/bin/nice /usr/bin/rsync --delete -rctl asterisk@lifelinevm.net:/usr/local/asterisk/coolaid-msgs/ /usr/local/asterisk/coolaid-msgs
 #
 #
+##############################################################################################################
+### crontab for lifeline freephone server
+### m h  dom mon dow   command
+##0-59/15 * * * * /home/asterisk/bin/alive.pl -v -mcalvmobile@callbackpack.com >> /home/asterisk/bin/alive.out
+#35 4 * * * /home/asterisk/asterisk/bin/sync.sh > /home/asterisk/bin/sync.out 2>&1
+#0-59/20 * * * * /usr/local/asterisk/bin/checkregistry.pl -v >> /usr/local/asterisk/bin/checkregistry.out
+#0-59/30 * * * * /home/asterisk/bin/check-slave-gamma2.pl
+#0-59/2 8-19 * * * /usr/bin/nice /usr/bin/rsync -rztl asterisk@aibackup.dyndns.org:/usr/local/asterisk/lifeline-msgs/ /usr/local/asterisk/lifeline-msgs
+## 0,20,40 * * * * /usr/bin/nice /usr/bin/rsync --delete -rztl asterisk@aibackup.dyndns.org:/usr/local/asterisk/coolaid-msgs/ /usr/local/asterisk/coolaid-msgs
+#10 3 * * * /usr/local/asterisk/sbin/asterisk -rx 'logger rotate' >> /usr/local/asterisk/bin/checkregistry.out
+#11 3 * * * /usr/local/asterisk/sbin/asterisk -rx 'restart when convenient' >> /usr/local/asterisk/bin/checkregistry.out 2>&1
