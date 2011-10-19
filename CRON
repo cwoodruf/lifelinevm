@@ -28,7 +28,7 @@
 #35 4 * * * /home/asterisk/asterisk/bin/sync.sh > /home/asterisk/bin/sync.out 2>&1
 #0-59/20 * * * * /usr/local/asterisk/bin/checkregistry.pl -v >> /usr/local/asterisk/bin/checkregistry.out
 #0-59/30 * * * * /usr/local/bin/check-slave-drdata.pl
-#19,38,57 * * * * /usr/bin/nice /usr/bin/rsync --delete -rct asterisk@lifelinevm.net:/usr/local/asterisk/lifeline-msgs/ /usr/local/asterisk/lifeline-msgs
-#26,52 * * * * /usr/bin/nice /usr/bin/rsync --delete -rct asterisk@lifelinevm.net:/usr/local/asterisk/coolaid-msgs/ /usr/local/asterisk/coolaid-msgs
+#19,38,57 * * * * /usr/bin/nice /usr/bin/rsync --delete -rctl asterisk@lifelinevm.net:/usr/local/asterisk/lifeline-msgs/ /usr/local/asterisk/lifeline-msgs
+#26,52 * * * * /usr/bin/nice /usr/bin/rsync --delete -rctl asterisk@lifelinevm.net:/usr/local/asterisk/coolaid-msgs/ /usr/local/asterisk/coolaid-msgs
 #
 #
