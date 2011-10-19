@@ -26,9 +26,9 @@ do
 	/usr/bin/ssh asterisk@$remotebackup "$lastupdate"
 
 	echo sync-msgs: FROM main $msgdir TO $localbackup using rsync with delete
-	/usr/bin/rsync -rcvt --delete --times $msgdir asterisk@$localbackup:$msgdir
+	/usr/bin/rsync -rcvtl --delete --times $msgdir asterisk@$localbackup:$msgdir
 	echo sync-msgs: FROM main $msgdir TO $remotebackup using rsync with delete
-	/usr/bin/rsync -rcvt --delete --times $msgdir asterisk@$remotebackup:$msgdir
+	/usr/bin/rsync -rcvtl --delete --times $msgdir asterisk@$remotebackup:$msgdir
 done
 
 echo sync-msgs: CLEANUP `/bin/date`
