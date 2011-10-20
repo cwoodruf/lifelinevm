@@ -13,7 +13,7 @@ else $llphone = $phone;
 
 if (isset($_SESSION['login']['login'])) $printedby = md5($_SESSION['login']['login']);
 
-if (!ll_has_access($_SESSION['login']['vid'],($bdata=ll_box($_REQUEST['box'])))) {
+if (!($vend = ll_vendor($_SESSION['login']['vid']))) {
 	unset($_REQUEST);
 }
 if ($_REQUEST['amount']) {

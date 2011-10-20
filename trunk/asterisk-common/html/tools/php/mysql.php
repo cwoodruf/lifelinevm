@@ -382,6 +382,14 @@ function ll_logincount($vid) {
 	return $row[0];
 }
 
+function ll_find_box($vend,$box,$seccode) {
+	global $salt;
+	$lldb = ll_connect();
+	if (!preg_match('#^\d+$#',$box)) die("box should be a number!");
+	$where = " where box=$box and seccode='".md5($seccode.$salt)."'";
+	return ll_load_from_table('ourboxes',null,null,true,$where);
+}
+
 function ll_find_boxes($vend,$search) {
 	$lldb = ll_connect();
 	# $where = " and status <> 'deleted' and (";
@@ -724,6 +732,7 @@ function ll_check_time($vend,$box,$months) {
 		$newmonths = $addmonths + $months;
 		# this can be zero or less as we can delete months from it
 		if ($newmonths > 0) $udata['status'] = "add $newmonths months";
+		else $udata['status'] = "deleted";
 
 	# if the box has no paidto date at all
 	} else if ($bdata['paidto'] == 0) {

@@ -1195,20 +1195,34 @@ function mk_sel($name,$items,$multiple=null) {
 }
 
 function search_form($data) {
+	global $permcheck;
 	$search = htmlentities($_REQUEST['search']);
+	$box = htmlentities($_REQUEST['box']);
 	if (!$search and $_REQUEST['box']) $search = htmlentities($_REQUEST['box']);
+	if ($permcheck['boxes']) {
+		$boxform = <<<HTML
+<form name=searchform action=admin.php method=get style="margin-top: 8px">
+Find Any Box: <input name="box" value="$box" size=5> &nbsp;
+Security Code: <input name="seccode" type="password" size=5> &nbsp;
+<input type=hidden name="vid" value="{$data['vid']}">
+<input type=submit name=form value="Find Box">
+</form>
+HTML;
+	}
 	return <<<HTML
 <form name=searchform action=admin.php method=get>
 <input name="search" value="$search" size=33 style="margin-left: -5px;">
 <input type=hidden name="vid" value="{$data['vid']}">
 <input type=submit name=form value="Search Boxes">
-<br>
+</form>
+<div style="margin-top: -10px;">
 Boxes: &nbsp;
 <a href="admin.php?form=Search Boxes&search=^add [0-9]* months$&vid={$data['vid']}">Show unused</a> &nbsp;&nbsp;
 <a href="admin.php?form=Search Boxes&search=-deleted">Show active</a> &nbsp;&nbsp;
 <a href="admin.php?form=Search Boxes&search=">Show all</a> &nbsp;&nbsp;
 <a href="admin.php?form=Search Boxes&search=deleted&vid={$data['vid']}">Show deleted</a> &nbsp;&nbsp;
-</form>
+</div>
+$boxform
 HTML;
 
 }
@@ -1258,7 +1272,8 @@ HTML;
 		else $notesbr = '';
 		if (strlen($row['login']) > 32 and $notestbr == '') $loginbr = '<br>';
 		else $loginbr = '';
-
+		if (ll_has_access($data,$row)) 
+			$modifystr = "$add or $sub time $div $del box $div $chsc $div";
 		$html .= <<<HTML
 <tr valign=top>
 <td><nobr><b>$box</b> &nbsp;&nbsp; $paidto $v</nobr></td>
@@ -1277,7 +1292,7 @@ $notesbr$loginbr
 <td><nobr>show <a href="admin.php?form=Call+Activity&box=$box">activity</a> / $edit box &nbsp;&nbsp;</nobr></td>
 <td>
 <nobr>
-$add or $sub time $div $del box $div $chsc $div $instr
+$modifystr $instr
 </nobr>
 </td>
 </tr>
