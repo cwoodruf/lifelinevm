@@ -186,6 +186,8 @@ if ($_REQUEST['listen']) {
 		print find_payments_form($finddata);
 	} else if ($form === 'Search Boxes') {
 		print find_boxes_form($finddata,ll_find_boxes($findvid,$_REQUEST['search']));
+	} else if ($form === 'Find Box') {
+		print find_boxes_form($finddata,ll_find_box($findvid,$_REQUEST['box'],$_REQUEST['seccode']));
 	} else if ($form === 'Show all invoices') {
 		print list_invoices($vdata,true);
 	} else if ($form === 'Show unpaid invoices') {
