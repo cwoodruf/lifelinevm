@@ -13,9 +13,14 @@ else $llphone = $phone;
 
 if (isset($_SESSION['login']['login'])) $printedby = md5($_SESSION['login']['login']);
 
+# are we logged in?
 if (!($vend = ll_vendor($_SESSION['login']['vid']))) {
 	unset($_REQUEST);
+} else {
+	# this is only for status and paidto info
+	$bdata = ll_box($_REQUEST['box']);
 }
+
 if ($_REQUEST['amount']) {
 	$title = "Proof of Payment / Instructions";
 } else {
