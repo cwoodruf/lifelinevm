@@ -38,12 +38,14 @@ $asterisk_deleted = "deleted"; # extension to use to "delete" files
 $lifeline_root = "/usr/local/asterisk/html/lifeline";
 
 # allowable range of boxes when we want to create a box
+if (!function_exists('get_box_range')) {
 function get_box_range() { 
 	return array(2000,9999);
 	# these ranges avoid new boxes from the DERA vm service
 	# we do this so both can be used at the same time without collisions
 	$ranges = array(array(6001,6999),array(9001,9999));
 	return $ranges[mt_rand(0,1) > 0.5 ? 1 : 0]; 
+}
 }
 
 # link to show for support email
