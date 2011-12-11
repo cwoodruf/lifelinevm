@@ -1244,9 +1244,27 @@ function ll_user_data($box) {
 	return $data;
 }
 
+# for logging on from the callbackpack.com website used by listen/auth.php
+function ll_valid_email_user($udata) {
+	if (($bdata = ll_find_box(null,$udata['box'],$udata['seccode'])) === false) return null;
+	if ($udata['email'] == $bdata[0]['email']) return true;
+	return false;
+}
+
+# for getting message info from the calls table used by listen/list.php
+function ll_message_info($msg) {
+	$lldb = ll_connect();
+	$query = "select * from calls where message like ".$lldb->quote("%$msg");
+	$st = $lldb->query($query);
+	if (!$st) return false;
+	$row = $st->fetch();
+	return $row;
+}
+
 function ll_superuser($login) {
 	$lldb = ll_connect();
-	$query = "select password,perms from users where login=md5('$login') and vid=0 and perms='s'";
+	$login = $lldb->quote($login);
+	$query = "select password,perms from users where login=md5($login) and vid=0 and perms='s'";
         $st = $lldb->query($query);
         if ($st === false) {
                 die(ll_err());
