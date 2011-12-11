@@ -31,7 +31,8 @@ $phone = DEFPHONE;
 
 # where things are
 $lib = '/usr/local/asterisk/html/tools/php';
-define("SALTFILE","/usr/local/asterisk/agi-bin/Lifeline/salt-coolaid");
+$SALTFILE = "/usr/local/asterisk/agi-bin/Lifeline/salt-coolaid";
+define(SALTFILE,$SALTFILE);
 $asterisk = '/usr/local/asterisk/sbin/asterisk';
 $asterisk_dir = "/usr/local/asterisk/var/lib/asterisk";
 $asterisk_sounds = "$asterisk_dir/sounds";
