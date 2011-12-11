@@ -1247,7 +1247,12 @@ function ll_user_data($box) {
 # for logging on from the callbackpack.com website used by listen/auth.php
 function ll_valid_email_user($udata) {
 	if (($bdata = ll_find_box(null,$udata['box'],$udata['seccode'])) === false) return null;
-	if ($udata['email'] == $bdata[0]['email']) return true;
+	$bdata = $bdata[0];
+	$mykey = sha1($bdata['box'].$bdata['email'].$bdata['seccode']);
+	if (
+		$udata['email'] == $bdata['email'] and
+		$mykey == $udata['key']
+	) return true;
 	return false;
 }
 
