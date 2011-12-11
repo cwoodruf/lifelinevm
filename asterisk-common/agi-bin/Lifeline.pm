@@ -318,6 +318,9 @@ sub log_calls {
 	my $box = $ll->{box} || "";
 	my $vid = $ll->{vid} || "";
 	$ins->execute($box,$vid,$action,$status,$message,$callerid,$host,$callstart) or warn $ins->errstr;
+	open MSGINFO, "> $message.txt" or warn "can't save message data to file for $message: $!";
+	print MSGINFO "\$box = '$box';\n\$message = '$message';\n\$callerid = '$callerid';\n";
+	close MSGINFO;
 }
 
 sub log_free_calls {
@@ -506,7 +509,8 @@ sub clean_up_msgs {
 		if ($_->{deleted} and $_->{msg} ne '') {
 			my $mname = $_->{msg}.".".$ll->{rectype};
 			my $dname = $_->{msg}.".deleted.".$ll->{rectype};
-			unlink $dname if -f $dname;
+# actually lost some messages - perhaps errors with disk?
+#			unlink $dname if -f $dname;
 			if (-f $mname) {
 				move $mname, $dname or print STDERR "$mname -> $dname: $!";
 			}

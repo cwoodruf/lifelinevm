@@ -10,13 +10,15 @@ my $mail = "/bin/mail";
 my $from = 'noreply@callbackpack.com';
 my $optoutdir = '/vservers/callbackpack10/bin/llremind/optout';
 
-my %emails;
+my (%emails, $key);
 while (<>) {
 	chomp;
-	my ($box, $email, @llphone) = split;
+	my ($box, $email, $k, @llphone) = split;
 	my $llphone = join " ", @llphone;
 	next unless $box =~ /^\d+$/;
 	next unless $email =~ /^\w[\w\-\.]*\@\w[\w\-\.]*\.\w{2,4}$/;
+	next unless $k =~ /^[a-f0-9]{40}$/;
+	$key = $k;
 	next unless $llphone =~ /^[\w\-\.\(\) ]{0,20}$/;
 	push @{$emails{$email}}, [$llphone, $box];
 }
@@ -38,6 +40,8 @@ You have new voice mail messages in $vphone.
 Lifeline Voice Mail
 http://callbackpack.com
 604 682-3269 Ext 6040
+
+Listen to your messages on the web: http://callbackpack.com/listen.php?key=$key
 
 Opt out: http://callbackpack.com/optout.php
 
