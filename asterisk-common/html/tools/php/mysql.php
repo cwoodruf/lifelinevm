@@ -1,7 +1,7 @@
 <?php # mysql related php "middleware"
 # $Id: mysql.php,v 1.14 2008/10/26 04:59:15 root Exp root $
 if (defined(DBLOGINFILE)) @include(DBLOGINFILE); 
-eval(file_get_contents(SALTFILE)); 
+eval(file_get_contents($SALTFILE)); 
 
 ###############################################################################
 # lifeline section
@@ -33,7 +33,7 @@ function squashedphone($phone) {
 
 function ll_connect () {
 	global $lldb, $ll_login, $ll_password, $ll_host, $ll_port, $ll_dbname;
-	if (isset($lldb)) return $lldb;
+	# if (isset($lldb)) return $lldb;
 	if (empty($ll_host)) $ll_host = 'localhost';
 	if (empty($ll_dbname)) $ll_dbname = 'lifeline';
 	if (preg_match('#^\d+$#',$ll_port)) $port = ";port=$ll_port";
@@ -383,7 +383,8 @@ function ll_logincount($vid) {
 }
 
 function ll_find_box($vend,$box,$seccode) {
-	global $salt;
+	global $salt, $SALTFILE;
+	eval(file_get_contents($SALTFILE)); 
 	$lldb = ll_connect();
 	if (!preg_match('#^\d+$#',$box)) die("box should be a number!");
 	$where = " where box=$box and seccode='".md5($seccode.$salt)."'";
