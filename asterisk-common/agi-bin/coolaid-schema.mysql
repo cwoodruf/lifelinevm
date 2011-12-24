@@ -1,6 +1,6 @@
 -- MySQL dump 10.11
 --
--- Host: localhost    Database: coolaid
+-- Host: 127.0.0.1    Database: coolaid
 -- ------------------------------------------------------
 -- Server version	5.1.44-log
 
@@ -23,6 +23,98 @@ DROP TABLE IF EXISTS `boxes`;
 SET @saved_cs_client     = @@character_set_client;
 SET character_set_client = utf8;
 CREATE TABLE `boxes` (
+  `box` varchar(32) NOT NULL DEFAULT '',
+  `name` varchar(64) NOT NULL DEFAULT '',
+  `notes` varchar(255) NOT NULL DEFAULT '',
+  `seccode` varchar(32) NOT NULL DEFAULT '',
+  `email` varchar(64) NOT NULL DEFAULT '',
+  `emailconfirmed` int(11) NOT NULL DEFAULT '0',
+  `paidto` date NOT NULL,
+  `inuse` int(11) DEFAULT NULL,
+  `new_msgs` int(11) DEFAULT NULL,
+  `reminder` int(11) DEFAULT '0',
+  `status` varchar(32) NOT NULL DEFAULT '',
+  `vid` int(11) NOT NULL DEFAULT '0',
+  `login` varchar(64) NOT NULL DEFAULT '',
+  `created` datetime DEFAULT NULL,
+  `trans` varchar(32) DEFAULT NULL,
+  `llphone` varchar(32) NOT NULL DEFAULT '',
+  `announcement` int(11) DEFAULT '1',
+  `canremove` int(11) DEFAULT NULL,
+  `modified` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `listenkey` varchar(40) DEFAULT NULL,
+  PRIMARY KEY (`box`)
+) ENGINE=MyISAM DEFAULT CHARSET=latin1;
+SET character_set_client = @saved_cs_client;
+
+--
+-- Table structure for table `boxes_201011`
+--
+
+DROP TABLE IF EXISTS `boxes_201011`;
+SET @saved_cs_client     = @@character_set_client;
+SET character_set_client = utf8;
+CREATE TABLE `boxes_201011` (
+  `box` varchar(32) NOT NULL DEFAULT '',
+  `name` varchar(64) NOT NULL DEFAULT '',
+  `notes` varchar(255) NOT NULL DEFAULT '',
+  `seccode` varchar(32) NOT NULL DEFAULT '',
+  `email` varchar(64) NOT NULL DEFAULT '',
+  `paidto` date NOT NULL,
+  `inuse` int(11) DEFAULT NULL,
+  `new_msgs` int(11) DEFAULT NULL,
+  `reminder` int(11) DEFAULT '0',
+  `status` varchar(32) NOT NULL DEFAULT '',
+  `vid` int(11) NOT NULL DEFAULT '0',
+  `login` varchar(64) NOT NULL DEFAULT '',
+  `created` datetime DEFAULT NULL,
+  `trans` varchar(32) DEFAULT NULL,
+  `llphone` varchar(32) NOT NULL DEFAULT '',
+  `announcement` int(11) DEFAULT '1',
+  `canremove` int(11) DEFAULT NULL,
+  `modified` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`box`)
+) ENGINE=MyISAM DEFAULT CHARSET=latin1;
+SET character_set_client = @saved_cs_client;
+
+--
+-- Table structure for table `boxes_20110207`
+--
+
+DROP TABLE IF EXISTS `boxes_20110207`;
+SET @saved_cs_client     = @@character_set_client;
+SET character_set_client = utf8;
+CREATE TABLE `boxes_20110207` (
+  `box` varchar(32) NOT NULL DEFAULT '',
+  `name` varchar(64) NOT NULL DEFAULT '',
+  `notes` varchar(255) NOT NULL DEFAULT '',
+  `seccode` varchar(32) NOT NULL DEFAULT '',
+  `email` varchar(64) NOT NULL DEFAULT '',
+  `paidto` date NOT NULL,
+  `inuse` int(11) DEFAULT NULL,
+  `new_msgs` int(11) DEFAULT NULL,
+  `reminder` int(11) DEFAULT '0',
+  `status` varchar(32) NOT NULL DEFAULT '',
+  `vid` int(11) NOT NULL DEFAULT '0',
+  `login` varchar(64) NOT NULL DEFAULT '',
+  `created` datetime DEFAULT NULL,
+  `trans` varchar(32) DEFAULT NULL,
+  `llphone` varchar(32) NOT NULL DEFAULT '',
+  `announcement` int(11) DEFAULT '1',
+  `canremove` int(11) DEFAULT NULL,
+  `modified` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`box`)
+) ENGINE=MyISAM DEFAULT CHARSET=latin1;
+SET character_set_client = @saved_cs_client;
+
+--
+-- Table structure for table `boxes_20110218`
+--
+
+DROP TABLE IF EXISTS `boxes_20110218`;
+SET @saved_cs_client     = @@character_set_client;
+SET character_set_client = utf8;
+CREATE TABLE `boxes_20110218` (
   `box` varchar(32) NOT NULL DEFAULT '',
   `name` varchar(64) NOT NULL DEFAULT '',
   `notes` varchar(255) NOT NULL DEFAULT '',
@@ -58,6 +150,7 @@ CREATE TABLE `calls` (
   `action` varchar(32) NOT NULL DEFAULT '',
   `status` varchar(32) NOT NULL DEFAULT '',
   `message` text NOT NULL,
+  `messagesent` datetime DEFAULT NULL,
   `callerid` varchar(64) DEFAULT NULL,
   `vid` int(11) DEFAULT NULL,
   `host` varchar(64) DEFAULT NULL,
@@ -363,7 +456,7 @@ CREATE TABLE `vendors` (
   `contact` varchar(128) DEFAULT NULL,
   `email` varchar(128) DEFAULT NULL,
   `fax` varchar(128) DEFAULT NULL,
-  `gstexempt` int(11) DEFAULT '0',
+  `gstexempt` int(11) DEFAULT '1',
   `rate` float DEFAULT NULL,
   `months` int(11) DEFAULT '0',
   `actual_months` int(11) DEFAULT '0',
@@ -462,4 +555,4 @@ SET character_set_client = @saved_cs_client;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2010-12-15  6:45:46
+-- Dump completed on 2011-12-24 13:39:45

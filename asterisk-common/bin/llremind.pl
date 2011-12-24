@@ -18,14 +18,13 @@ while (<>) {
 	next unless $box =~ /^\d+$/;
 	next unless $email =~ /^\w[\w\-\.]*\@\w[\w\-\.]*\.\w{2,4}$/;
 	next unless $k =~ /^[a-f0-9]{40}$/;
-	$key = $k;
 	next unless $llphone =~ /^[\w\-\.\(\) ]{0,20}$/;
-	push @{$emails{$email}}, [$llphone, $box];
+	push @{$emails{$email}}, [$llphone, $box, $k];
 }
 
 foreach my $email (keys %emails) {
 	foreach my $edata (@{$emails{$email}}) {
-		my ($llphone,$box) = @$edata;
+		my ($llphone,$box,$key) = @$edata;
 		print "$email has opted out\n" and next if -f "$optoutdir/".md5_hex($email); 
 		
 		my $vphone = "$llphone ext $box";
