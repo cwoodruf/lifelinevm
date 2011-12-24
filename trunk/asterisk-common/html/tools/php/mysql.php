@@ -1249,10 +1249,11 @@ function ll_user_data($box) {
 function ll_valid_email_user($udata) {
 	if (($bdata = ll_find_box(null,$udata['box'],$udata['seccode'])) === false) return null;
 	$bdata = $bdata[0];
-	$mykey = sha1($bdata['box'].$bdata['email'].$bdata['seccode']);
+	$rawkey = $bdata['box'].$bdata['email'].$bdata['seccode'];
+	$mykey = sha1($rawkey);
 	if (
 		$udata['email'] == $bdata['email'] and
-		$mykey == $udata['key']
+		($mykey == $udata['key'] or $udata['key'] == $bdata['listenkey'])
 	) return true;
 	return false;
 }
