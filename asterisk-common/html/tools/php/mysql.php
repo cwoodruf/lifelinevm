@@ -1253,7 +1253,7 @@ function ll_valid_email_user($udata) {
 	$mykey = sha1($rawkey);
 	if (
 		$udata['email'] == $bdata['email'] and
-		($mykey == $udata['key'] or $udata['key'] == $bdata['listenkey'])
+		$udata['key'] == $bdata['listenkey']
 	) return true;
 	return false;
 }
