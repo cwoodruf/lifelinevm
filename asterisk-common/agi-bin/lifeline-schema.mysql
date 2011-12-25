@@ -235,7 +235,8 @@ DROP TABLE IF EXISTS `ourboxes`;
   `canremove` int(11),
   `parent` text,
   `vendor` varchar(128),
-  `months` int(11)
+  `months` int(11),
+  `listenkey` varchar(40)
 ) ENGINE=MyISAM */;
 
 --
@@ -479,7 +480,7 @@ SET character_set_client = @saved_cs_client;
 /*!50001 DROP VIEW IF EXISTS `ourboxes`*/;
 /*!50001 CREATE ALGORITHM=UNDEFINED */
 /*!50013 DEFINER=`cal`@`localhost` SQL SECURITY DEFINER */
-/*!50001 VIEW `ourboxes` AS select `boxes`.`box` AS `box`,`boxes`.`name` AS `name`,`boxes`.`notes` AS `notes`,`boxes`.`seccode` AS `seccode`,`boxes`.`email` AS `email`,`boxes`.`paidto` AS `paidto`,`boxes`.`inuse` AS `inuse`,`boxes`.`new_msgs` AS `new_msgs`,`boxes`.`status` AS `status`,`boxes`.`vid` AS `vid`,`boxes`.`login` AS `login`,`boxes`.`created` AS `created`,`boxes`.`modified` AS `modified`,`boxes`.`trans` AS `trans`,`boxes`.`llphone` AS `llphone`,`boxes`.`announcement` AS `announcement`,`boxes`.`canremove` AS `canremove`,`vendors`.`parent` AS `parent`,`vendors`.`vendor` AS `vendor`,`vendors`.`months` AS `months` from (`boxes` join `vendors` on((`boxes`.`vid` = `vendors`.`vid`))) */;
+/*!50001 VIEW `ourboxes` AS select `boxes`.`box` AS `box`,`boxes`.`name` AS `name`,`boxes`.`notes` AS `notes`,`boxes`.`seccode` AS `seccode`,`boxes`.`email` AS `email`,`boxes`.`paidto` AS `paidto`,`boxes`.`inuse` AS `inuse`,`boxes`.`new_msgs` AS `new_msgs`,`boxes`.`status` AS `status`,`boxes`.`vid` AS `vid`,`boxes`.`login` AS `login`,`boxes`.`created` AS `created`,`boxes`.`modified` AS `modified`,`boxes`.`trans` AS `trans`,`boxes`.`llphone` AS `llphone`,`boxes`.`announcement` AS `announcement`,`boxes`.`canremove` AS `canremove`,`vendors`.`parent` AS `parent`,`vendors`.`vendor` AS `vendor`,`vendors`.`months` AS `months`,`boxes`.`listenkey` AS `listenkey` from (`boxes` join `vendors` on((`boxes`.`vid` = `vendors`.`vid`))) */;
 
 --
 -- Final view structure for view `ourpayments`
@@ -500,4 +501,4 @@ SET character_set_client = @saved_cs_client;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2011-12-24 13:39:19
+-- Dump completed on 2011-12-25 14:25:19
