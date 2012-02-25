@@ -1,3 +1,19 @@
+###############################################################################################################
+### example cron used by the main asterisk server as of 2012-02-25
+## m h  dom mon dow   command
+#6 6 * * * /usr/local/asterisk/bin/cleanup.pl -v > /home/asterisk/bin/cleanup.out 2>&1
+#16 6 * * * /usr/local/asterisk/bin/checkdeleted.pl -d lifeline >> /home/asterisk/bin/checkdeleted.out 2>&1
+#0 * * * * /usr/local/asterisk/bin/sync-msgs.sh >> /usr/local/asterisk/bin/sync-msgs.out 2>&1
+#5 2 * * * /usr/local/asterisk/bin/dbbackup.sh > /usr/local/asterisk/bin/dbbackup.out 2>&1
+#0 * * * * /usr/local/asterisk/bin/aststatus.pl
+#30 * * * * /usr/local/asterisk/bin/gettweets.pl
+#20 12 * * * /usr/bin/find /home/asterisk/messages -name 'messages-*.tgz' -mtime +14 -exec /bin/rm {} \;
+#25 12 * * * /bin/tar czf /home/asterisk/messages/messages-`/bin/date +%Y%m%d`.tgz /usr/local/asterisk/*-msgs/
+#0-59/2 * * * * /usr/local/asterisk/bin/checkregistry.pl -v -mcalvmobile@callbackpack.com >> /usr/local/asterisk/bin/checkregistry.out 2>&1
+#5 * * * * /usr/local/asterisk/bin/voicemeupcalls-xmlapi.pl -t2 -mcalvmobile@callbackpack.com >> /usr/local/asterisk/bin/voicemeupcalls-xmlapi.out 2>&1
+#10 1 * * * /usr/local/asterisk/bin/rotatelogs.sh > /dev/null
+#11 1 * * * /usr/local/asterisk/sbin/asterisk -rx 'restart when convenient' >> /usr/local/asterisk/bin/checkregistry.out 2>&1
+## 1 0 * * * /home/asterisk/bin/sync_drdata_vmu.pl -u >> /home/asterisk/bin/sync_drdata_vmu.out 2>&1
 ##############################################################################################################
 ## example cron used by the main asterisk server as of 2011-09-27
 ## m h  dom mon dow   command
