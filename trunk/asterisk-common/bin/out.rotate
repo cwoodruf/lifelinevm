@@ -1,0 +1,6 @@
+/usr/local/asterisk/bin/dbbackup.out /usr/local/asterisk/bin/voicemeupcalls-xmlapi.out {
+	compress
+	size 500k 
+	rotate 8
+}
+
