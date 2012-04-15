@@ -157,6 +157,27 @@ HTML;
 			$purchase .= $outstanding;
 		}
 	}
+	if (($lines = ll_free_phones($vdata['vid']))) {
+		$lastweek = date('Y-m-d',time()-(7*86400));
+		$now = date('Y-m-d');
+		$free_phone_form = <<<HTML
+<table>
+<tr>
+<td>
+From: <input name=from value="$lastweek" size=10>
+</td>
+<td>
+To: <input name=to value="$now" size=10>
+</td>
+<td>
+<input type=submit name=action value="Get free phone logs"> 
+<input type=hidden name=vid value="{$vdata['vid']}">
+</td>
+</tr>
+</table>
+<p>
+HTML;
+	}
 	if (!$overdueblock and $ldata['months'] > 0) {
 		$addtime_buttons = <<<HTML
 <input type=submit name=form value="Create a new voicemail box"> <p>
@@ -171,6 +192,7 @@ HTML;
 		}
 	return <<<HTML
 $top
+$free_phone_form
 $addtime_buttons
 <input type=submit name=form value="View payments"> 
 <input type=submit name=form value="View call events">
@@ -680,6 +702,41 @@ $table
 </table>
 
 HTML;
+}
+
+function show_free_phone_logs($data) {
+	global $ldata;
+	if ($data === false) die('No data found - error');
+	$top = form_top($ldata); 
+	$end = form_end($ldata);
+	$html = <<<HTML
+$top
+<table border=1 cellpadding=3 cellspacing=0>
+<tr>
+<th>Call type</th>
+<th>Start</th>
+<th>Duration (min)</th>
+<th>To phone</th>
+<th>Free phone id</th>
+</tr>
+
+HTML;
+	foreach ($data as $line) {
+		$phone = preg_replace('#^(\d\d\d)(\d\d\d).*#',"($1) $2-XXXX",$line['phone']);
+		$mins = $line['duration'] > 0 ? $line['duration'] : 0;
+		$html .= <<<HTML
+<tr>
+<td>{$line['calltype']} &nbsp;</td>
+<td>{$line['start']} &nbsp;</td>
+<td align=right>$mins</td>
+<td>$phone &nbsp;</td>
+<td>{$line['freephone']} &nbsp;</td>
+</tr>
+
+HTML;
+	}
+	$html .= "</table>\n$end";
+	return $html;
 }
 
 function box_activity($data) {
