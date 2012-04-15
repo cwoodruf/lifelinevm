@@ -118,10 +118,25 @@ SET character_set_client = utf8;
 CREATE TABLE `free_calls` (
   `sipuri` varchar(255) NOT NULL DEFAULT '',
   `sipuser` varchar(128) DEFAULT NULL,
+  `tophone` varchar(32) DEFAULT NULL,
   `event` varchar(32) NOT NULL DEFAULT '',
   `callstart` int(11) NOT NULL DEFAULT '0',
   `modified` datetime DEFAULT NULL,
   PRIMARY KEY (`sipuri`,`callstart`,`event`)
+) ENGINE=MyISAM DEFAULT CHARSET=latin1;
+SET character_set_client = @saved_cs_client;
+
+--
+-- Table structure for table `free_phone_vendors`
+--
+
+DROP TABLE IF EXISTS `free_phone_vendors`;
+SET @saved_cs_client     = @@character_set_client;
+SET character_set_client = utf8;
+CREATE TABLE `free_phone_vendors` (
+  `vid` int(11) NOT NULL DEFAULT '0',
+  `sipuser` varchar(128) NOT NULL DEFAULT '',
+  PRIMARY KEY (`vid`,`sipuser`)
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1;
 SET character_set_client = @saved_cs_client;
 
@@ -413,7 +428,7 @@ CREATE TABLE `vendors` (
   `retail_prices` text,
   `box_limit` int(11) DEFAULT NULL,
   PRIMARY KEY (`vid`)
-) ENGINE=MyISAM AUTO_INCREMENT=6978 DEFAULT CHARSET=latin1;
+) ENGINE=MyISAM AUTO_INCREMENT=6979 DEFAULT CHARSET=latin1;
 SET character_set_client = @saved_cs_client;
 
 --
@@ -501,4 +516,4 @@ SET character_set_client = @saved_cs_client;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2011-12-25 14:25:19
+-- Dump completed on 2012-04-15 17:47:44
