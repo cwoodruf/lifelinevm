@@ -241,7 +241,7 @@ function ll_calls_by_date($vid,$date) {
 	if (!preg_match('#^\d{4}-\d{2}-\d{2}$#', $date)) die("calls_by_date: bad date $date!");
 	$pat = ll_parentpat($vid);
 /*
-# simple query which won't pick up the ll-callstart.pl actions as we don't know the box number at that point
+# (not so) simple query which won't pick up the ll-callstart.pl actions as we don't know the box number at that point
 	$query = "select calls.*,vendors.vendor,vendors.vid ".
 		"from calls left outer join boxes on (calls.box=boxes.box) join vendors on (vendors.vid=boxes.vid) ".
 		"where (vendors.vid='$vid' or vendors.parent regexp '$pat') ".
@@ -1002,6 +1002,7 @@ function ll_isparent($vid,$bdata) {
 	return preg_match("#$pat#",$parents);
 }
 
+# see if vendor represented by ldata is parent of vendor represented by odata
 function ll_has_access($ldata,$odata) {
 	if (is_array($ldata)) $myvid = $ldata['vid'];
 	else $myvid = $ldata;
@@ -1127,6 +1128,44 @@ function ll_generate_invoice($vend,$months,$trans,$start=MININVOICE,$finish=MAXI
 	} else {
 		die("ERROR: unable to generate invoice!");
 	}
+}
+
+# find what free call lines a vendor has
+function ll_free_phones($vid) {
+	if (!preg_match('#^\d+$#',$vid)) return false;
+	return ll_load_from_table('free_phone_vendors','vid',$vid);
+}
+
+# if the vendor has free call lines get list of calls between two dates
+# sipuser maps to a specific line: pattern is always lvms-___
+# number of records limited to 10000 max
+function ll_free_phone_log($vid,$from,$to,$sipuser=null) {
+	if (!preg_match('#^\d+$#',$vid)) return false;
+	if (!preg_match('#^\d{4}-\d{2}-\d{2}$#', $from)) return false;
+	if (!preg_match('#^\d{4}-\d{2}-\d{2}$#', $to)) return false;
+	if ($from > $to) list($from,$to) = array($to,$from);
+	if (preg_match('#^lvms-\w+$#', $sipuser)) {
+		$wheresipuser = " and sipuser='$sipuser' ";
+	}
+	$query = "select substr(a.event,6) as calltype, ".
+		"a.modified as start, ".
+		"if(b.modified=null,0,unix_timestamp(b.modified)-a.callstart)/60 as duration, ".
+		"substr(a.tophone,1,6) as phone, ".
+		"a.sipuser as freephone ".
+		"from free_calls a ".
+		"left outer join free_calls b ".
+			"on (a.callstart=b.callstart and a.sipuser=b.sipuser and a.event <> b.event) ".
+		"join free_phone_vendors c on (c.sipuser=a.sipuser) ".
+		"where c.vid=%d ".
+		"and a.callstart between unix_timestamp('%s 00:00:00') and unix_timestamp('%s 23:59:59') ".
+		"and a.event regexp '^start' ".
+		$wheresipuser.
+		"order by a.modified limit 10000 ";
+	$q = sprintf($query,$vid,$from,$to);
+	$lldb = ll_connect();
+	$st = $lldb->query($q);
+	if (!$st) return false;
+	return $st->fetchAll(); 
 }
 
 function ll_replace_in_table($table,$data,$literal=false) {
