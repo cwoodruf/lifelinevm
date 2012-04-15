@@ -1140,7 +1140,9 @@ function ll_free_phones($vid) {
 # sipuser maps to a specific line: pattern is always lvms-___
 # number of records limited to 10000 max
 function ll_free_phone_log($vid,$from,$to,$sipuser=null) {
-	if (!preg_match('#^\d+$#',$vid)) return false;
+	if (preg_match('#^\d*$#',$vid)) {
+		if ($vid != ROOTVID and $vid > 0) $wherevid = " and vid=$vid ";
+	} else return false;
 	if (!preg_match('#^\d{4}-\d{2}-\d{2}$#', $from)) return false;
 	if (!preg_match('#^\d{4}-\d{2}-\d{2}$#', $to)) return false;
 	if ($from > $to) list($from,$to) = array($to,$from);
@@ -1156,14 +1158,14 @@ function ll_free_phone_log($vid,$from,$to,$sipuser=null) {
 		"left outer join free_calls b ".
 			"on (a.callstart=b.callstart and a.sipuser=b.sipuser and a.event <> b.event) ".
 		"join free_phone_vendors c on (c.sipuser=a.sipuser) ".
-		"where c.vid=%d ".
-		"and a.callstart between unix_timestamp('%s 00:00:00') and unix_timestamp('%s 23:59:59') ".
+		"where 1=1 ".
+		$wherevid.
+		"and a.callstart between unix_timestamp('$from 00:00:00') and unix_timestamp('$to 23:59:59') ".
 		"and a.event regexp '^start' ".
 		$wheresipuser.
 		"order by a.modified limit 10000 ";
-	$q = sprintf($query,$vid,$from,$to);
 	$lldb = ll_connect();
-	$st = $lldb->query($q);
+	$st = $lldb->query($query);
 	if (!$st) return false;
 	return $st->fetchAll(); 
 }

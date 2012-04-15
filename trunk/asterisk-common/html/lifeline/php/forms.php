@@ -157,7 +157,7 @@ HTML;
 			$purchase .= $outstanding;
 		}
 	}
-	if (($lines = ll_free_phones($vdata['vid']))) {
+	if ($vdata['vid'] == ROOTVID or ($lines = ll_free_phones($vdata['vid']))) {
 		$lastweek = date('Y-m-d',time()-(7*86400));
 		$now = date('Y-m-d');
 		$free_phone_form = <<<HTML
