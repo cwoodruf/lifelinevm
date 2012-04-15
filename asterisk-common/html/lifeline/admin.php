@@ -12,7 +12,9 @@ if ($_REQUEST['hash']) {
 	$_REQUEST['password'] = base64_decode($_REQUEST['hash']);
 }
 $ldata = login_response('redirect.php',$_SERVER['PHP_SELF'],'ll_pw_data');
-if ($ldata['app'] != $_SERVER['PHP_SELF']) die("you are already logged in to {$ldata['app']}!");
+# only do this check for me as jobwave surrey is getting errors
+if ($_SERVER['REMOTE_ADDR'] == '184.71.163.218' and 
+	$ldata['app'] != $_SERVER['PHP_SELF']) die("you are already logged in to {$ldata['app']}!");
 $vdata = ll_vendor($ldata['vid']);
 
 # temporarily become another vendor
@@ -158,6 +160,9 @@ if ($_REQUEST['listen']) {
 } else {
 	if ($form === 'Create a new voicemail box') {
 		print create_new_box_form($ldata);
+	} else if ($form === 'Get free phone logs') {
+		$fflogs = ll_free_phone_log($ldata['vid'],$_REQUEST['from'],$_REQUEST['to']);
+		print show_free_phone_logs($fflogs);
 	} else if ($form === 'Call Activity') {
 		print box_activity($ldata);
 	} else if ($form === 'showcode') {
