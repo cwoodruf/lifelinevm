@@ -687,7 +687,9 @@ function mk_personal_input($bdata=array(),$vend=null) {
 		$phonesel .= "</select>\n";
 	} else {
 		$phlen = strlen($myphone)+1;
-		$phonesel = "<input name=\"personal[llphone]\" value=\"$myphone\" size=\"$phlen\">";
+		# because of the 877 number don't let people change the phone
+		# $phonesel = "<input name=\"personal[llphone]\" value=\"$myphone\" size=\"$phlen\">";
+		$phonesel = $myphone;
 	}
 	return <<<HTML
 <p>

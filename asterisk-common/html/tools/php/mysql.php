@@ -835,6 +835,7 @@ function ll_update_personal($vend,$box,$personal) {
 	foreach ($personal_fields as $field => $title) {
 		$sdata[$field] = $personal[$field];
 	}
+	if (empty($sdata['llphone'])) $sdata['llphone'] = $vend['llphone'];
 	return ll_save_to_table('update','boxes',$sdata,'box',$box,true);
 }
 
