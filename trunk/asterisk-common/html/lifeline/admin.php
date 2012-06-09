@@ -13,8 +13,8 @@ if ($_REQUEST['hash']) {
 }
 $ldata = login_response('redirect.php',$_SERVER['PHP_SELF'],'ll_pw_data');
 # only do this check for me as jobwave surrey is getting errors
-if ($_SERVER['REMOTE_ADDR'] == '184.71.163.218' and 
-	$ldata['app'] != $_SERVER['PHP_SELF']) die("you are already logged in to {$ldata['app']}!");
+
+if ($ldata['app'] != $_SERVER['PHP_SELF']) die("you are already logged in to {$ldata['app']}!");
 $vdata = ll_vendor($ldata['vid']);
 
 # temporarily become another vendor
