@@ -132,7 +132,7 @@ sub init {
 			$ll->{vid} = $exists->[5];
 			$ll->{announcement} = $exists->[6];
 			$ll->{emailconfirmed} = $exists->[7];
-			$ll->{llphone} = $exists->[8];
+			($ll->{llphone} = $exists->[8]) =~ s/\D//g;
 			if (
 				defined $ll->{md5_seccode}
 				and $ll->valid_paidto($pt_cutoff)
@@ -328,12 +328,13 @@ sub log_free_calls {
 	my $sipuri = shift;
 	my $sipuser = ($sipuri=~/^sip:([\w\-]*)/)[0];
 	my $event = shift;
+	my $tophone = shift;
 	my $callstart = $ll->get('callstart');
 	my $ins = $ll->{db}->prepare(
-		"insert ignore into free_calls (sipuri,sipuser,event,callstart,modified) ".
-		"values (?,?,?,?,now())"
+		"insert ignore into free_calls (sipuri,sipuser,tophone,event,callstart,modified) ".
+		"values (?,?,?,?,?,now())"
 	);
-	$ins->execute($sipuri,$sipuser,$event,$callstart) or warn $ins->errstr;
+	$ins->execute($sipuri,$sipuser,$tophone,$event,$callstart) or warn $ins->errstr;
 }	
 
 sub log_err {
@@ -414,6 +415,7 @@ sub load_msgs {
 	# using reverse to get newest messages first
 	foreach (reverse glob("$ll->{msgdir}/[0-9]*.*[0-9].$ll->{rectype}")) {
 		s/\.$ll->{rectype}$//;
+		next if -f "$_.deleted.$ll->{rectype}";
 		$ll->{msgs}->{list}->[$count]->{msg} = $_;
 		$ll->{msgs}->{list}->[$count]->{deleted} = 0;
 		$ll->{msgs}->{list}->[$count]->{last} = 0;
@@ -513,6 +515,8 @@ sub clean_up_msgs {
 #			unlink $dname if -f $dname;
 			if (-f $mname) {
 				move $mname, $dname or print STDERR "$mname -> $dname: $!";
+				(my $wavname = $mname) =~ s#(.*)/messages/(.*)\.gsm#$1/listen/$2.wav#;
+				unlink $wavname;
 			}
 		}
 	}

@@ -6,7 +6,11 @@ my $ll = Lifeline->init(); # use ->load if you need cached messages list
 my $paidto_cutoff = shift;
 my $callerid = shift;
 if ($ll->valid) {
-	if ($ll->check_paidto($paidto_cutoff)) {
+	my $mustmatch = $ll->get('mustmatch');
+	if (defined $mustmatch and $ll->{llphone} ne $mustmatch) {
+		$ll->log_calls('ll-valid.pl','disabled',$callerid);
+
+	} elsif ($ll->check_paidto($paidto_cutoff)) {
 		$ll->log_calls('ll-valid.pl','valid',$callerid);
 		$ll->{agi}->set_priority(100);
 	} else {
