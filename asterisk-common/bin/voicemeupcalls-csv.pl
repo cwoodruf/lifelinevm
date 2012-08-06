@@ -11,7 +11,7 @@ my (@fields, $ins, $insq);
 while (<>) {
 	chomp;
 	unless (m/"/) {
-		@fields = split ",";
+		@fields = map { tr/[A-Z]/[a-z]/; s/^\s*//; s/\s*$//; s/\s+/_/g; $_ } split ",";
 		$insq = "update voicemeupcalls set ".(join ",", map { "$_=?" } @fields).",ts=? ".
 			"where unique_id=?";
 		$ins = $ldb->prepare($insq);

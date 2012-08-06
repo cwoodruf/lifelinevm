@@ -107,7 +107,9 @@ while ($xml =~ m#<call_details unique_id="(.*?)">(.*?)</call_details>#sg) {
 		}
 	}
 	$count++;
-	$notanswered++ unless $rec{status} eq 'answered' and $rec{destination} =~ /6046823269|6042484930|2503835144/;
+	if ($rec{direction} eq 'inbound') {
+		$notanswered++ unless $rec{status} eq 'answered';
+	}
 	my $insq = "insert ignore into voicemeupcalls (unique_id,".(join ",", @fields).",ts) ".
 			"values (".
 				$ldb->quote($id).",".
