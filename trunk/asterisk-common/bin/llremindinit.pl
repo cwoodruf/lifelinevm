@@ -39,7 +39,7 @@ while (my $row = $get->fetch) {
 	my $boxlistendir = "$boxdir/listen";
 	mkpath $boxlistendir unless -d $boxlistendir;
 	symlink $boxlistendir, "$listendir/$key" unless -e "$listendir/$key";
-	&mkwavs($msgdir);
+	&mkwavs($msgdir,$boxlistendir);
 	$ldb->do("update $table set reminder=1,listenkey='$key' where box='$box'") or die $ldb->errstr;
 	warn "non-numeric box $box!" and next unless $box =~ /^\d+$/;
 	warn "invalid email $email!" and next unless $email =~ /^\w[\w\.\-\+\=]*\@\w[\w\.\-]*\.\w{2,4}$/;
@@ -48,7 +48,7 @@ while (my $row = $get->fetch) {
 $get->finish;
 
 sub mkwavs {
-	my ($msgdir) = @_;
+	my ($msgdir,$path) = @_;
 	my @msgs = glob("$msgdir/*.gsm");
 	foreach my $msg (@msgs) {
 		my ($base, $ext) = ($msg=~m#(.*)(\.gsm)#);
