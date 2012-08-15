@@ -515,8 +515,9 @@ sub clean_up_msgs {
 #			unlink $dname if -f $dname;
 			if (-f $mname) {
 				move $mname, $dname or print STDERR "$mname -> $dname: $!";
+				system "touch '$dname'";
 				(my $wavname = $mname) =~ s#(.*)/messages/(.*)\.gsm#$1/listen/$2.wav#;
-				unlink $wavname;
+				unlink $wavname unless $wavname eq $mname;
 			}
 		}
 	}
