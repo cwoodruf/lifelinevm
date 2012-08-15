@@ -26,6 +26,7 @@ $get->execute or die $get->errstr;
 while (my $row = $get->fetch) {
 	my ($box, $status, $paidto) = @$row;
 	my $srchdir = "$basepath/$box";
+	&unlink_listen($srchdir);
 	print scalar(localtime),": checking $box (status $status, paidto $paidto) $srchdir\n" if $opt{v};
 	warn "$srchdir not a directory!" unless $srchdir;
 	finddepth(\&wanted, $srchdir);
@@ -42,6 +43,14 @@ sub wanted {
 			(my $new = $_) =~ s/(.*)(\.gsm)/$1.deleted$2/;
 			move $_, $new or die "can't move $_ to $new: $!";
 		}
+	}
+}
+
+sub unlink_listen {
+	my ($srchdir) = @_;
+	return unless -d "$srchdir/listen";
+	foreach my $f (glob("$srchdir/listen/*.*")) {
+		unlink $f;
 	}
 }
 
