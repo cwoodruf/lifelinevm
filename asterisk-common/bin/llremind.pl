@@ -28,15 +28,15 @@ foreach my $email (keys %emails) {
 		print "$email has opted out\n" and next if -f "$optoutdir/".md5_hex($email); 
 		
 		my $vphone = "$llphone ext $box";
-		open MAIL, "| $mail -s 'new voice mail for $vphone' $email -- -f'$from' " 
-			or die "can't open $mail: $!";
-		my $expiry = " (subscription expires $paidto)" if $paidto =~ /^2\d+-\d+-\d+/;
 		my $msg;
 		if ($newmsgs) {
 			$msg = "You have new voice mail messages in $vphone";
 		} else {
 			$msg = "The subscription for $vphone has expired";
 		}
+		my $expiry = " (subscription expires $paidto)" if $paidto =~ /^2\d+-\d+-\d+/;
+		open MAIL, "| $mail -s '$msg' $email -- -f'$from' " 
+			or die "can't open $mail: $!";
 		print "sending reminder: $msg$expiry\n" if $opt{v};
 		print MAIL <<TXT;
 DO NOT REPLY TO THIS EMAIL MESSAGE.
