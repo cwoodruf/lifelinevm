@@ -12,27 +12,28 @@ my $basedir = "/usr/local/asterisk";
 my $ssh = '/usr/bin/ssh';
 my $sendhost = 'callbackpack.com';
 my $sendapp = '/vservers/callbackpack10/bin/llremind.pl -v';
+my $condition = 
+	"email <> '' and reminder=0 and (".
+	"(new_msgs=1 and (paidto >= current_date() or status = 'permanent')) ".
+	"or (status = '' and paidto >= current_date() - interval 3 week and paidto <= current_date()))";
+
 my $query = 
-	"select box,email,llphone,'lifeline.boxes','lifeline-msgs',seccode ".
+	"select box,email,llphone,'lifeline.boxes','lifeline-msgs',seccode,paidto,new_msgs ".
 	"from lifeline.boxes ".
-	"where new_msgs=1 and reminder=0 ".
-	"and email <> '' ".
-	"and (paidto >= current_date() or status='permanent') ";
+	"where $condition ";
 my $union =
 	"union ".
-	"select box,email,llphone,'coolaid.boxes','coolaid-msgs',seccode ".
+	"select box,email,llphone,'coolaid.boxes','coolaid-msgs',seccode,paidto,new_msgs ".
 	"from coolaid.boxes ".
-	"where new_msgs=1 and reminder=0 ".
-	"and email <> '' ".
-	"and (paidto >= current_date() or status='permanent')";
-print "$query.$union\n";
+	"where $condition ";
+print "$query $union\n";
 my $get = $ldb->prepare($query.$union);
 
 $get->execute or die $get->errstr;
 
 my $send;
 while (my $row = $get->fetch) {
-	my ($box,$email,$llphone,$table,$dir,$seccode) = @$row;
+	my ($box,$email,$llphone,$table,$dir,$seccode,$paidto,$newmsgs) = @$row;
 	my $key = sha1_hex($box.$email.$seccode);
 	my $boxdir = "$basedir/$dir/$box";
 	my $msgdir = "$boxdir/messages";
@@ -43,7 +44,7 @@ while (my $row = $get->fetch) {
 	$ldb->do("update $table set reminder=1,listenkey='$key' where box='$box'") or die $ldb->errstr;
 	warn "non-numeric box $box!" and next unless $box =~ /^\d+$/;
 	warn "invalid email $email!" and next unless $email =~ /^\w[\w\.\-\+\=]*\@\w[\w\.\-]*\.\w{2,4}$/;
-	$send .= "$box $email $key $llphone\n";
+	$send .= "$box $email $key $paidto $newmsgs $llphone\n";
 }
 $get->finish;
 
