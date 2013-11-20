@@ -609,8 +609,7 @@ function ll_new_box($trans,$vend,$months,$llphone,$min_box,$max_box,$creditcheck
 }
 
 function ll_is_available($bdata) {
-	$paidtoepoch = strtotime($bdata['paidto']);
-	if ($bdata['status'] == 'deleted' )
+	if (empty($bdata) or $bdata['status'] == 'deleted' )
 	{
 		return true;
 	}
@@ -1164,7 +1163,7 @@ function ll_free_phone_log($vid,$from,$to,$sipuser=null) {
 		"and a.callstart between unix_timestamp('$from 00:00:00') and unix_timestamp('$to 23:59:59') ".
 		"and a.event regexp '^start' ".
 		$wheresipuser.
-		"order by a.modified limit 10000 ";
+		"order by a.modified limit 5000 ";
 	$lldb = ll_connect();
 	$st = $lldb->query($query);
 	if (!$st) return false;
