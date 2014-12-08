@@ -1646,14 +1646,16 @@ HTML;
 			$msg = "$url$vmbox&listen=1\">messages</a>";
 			$shsc = showcodelink($vmbox,$row['seccode']);
 			$chsc = "$shsc or $url$vmbox&form=chsc\">change</a> security code";
-			$edit = "$url$vmbox&form=edit\">edit</a> box";
+			$edit = "$url$vmbox&search=$vmbox&form=edit\">edit</a> box";
 		} else {
 			$edit = $shsc = $chsc = $msg = $activity = $instr = "";
 		}
 		if ($row['pobox']) {
 			if ($edit) $slash = "/";
 			else $slash = " &nbsp; ";
-			$edit_pobox = "$slash $baseurl?pobox={$row['pobox']}&form=edit_pobox\">edit</a> po box";
+			$pob = $row['pobox'];
+			$edit_pobox = "$slash $baseurl?pobox=$pob&search=pobox+$pob".
+					"&form=edit_pobox\">edit</a> po box";
 		} else {
 			$edit_pobox = "";
 		}

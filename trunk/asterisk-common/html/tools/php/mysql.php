@@ -65,7 +65,7 @@ function ll_vendor_ok($vendor) {
 	return preg_match('#^[ \w\(\)\[\]\-]{1,128}#',$vendor);
 }
 
-function ll_vendor($vid,$refresh=false) {
+function ll_vendor($vid,$refresh=true) {
 	global $vend;
 	if (!preg_match('#^\d+$#',$vid)) return;
 	if (isset($vend) and $vend['vid'] === $vid and !$refresh) return $vend;
@@ -227,7 +227,7 @@ function ll_paycodeinfo($paycode) {
 	return $row;
 }
 
-function ll_box($box,$refresh=false) {
+function ll_box($box,$refresh=true) {
 	if (ll_check_box($box,($die=false))) return ll_load_from_table('ourboxes','box',$box,false,'',$refresh);
 }
 
@@ -242,7 +242,7 @@ function ll_pobox_ok($box) {
 	return $box;
 }
 
-function ll_clients_pobox($cid,$refresh=false) {
+function ll_clients_pobox($cid,$refresh=true) {
 	return ll_load_from_table('poboxes','cid',$cid,false,'',$refresh);
 }
 
@@ -279,7 +279,7 @@ function ll_client_modify($vend, $cdata, $op) {
 	return false;
 }
 
-function ll_clients_poboxes($cid,$refresh=false) {
+function ll_clients_poboxes($cid,$refresh=true) {
 	return ll_load_from_table('poboxes','cid',$cid,true,'',$refresh);
 }
 
@@ -377,7 +377,7 @@ function ll_paymentdates($vid) {
 	return $dates;
 }
 
-function ll_boxcount($vend,$showkids=false,$refresh=false) {
+function ll_boxcount($vend,$showkids=false,$refresh=true) {
 	static $boxcounts;
 	if (is_array($vend)) $vid = $vend['vid'];
 	else $vid = $vend;
@@ -958,7 +958,9 @@ function ll_update_personal($vend,$box,$personal,$source='boxes') {
 	}
 
 	foreach ($personal_fields as $field => $title) {
-		$sdata[$field] = $personal[$field];
+		if (isset($personal[$field])) {
+			$sdata[$field] = $personal[$field];
+		}
 	}
 	if ($source == 'boxes' and empty($sdata['llphone'])) {
 		$sdata['llphone'] = $vend['llphone'];
@@ -1340,7 +1342,7 @@ function ll_save_to_table($action,$table,$data,$name='',&$key='',$literal=false,
 	return true;
 }
 
-function ll_load_from_table($table,$name,$key='',$return_all=true,$query_end='',$refresh=false) {
+function ll_load_from_table($table,$name,$key='',$return_all=true,$query_end='',$refresh=true) {
         $lldb = ll_connect();
 	static $seen;
 	if ($name == '' and $key == '') 
