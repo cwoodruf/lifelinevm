@@ -74,6 +74,7 @@ $pt_cutoff = 3 * 7 * 84600;
 
 # colors
 $lightyellow = '#FFFFE0';
+$sitecolor = $lightyellow;
 $cornsilk = '#FFF8DC';
 $white = '#FFFFFF';
 $lavender = '#E6E6FA';
