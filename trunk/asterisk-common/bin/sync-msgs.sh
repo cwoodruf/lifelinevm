@@ -26,8 +26,8 @@ do
 	/usr/bin/ssh asterisk@$remotebackup "$lastupdate"
 
 	echo sync-msgs: FROM main $msgdir TO $localbackup using rsync
-	#/usr/bin/rsync -rcvtl --delete --times $msgdir asterisk@$localbackup:$msgdir
-	/usr/bin/rsync -rcvtl --times $msgdir asterisk@$localbackup:$msgdir
+	/usr/bin/rsync -rcvtl --delete --times $msgdir asterisk@$localbackup:$msgdir
+	#/usr/bin/rsync -rcvtl --times $msgdir asterisk@$localbackup:$msgdir
 	echo sync-msgs: FROM main $msgdir TO $remotebackup using rsync
 	#/usr/bin/rsync -rcvtl --delete --times $msgdir asterisk@$remotebackup:$msgdir
 	/usr/bin/rsync -rcvtl --times $msgdir asterisk@$remotebackup:$msgdir

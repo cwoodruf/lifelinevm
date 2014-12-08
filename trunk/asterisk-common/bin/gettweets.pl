@@ -7,6 +7,7 @@ use Getopt::Std;
 use Data::Dumper;
 use Date::Manip;
 use strict;
+
 my %opt;
 getopts('l:c:f:vh',\%opt);
 my $options = <<TXT;
@@ -30,16 +31,20 @@ if ($opt{f}) {
 	$serialfile = $opt{f};
 }
 
-my $apiurl = "http://api.twitter.com/statuses/user_timeline.json?screen_name=$me&count=$count";
+# my $apiurl = "http://api.twitter.com/1/statuses/user_timeline.json?screen_name=$me&count=$count";
+# variables for the request are in .htaccess in the lifeline directory
+my $apiurl = "https://lifelinevm.net/lifeline/gettweets.php";
 print STDERR $apiurl,"\n" if $verbose;
 
 my $json = get($apiurl);
+my $json = `/usr/bin/lynx -source "$apiurl"`;
 die "error getting!" unless $json;
 
 my $ary = decode_json($json);
 die "error decoding!" if ref $ary ne 'ARRAY';
 my %tweets;
 foreach my $tweet (@$ary) {
+	last if $count-- <= 0;
 	(my $tweeted = ParseDate($tweet->{created_at})) =~ s/(\d{4})(\d{2})(\d{2})(.*)/$1-$2-$3 $4/;
 	$tweets{$tweeted} = $tweet->{text};
 }

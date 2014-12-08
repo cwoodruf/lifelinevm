@@ -1,11 +1,20 @@
 <?php
 require_once("$lib/asterisk.php");
 require_once("php/lifeline-schema.php");
-$back = "<a href=/lifeline/admin.php>Back to admin</a>";
+$script = $_SERVER['PHP_SELF'];
+$back = "<a href='$script'>Back to admin</a>";
 $table = table_header();
 
 function table_header($cp=5,$cs=0,$b=0,$w=450,$style='') {
 	return "<table cellpadding=$cp cellspacing=$cs border=$b width=$w $style>";
+}
+
+function is_admin_php() {
+	return ($_SERVER['PHP_SELF'] == '/lifeline/admin.php');
+}
+
+function is_clients_php() {
+	return ($_SERVER['PHP_SELF'] == '/lifeline/clients.php');
 }
 
 function head() {
@@ -37,6 +46,13 @@ JS;
 <html>
 <head>
 <title>Voicemail Admin: $title</title>
+
+<!-- from http://jqueryui.com/datepicker/ -->
+<link rel="stylesheet" href="//code.jquery.com/ui/1.11.2/themes/smoothness/jquery-ui.css">
+<script src="//code.jquery.com/jquery-1.10.2.js"></script>
+<script src="//code.jquery.com/ui/1.11.2/jquery-ui.js"></script>
+<script> $(function() { $( "#datepicker" ).datepicker({dateFormat:"yy-mm-dd"}); }); </script>
+
 <link rel=stylesheet type=text/css href=/lifeline/css/admin.css>
 $retail_script
 </head>
@@ -44,8 +60,28 @@ $retail_script
 HTML;
 }
 
+function form_wrap($html,$method="get") {
+	global $script;
+	return <<<HTML
+<form action="$script" method="$method">
+$html
+</form>
+HTML;
+}
+
+function client_search($data) {
+	$search = htmlentities($_REQUEST['search']);
+	return <<<HTML
+<input type="text" name="search" value="$search" size="40">
+<input type="submit" name="action" value="Search Clients">
+<input type=hidden name="vid" value="{$data['vid']}">
+<br>
+<i>to search for a PO BOX type "pobox"</i>
+HTML;
+}
+
 function form_top($data,$show_goback=true,$show_status=true,$method='get',$formjs='') {
-	global $back, $manage;
+	global $back, $manage, $script;
 	global $vend, $ldata;
 	global $form;
 	$login = $data['login'];
@@ -58,20 +94,21 @@ function form_top($data,$show_goback=true,$show_status=true,$method='get',$formj
 	if ($ldata) {
 		$logout = <<<HTML
 <nobr>
-<a href="admin.php?action=logout">Log out</a>
+<a href="$script?action=logout">Log out</a>
 HTML;
 		if (preg_match('#^\d+$#', $ldata['orig_vid']) and $ldata['orig_vid'] == $ldata['initial_vid']) {
 			$logout .= <<<HTML
 &nbsp; 
-/ &nbsp; <a href="admin.php?switch_vendor={$ldata['orig_vid']}">
+/ &nbsp; <a href="$script?switch_vendor={$ldata['orig_vid']}">
 Return to {$ldata['orig_vendor']}</a>
 HTML;
 		}
 		$logout .= "</nobr>\n";
 	}
 	$head = head();
-	if ($_SERVER['PHP_SELF'] == '/lifeline/admin.php') $search_form = search_form($data);
-	$docs = "<a href=\"docs\">Documentation</a>";
+	if (is_admin_php()) $search_form = search_form($data);
+	else if (is_clients_php()) $search_form = form_wrap(client_search($data));
+	if (!is_clients_php()) $docs = "<a href=\"docs\">Documentation</a>";
 	return <<<HTML
 $head
 <center>
@@ -79,7 +116,7 @@ $head
 $status<p>
 $search_form
 <h3>$form</h3>
-<form action="{$_SERVER['PHP_SELF']}" name="topform" id="topform" method="$method" $formjs>
+<form action="$script" name="topform" id="topform" method="$method" $formjs>
 HTML;
 }
 
@@ -107,6 +144,120 @@ function credit_left($vid) {
 	$m = $vend['unpaid_months'];
 	if ($cl < 0) return true; 
 	return $cl - $m;
+}
+
+# status can be 'deleted' or 'not_deleted' 
+# only meaningful from clients form
+function poboxes($status='all', $box=null, $field='pobox') {
+	if (!is_clients_php()) return "";
+	$boxes = ll_poboxes($status);
+	$html = "<select name='$field'><option value=''></option>\n";
+	foreach ($boxes as $bdata) {
+		if ($box == $bdata['box']) {
+			$selected = "selected";
+		} else {
+			$selected = "";
+		}
+		if ($bdata['paidto'] < date('Y-m-d')) $paidto = 'box available';
+		else $paidto = "paid to {$bdata['paidto']}";
+		$name = substr($bdata['name'],0,20);
+		if (strlen($name) < strlen($bdata['name'])) $name .= "...";
+		$html .= "<option value='{$bdata['box']}' $selected title='{$bdata['paidto']} {$bdata['name']}'>{$bdata['box']}".
+			" - $paidto ($name)</option>\n";
+	}
+	$html .= "</select>\n";
+	return $html;
+}
+
+function main_clients_form($data) {
+	global $ldata, $permcheck, $overdueblock, $vdata;
+
+	$top = form_top($data,false); 
+	$end = form_end($data);
+	$poboxes = poboxes('all');
+	if (!$overdueblock and $ldata['months'] >= 0) {
+		$addtime_buttons = <<<HTML
+<p>
+Voicemail:
+<br>
+<input type=submit name=form value="Create a new voicemail box"> <p>
+<input type=submit name=form value="Add time to an existing box"> <p>
+HTML;
+	}
+	return <<<HTML
+$top
+<p>
+$addtime_buttons
+<br>
+PO Boxes:
+<br>
+$poboxes
+<input type=submit name=form value="Update PO Box">
+<p>
+<input type=submit name=form value="Print PO Box Reminders">
+$end
+HTML;
+}
+
+function pobox_reminders_form($data) {
+
+	if (preg_match('#^\d\d\d\d-\d\d-\d\d$#', $_REQUEST['date'])) 
+		$date = $_REQUEST['date'];
+	else $date = date('Y-m-d');
+	if (preg_match('#^\d+$#', $_REQUEST['break'])) $break = $_REQUEST['break'];
+	else $break = 5;
+
+	$poboxes = ll_poboxes('recent_first',$date);
+	$html = <<<HTML
+<html>
+<head>
+<title>PO Box Reminders for $date</title>
+<style type="text/css">
+.pobox-reminder pre {
+	font-family: helvetica, arial, sans-serif;
+	font-size: 12px;
+}
+.pobox-reminder {
+	width: 600px; 
+	height: 110px;
+	padding-top: 20px; 
+	padding-bottom: 20px;
+}
+.pobox-divider {
+	width: 600px; 
+}
+.pobox-pagebreak {
+	page-break-after: always;
+}
+</style>
+</head>
+<body>
+HTML;
+	foreach ($poboxes as $pobox) {
+		if (++$pbc % $break == 0) {
+			$pbreak = "<div class='pobox-pagebreak'></div>\n";
+		} else {
+			$pbreak = "";
+		}
+		$html .= <<<HTML
+<div class="pobox-reminder">
+<pre>
+Dear {$pobox['name']},
+
+This is just a reminder that PO Box {$pobox['box']} is paid to {$pobox['paidto']}.
+If you would like to renew your subscription please see us at the front desk.
+
+Thanks!
+</pre>
+</div>
+<div class="pobox-divider">
+<hr>
+</div>
+$pbreak
+HTML;
+	}
+	$html .= "</body></html>";
+	return $html;
 }
 
 function main_form($data) {
@@ -160,6 +311,9 @@ HTML;
 	if ($vdata['vid'] == ROOTVID or ($lines = ll_free_phones($vdata['vid']))) {
 		$lastweek = date('Y-m-d',time()-(7*86400));
 		$now = date('Y-m-d');
+# they stopped using it and never returned equipment
+$now = '2012-08-17';
+$lastweek = '2012-08-10';
 		$free_phone_form = <<<HTML
 <table>
 <tr>
@@ -204,7 +358,7 @@ HTML;
 }
 
 function vend_status_str($vend) {
-	global $min_purchase, $permcheck, $overdue, $overdueblock;
+	global $min_purchase, $permcheck, $overdue, $overdueblock, $script;
 	if ($overdueblock) {
 		return "<b>You must pay overdue invoices before you can create new voice mail boxes.</b>";
 	}
@@ -217,7 +371,7 @@ function vend_status_str($vend) {
 	} else if ($vend['months'] == 0) {
 		$months = "no";
 		if ($permcheck['invoices'] and $vend['acctype'] == 'purchase') {
-			$purchaselink = "<a href=\"admin.php?form=Purchase time\">Purchase time.</a>";
+			$purchaselink = "<a href=\"$script?form=Purchase time\">Purchase time.</a>";
 		}
 		
 	} else {
@@ -254,6 +408,11 @@ JS;
 	if (is_array($pc)) {
 		$months = $pc['months'];
 		$vend['paycode'] = $_REQUEST['paycode'];
+		$boxeswidget = <<<HTML
+Number of boxes to create: &nbsp; 1 <input type=hidden name=boxes value=1>  &nbsp;&nbsp; 
+HTML;
+	} else if (is_clients_php()) {
+		$months = 1;
 		$boxeswidget = <<<HTML
 Number of boxes to create: &nbsp; 1 <input type=hidden name=boxes value=1>  &nbsp;&nbsp; 
 HTML;
@@ -314,7 +473,6 @@ Valid for &nbsp;
 <input size=3 name=months value="$months"
  onchange="getElementById('payment_amount').value=get_retail_price(this.value);"
 > &nbsp; months (up to $maxmonths months). &nbsp;&nbsp; 
-<br><span id="entrydesc" style="font-style: italic; font-size: small;">click * to enter a specific box number</span>
 $personal
 $payment_form
 <br>
@@ -368,14 +526,18 @@ function payment_form($box,$defpayment=0.0) {
 HTML;
 }
 
-function create_new_box($data) {
+function create_new_box($data,$box=null) {
 	global $ldata, $phone;
 	$vend = ll_vendor($data['vid']);
 	$trans = ll_valid_trans($_REQUEST['trans']);
 	ll_delete_trans($vend,$trans,'new');
 
-	if (preg_match('#^\d+$#', $_REQUEST['box'])) {
+	if (isset($box)) {
+		if (!preg_match('#^\d+$#', $box)) die("invalid box entered!");
+
+	} else if (preg_match('#^\d+$#', $_REQUEST['box'])) {
 		$box = $_REQUEST['box'];
+
 	} else {
 		$boxes = $_REQUEST['boxes'];
 		if (!preg_match('#^\d\d?$#',$boxes) or $boxes <= 0) die("create_new_box: invalid number of boxes");
@@ -470,7 +632,7 @@ HTML;
 }
 
 function show_boxes($data,$boxlist) {
-	global $lib;
+	global $lib, $script;
 	$top = form_top($data); 
 	$end = form_end($data);
 	
@@ -502,10 +664,19 @@ HTML;
 		}
 		$amount = $bdata['amount'] > 0 ? sprintf('%.2f',$bdata['amount']) : "";
 		$notes = $bdata['name'].'&nbsp;'.$bdata['email'].' '.$bdata['notes'];
+		if (is_clients_php()) {
+			$searchth = <<<HTML
+<th><a href="$script?form=Search Clients&searchtext=$box">$box</a></th>
+HTML;
+		} else {
+			$searchth = <<<HTML
+<th><a href="$script?form=Search Boxes&search=$box">$box</a></th>
+HTML;
+		}
 
 		$html .= <<<HTML
 <tr>
-<th><a href="admin.php?form=Search Boxes&search=$box">$box</a></th>
+$searchth
 <th>$seccode</th>
 <th>$months</th>
 <th>$amount</th>
@@ -518,9 +689,10 @@ HTML;
 }
 
 function showcodelink($box,$seccode) {
+	global $script;
 	$box = htmlentities($box);
 	$seccode = htmlentities($seccode);
-	$showcode = "admin.php?box=$box&seccode=$seccode&form=showcode";
+	$showcode = "$script?box=$box&seccode=$seccode&form=showcode";
 	return <<<HTML
 <a href="javascript: void(0);" 
    onclick="window.open(
@@ -563,29 +735,47 @@ $end
 HTML;
 }
 
-function update_box_form($data,$action="Add time to box") {
+function poboxrow($bdata) {
+	if (!is_clients_php()) return "";
+	if (isset($bdata['box'])) {
+		$pobox = ll_clients_pobox($bdata['cid']);
+		$poboxes = poboxes('all',$pobox['box'],'pobox');
+	} else {
+		$poboxes = poboxes('deleted_first',null,'pobox');
+	}
+	return <<<HTML
+<tr><td>PO Box:</td><td>$poboxes</td></tr>
+HTML;
+}
+
+function update_pobox_form($data,$action) {
+	return update_box_form($data,$action,'poboxes');
+}
+
+function update_box_form($data,$action="Add time to box",$source='boxes') {
 	global $_REQUEST;
 	global $vend;
 	global $form;
 	global $table;
 	$form = $action;
 	$submittype = 'action';
-	$box = $_REQUEST['box'];
-	if (preg_match('#^\d+$#',$box)) $bdata = ll_box($box);
+	if ($source == 'boxes') {
+		$box = $_REQUEST['box'];
+		if (preg_match('#^\d+$#',$box)) $bdata = ll_box($box);
 
-	# set status string
-	if (preg_match('#^2\d\d\d#',$bdata['paidto'])) {
-		$paidto = preg_replace('# .*#','',$bdata['paidto']);
-		$status = "(Paid to $paidto";
-		if ($bdata['status']) $status .= ", status {$bdata['status']}";
-		$status .= ")";
-	} else if ( preg_match('#add (\d+) month#', $bdata['status'], $m) 
-			and  $action === 'Update name, email etc.'
-	) {
-		$today = date('Y-m-d');
-		$months = $m[1];
-		$s = $months == 1 ? '': 's';
-		$status = <<<HTML
+		# set status string
+		if (preg_match('#^2\d\d\d#',$bdata['paidto'])) {
+			$paidto = preg_replace('# .*#','',$bdata['paidto']);
+			$status = "(Paid to $paidto";
+			if ($bdata['status']) $status .= ", status {$bdata['status']}";
+			$status .= ")";
+		} else if ( preg_match('#add (\d+) month#', $bdata['status'], $m) 
+				and  $action === 'Update name, email etc.'
+		) {
+			$today = date('Y-m-d');
+			$months = $m[1];
+			$s = $months == 1 ? '': 's';
+			$status = <<<HTML
 <div style="margin-top: 10px; width: 80%; padding: 3px; border: 1px black solid">
 <b>Set start date</b> (YYYY-MM-DD)
 <input name=startdate size=10 maxsize=10> 
@@ -596,8 +786,17 @@ click here to use today's date</a>
    Dates must be no later than 2 weeks from today.</i> 
 </div>
 HTML;
-	} else {
-		if ($bdata['status']) $status = "(".htmlentities($bdata['status']).")";
+		} else {
+			if ($bdata['status']) $status = "(".htmlentities($bdata['status']).")";
+		}
+		$poboxrow = poboxrow($bdata);
+	} else if ($source == 'poboxes') {
+		$box = $_REQUEST['pobox'];
+		if (preg_match('#^\d+$#',$box)) $bdata = ll_pobox($box);
+		$paidto = htmlentities(preg_replace('# .*#','',$bdata['paidto']));
+		$status = <<<HTML
+(Paid to <input size="10" id="datepicker" name="personal[paidto]" value="$paidto">)
+HTML;
 	}
 
 	if ($box != '') {
@@ -609,6 +808,8 @@ HTML;
 		$seccode_input = " New security code: <input size=4 name=seccode> &nbsp;&nbsp; ";
 	} else if ($action === 'Update name, email etc.') {
 		$edit_input = mk_personal_input($bdata);
+	} else if ($action === 'Update PO Box name, email etc.') {
+		$edit_input = mk_personal_input($bdata,null,'poboxes');
 	} else if (preg_match('#\btime\b#',$action)) {
 		if ($action === 'Remove time from box') {
 			$remove = 1;
@@ -653,7 +854,7 @@ $end
 HTML;
 }
 
-function mk_personal_input($bdata=array(),$vend=null) {
+function mk_personal_input($bdata=array(),$vend=null,$source='boxes') {
 	global $ldata,$table,$phone,$ll_host;
 	if (!is_array($vend) and $bdata['vid']) $vend = ll_vendor($bdata['vid']);
 	if (empty($bdata['notes'])) $bdata['notes'] = $vend['vendor'].' '.$vend['paycode'];
@@ -661,40 +862,47 @@ function mk_personal_input($bdata=array(),$vend=null) {
 	if (empty($myphone)) $myphone = $vend['llphone'];
 	if (empty($myphone)) $myphone = $phone;
 	$phones = explode(':',$vend['llphone']);
-	if (count($phones) > 1) {
-		# this is mainly for jobwave / triumph	
-		$vanpat = '#van|burnaby|surrey|langely|coquitlam|maple\s*ridge|richmond#';
-		$tollfreepat = '#^\s*(1\D*|)8\d\d#';
-		$phonesel = "<select name=\"personal[llphone]\">";
-		$islocal = preg_match($vanpat, $ldata['login']);
-		$selectedfound = false;
-		foreach ($phones as $ph) {
-			$selected = '';
-			if (!$selectedfound) {
-				if (preg_replace('#\D#','',$ph) == preg_replace('#\D#','',$bdata['llphone'])) {
-					$selected = 'selected';
-					$selectedfound = true;
-				} else if (!$islocal and preg_match($tollfreepat, $ph)) {
-					$selected = 'selected';
-					$selectedfound = true;
-				} else if ($islocal and !preg_match($tollfreepat,$ph)) {
-					$selected = 'selected';
-					$selectedfound = true;
+	if ($source == 'boxes') {
+		if (count($phones) > 1) {
+			# this is mainly for jobwave / triumph	
+			$vanpat = '#van|burnaby|surrey|langely|coquitlam|maple\s*ridge|richmond#';
+			$tollfreepat = '#^\s*(1\D*|)8\d\d#';
+			$phonesel = "<select name=\"personal[llphone]\">";
+			$islocal = preg_match($vanpat, $ldata['login']);
+			$selectedfound = false;
+			foreach ($phones as $ph) {
+				$selected = '';
+				if (!$selectedfound) {
+					if (preg_replace('#\D#','',$ph) == preg_replace('#\D#','',$bdata['llphone'])) {
+						$selected = 'selected';
+						$selectedfound = true;
+					} else if (!$islocal and preg_match($tollfreepat, $ph)) {
+						$selected = 'selected';
+						$selectedfound = true;
+					} else if ($islocal and !preg_match($tollfreepat,$ph)) {
+						$selected = 'selected';
+						$selectedfound = true;
+					}
 				}
+				$phonesel .= "<option $selected>$ph\n";
 			}
-			$phonesel .= "<option $selected>$ph\n";
+			$phonesel .= "</select>\n";
+		} else {
+			$phlen = strlen($myphone)+1;
+			# because of the 877 number don't let people change the phone
+			# $phonesel = "<input name=\"personal[llphone]\" value=\"$myphone\" size=\"$phlen\">";
+			$phonesel = $myphone;
 		}
-		$phonesel .= "</select>\n";
-	} else {
-		$phlen = strlen($myphone)+1;
-		# because of the 877 number don't let people change the phone
-		# $phonesel = "<input name=\"personal[llphone]\" value=\"$myphone\" size=\"$phlen\">";
-		$phonesel = $myphone;
+		$phonerow = <<<HTML
+<tr><td><nobr>VM Phone:</nobr></td><td>$phonesel (incoming voicemail number)</td></tr>
+HTML;
+		$poboxrow = poboxrow($bdata);
 	}
 	return <<<HTML
 <p>
 $table
-<tr><td><nobr>VM Phone:</nobr></td><td>$phonesel (incoming voicemail number)</td></tr>
+$phonerow
+$poboxrow
 <tr><td>Name:</td><td><input size=32 name="personal[name]" value="{$bdata['name']}"></td></tr>
 <tr valign=top>
     <td>Email:</td>
@@ -788,7 +996,7 @@ function vendlink($vid) {
 }
 
 function formatpaymentlist($title,$payments) {
-	global $permcheck;
+	global $permcheck,$script;
 	$html = <<<HTML
 <table cellpadding=5 cellspacing=0 border=1>
 <tr>
@@ -807,7 +1015,7 @@ HTML;
 		$html .= <<<HTML
 <tr valign=top>
 <td>$item</td>
-<td><a href="admin.php?form=Search Boxes&search={$p['box']}">{$p['box']}</a></td>
+<td><a href="$script?form=Search Boxes&search={$p['box']}">{$p['box']}</a></td>
 <td><nobr>{$p['paidon']}</nobr></td>
 <td align=right><nobr>$amount</nobr></td>
 <td align=right><nobr>$hst</nobr></td>
@@ -845,6 +1053,7 @@ function callhtml($box,$limit=50) {
 }
 
 function formatcallhtml($title,$calls) {
+	global $script;
 	$callhtml = <<<HTML
 <table cellpadding=5 cellspacing=0 border=1>
 <tr><th>#</th><th>Box</th><th>Vendor Id</th><th>Time</th><th>Action</th><th>Caller ID</th></tr>
@@ -869,7 +1078,7 @@ HTML;
 		$callhtml .= <<<HTML
 <tr>
 <td>$i</td>
-<td><a href="admin.php?form=Search Boxes&search={$call['box']}">{$call['box']}</a></td>
+<td><a href="$script?form=Search Boxes&search={$call['box']}">{$call['box']}</a></td>
 <td>$vendlink</td>
 <td>$callstart &nbsp;</td>
 <td>$calltype &nbsp;</td>
@@ -1009,16 +1218,60 @@ function confirm_update_box_time($data,$months='') {
 	$vend = ll_vendor($data['vid'],true);
 
 	$bdata = ll_box($box);
-	if (empty($bdata)) {
-		die("box $box does not exist!");
-	}
 
-	$boxupdate = ll_check_time($vend,$box,$months);
 	$trans = ll_generate_trans($vend,'boxes');
 
 	$top = form_top($data); 
 	$end = form_end($data);
 	$payment_form = payment_form($box,defpayment($vend,$months));
+	$nextsubmit = htmlentities($_REQUEST['nextsubmit']);
+	if (is_clients_php()) {
+		$poboxes = ll_clients_poboxes($bdata['cid']);
+		if (count($poboxes)) {
+			$pb = array();
+			foreach ($poboxes as $pobox) {
+				$pb[] = $pobox['box'];
+			}
+			$poboxstr = implode(",", $pb);
+			$pbtitle = (count($pb) == 1 ? "po box": "po boxes");
+			$poboxfield = <<<HTML
+<tr>
+<td><b>PO Box(es):</b></td>
+<td>
+<input type=checkbox name=updatepoboxes value="1" checked>
+Update $pbtitle $poboxstr also?
+</td>
+</tr>
+HTML;
+		} else {
+			$poboxsel = poboxes('deleted_first',null,'pobox');
+			$poboxfield = <<<HTML
+<tr><td><b>PO Box:</b></td><td>$poboxsel</td></tr>
+HTML;
+		}
+	}
+
+	if (empty($bdata)) {
+		ll_check_months($vend,$months);
+		return <<<HTML
+$top
+<h3>Create New Box $box</h3>
+<input type=hidden name=trans value="$trans">
+<table cellpadding=3 cellspacing=0 border=0>
+<tr><td><b>Box:</b></td><td><input type=hidden name=box value="$box"><b>{$vend['llphone']} Ext $box</b></td></tr>
+<tr><td><b>Months:</b></td><td><input type=hidden name=months value="$months"><b>$months</b></td></tr>
+<tr><td><b>{$original}Vendor:</b></td><td>{$vend['vendor']}</td></tr>
+$newvendfield
+</table>
+$payment_form
+<br>
+<input type=submit name=action value="Create box" class=action>
+$end
+HTML;
+	}
+
+	$boxupdate = ll_check_time($vend,$box,$months);
+
 	if ($bdata['vid'] != $vend['vid']) {
 		$original = 'Original ';
 		# if we are the parent don't do anything otherwise change the vendor id
@@ -1034,7 +1287,6 @@ HTML;
 		}
 	}
 
-	$nextsubmit = htmlentities($_REQUEST['nextsubmit']);
 	return <<<HTML
 $top
 <input type=hidden name=trans value="$trans">
@@ -1048,6 +1300,7 @@ $newvendfield
 <tr valign=top><td><b>Notes:</b></td><td>{$bdata['notes']}</td></tr>
 <tr><td><b><nobr>Paid to:</nobr></b></td><td>{$bdata['paidto']}</td></tr>
 <tr><td><b>Status:</b></td><td>{$bdata['status']}</td></tr>
+$poboxfield
 </table>
 $payment_form
 <br>
@@ -1065,7 +1318,7 @@ function defpayment($vend,$months) {
 }
 
 function update_box_time($data,$months='') {
-	global $table,$ldata;
+	global $table,$ldata,$phone,$script;
 
 	$vend = ll_vendor($data['vid']);
 	if ($months === '') $months = $_REQUEST['months'];
@@ -1074,7 +1327,7 @@ function update_box_time($data,$months='') {
 	ll_delete_trans($vend,$_REQUEST['trans'],$box);
 
 	$bdata = ll_box($box);
-	if (empty($bdata)) die("box $box can't be updated because it doesn't exist!");
+	if (empty($bdata)) die("box $box does not exist!");
 
 	$amount = ll_update_payment($box,$ldata['vid'],$ldata['login'],$months,$_REQUEST['payment']);
 
@@ -1103,7 +1356,7 @@ function update_box_time($data,$months='') {
 	return <<<HTML
 $top
 $table
-<tr><td><b>Box:</b></td><td><a href="admin.php?form=Search Boxes&search=$box">{$bdata['llphone']} Ext $box</a></td></tr>
+<tr><td><b>Box:</b></td><td><a href="$script?form=Search Boxes&search=$box">{$bdata['llphone']} Ext $box</a></td></tr>
 <tr><td><b><nobr>Paid to:</nobr></b></td><td>$paidto</td></tr>
 <tr><td><b>Status:</b></td><td>{$bdata['status']}</td></tr>
 <tr><td><b>Vendor:</b></td><td>{$bdata['vendor']}</td></tr>
@@ -1118,8 +1371,12 @@ $end;
 HTML;
 }
 
-function update_personal($data) {
-	global $table, $vend,$ldata;
+function update_pobox_personal($data) {
+	return update_personal($data,'poboxes');
+}
+
+function update_personal($data,$source='boxes') {
+	global $table, $vend,$ldata,$script;
 	$top = form_top($data);
 	$end = form_end($data);
 	$box = $_REQUEST['box'];
@@ -1127,7 +1384,8 @@ function update_personal($data) {
 		die("update_personal: box should be a number not $box!");
 
 	# deal with the disorganization that is WCG International
-	$bdata = ll_box($box);
+	if ($source == 'boxes') $bdata = ll_box($box);
+	else if ($source == 'poboxes') $bdata = ll_pobox($box);
 	if (
 		$ldata['perms'] == 'edit'
 		and preg_match('#'.ll_parentpat(WCGINT).'#', $data['parent']) 
@@ -1138,7 +1396,7 @@ function update_personal($data) {
 		die("WCG: you must set a paidto date for this box before making changes!");
 	}
 
-	ll_update_personal($vend,$box,$_REQUEST['personal']);
+	ll_update_personal($vend,$box,$_REQUEST['personal'],$source);
 	if (preg_match('#^\s*(2\d\d\d-\d\d-\d\d)#',$_REQUEST['startdate'],$m)) {
 		$startdate = $m[1];
 		$onemonth = date('Y-m-d',strtotime('+2 weeks'));
@@ -1154,21 +1412,38 @@ function update_personal($data) {
 		array('paidon' => date('Y-m-d H:i:s'),'amount' => 0, 'notes' => $notes)
 	);
 
-	$bdata = ll_box($box,($refresh=true));
-	return <<<HTML
-$top
-$table
-<tr><td><b>Box:</b></td><td><a href="admin.php?form=Search Boxes&search=$box">{$bdata['llphone']} Ext $box</a></td></tr>
-<tr><td><b>Name:</b></td><td>{$bdata['name']}</td></tr>
-<tr><td><b>Email:</b></td><td>{$bdata['email']}</td></tr>
-<tr valign=top><td><b>Notes:</b></td><td>{$bdata['notes']}</td></tr>
+	$boxrow = $statusrow = $instrrow = "";
+	if ($source == 'boxes') {
+		$bdata = ll_box($box);
+		$boxrow = <<<HTML
+<tr><td><b>Box:</b></td><td><a href="$script?form=Search Boxes&search=$box">{$bdata['llphone']} Ext $box</a></td></tr>
+HTML;
+		$statusrow = <<<HTML
 <tr><td><b>Status:</b></td><td>{$bdata['status']}</td></tr>
-<tr><td><b><nobr>Paid to:</nobr></b></td><td>{$bdata['paidto']}</td></tr>
+HTML;
+		$instrrow = <<<HTML
 <tr><td colspan=2 align=right>
 <b>PRINT THIS:</b>
 <a href="index.php?box=$box&seccode={$bdata['seccode']}&llphone={$bdata['llphone']}" 
    target=_blank>instructions</a>
 </td></tr>
+HTML;
+	} else if ($source == 'poboxes') {
+		$bdata = ll_pobox($box);
+		$boxrow = <<<HTML
+<tr><td><b>PO Box:</b></td><td><a href="$script?form=Search Clients&searchtext=pobox+$box">po box $box</a></td></tr>
+HTML;
+	}
+	return <<<HTML
+$top
+$table
+$boxrow
+<tr><td><b>Name:</b></td><td>{$bdata['name']}</td></tr>
+<tr><td><b>Email:</b></td><td>{$bdata['email']}</td></tr>
+<tr valign=top><td><b>Notes:</b></td><td>{$bdata['notes']}</td></tr>
+$statusrow
+<tr><td><b><nobr>Paid to:</nobr></b></td><td>{$bdata['paidto']}</td></tr>
+$instrrow
 </table>
 $end
 
@@ -1236,7 +1511,6 @@ function find_boxes_form($data,$boxes=null) {
 	$truncdate = '#-\d+(?:| .*)$#';
 	$html = <<<HTML
 $top
-<h4>Voice mailboxes</h4>
 HTML;
 	$html .= view_boxes_form($data,$boxes);
 	return $html;
@@ -1254,13 +1528,13 @@ function mk_sel($name,$items,$multiple=null) {
 }
 
 function search_form($data) {
-	global $permcheck;
+	global $permcheck,$script;
 	$search = htmlentities($_REQUEST['search']);
 	$box = htmlentities($_REQUEST['box']);
 	if (!$search and $_REQUEST['box']) $search = htmlentities($_REQUEST['box']);
 	if ($permcheck['boxes']) {
 		$boxform = <<<HTML
-<form name=searchform action=admin.php method=get style="margin-top: 8px">
+<form name=searchform action=$script method=get style="margin-top: 8px">
 Find Any Box: <input name="box" value="$box" size=5> &nbsp;
 Security Code: <input name="seccode" type="password" size=5> &nbsp;
 <input type=hidden name="vid" value="{$data['vid']}">
@@ -1269,17 +1543,17 @@ Security Code: <input name="seccode" type="password" size=5> &nbsp;
 HTML;
 	}
 	return <<<HTML
-<form name=searchform action=admin.php method=get>
+<form name=searchform action=$script method=get>
 <input name="search" value="$search" size=33 style="margin-left: -5px;">
 <input type=hidden name="vid" value="{$data['vid']}">
 <input type=submit name=form value="Search Boxes">
 </form>
 <div style="margin-top: -10px;">
 Boxes: &nbsp;
-<a href="admin.php?form=Search Boxes&search=^add [0-9]* months$&vid={$data['vid']}">Show unused</a> &nbsp;&nbsp;
-<a href="admin.php?form=Search Boxes&search=-deleted">Show active</a> &nbsp;&nbsp;
-<a href="admin.php?form=Search Boxes&search=">Show all</a> &nbsp;&nbsp;
-<a href="admin.php?form=Search Boxes&search=deleted&vid={$data['vid']}">Show deleted</a> &nbsp;&nbsp;
+<a href="$script?form=Search Boxes&search=^add [0-9]* months$&vid={$data['vid']}">Show unused</a> &nbsp;&nbsp;
+<a href="$script?form=Search Boxes&search=-deleted">Show active</a> &nbsp;&nbsp;
+<a href="$script?form=Search Boxes&search=">Show all</a> &nbsp;&nbsp;
+<a href="$script?form=Search Boxes&search=deleted&vid={$data['vid']}">Show deleted</a> &nbsp;&nbsp;
 </div>
 $boxform
 HTML;
@@ -1288,7 +1562,7 @@ HTML;
 
 function view_boxes_form($data,$boxes=null) {
 	global $table,$lightgray;
-	global $vend,$permcheck;
+	global $vend,$permcheck,$script;
 	$top = form_top($data); 
 	$end = form_end($data);
 	if (!is_array($boxes)) {
@@ -1296,7 +1570,8 @@ function view_boxes_form($data,$boxes=null) {
 	}
 	if ($permcheck['boxes']) $div = "&nbsp;-&nbsp;";
 	else $div = ' &nbsp;&nbsp; ';
-	$url = "<a href=\"".$data['app']."?box=";
+	$baseurl = "<a href=\"".$data['app'];
+	$url = "$baseurl?box=";
 	$numboxes = count($boxes);
 	if ($numboxes <> 1) $s = 'es';
 	$html = <<<HTML
@@ -1305,50 +1580,91 @@ $table
 <tr><th><nobr>Box / Paid to</nobr></th><th>Details</th></tr>
 HTML;
 	foreach ($boxes as $row) {
-		$box = $row['box'];
 		$paidto = $row['paidto'] == 0 ? 
 			$row['status'] : $row['paidto'].' '.$row['status'];
-		$instr = <<<HTML
-<a href="index.php?box=$box&seccode={$row['seccode']}&llphone={$row['llphone']}"
+		$box = $br = "";
+		if ($row['box']) {
+			$box .= "<nobr><b>{$row['box']}</b> &nbsp;&nbsp; $paidto</nobr>";
+			$br = "<br>";
+		}
+		if ($row['pobox']) {
+			$box .= "$br<nobr>PO Box <b>{$row['pobox']}</b> ".
+				"&nbsp;&nbsp; {$row['pobox_paidto']}</nobr>";
+		}
+
+		if (!$row['vid']) $vid = 'n/a';
+		else $vid = $row['vid'];
+
+		if ($row['name'] == $row['pobox_name']) $name = $row['name'];
+		else $name = "{$row['name']} {$row['pobox_name']}";
+
+		if ($row['email'] == $row['pobox_email']) $email = $row['email'];
+		else $email = "{$row['email']} {$row['pobox_email']}";
+
+		if ($row['notes'] == $row['pobox_notes']) $notes = $row['notes'];
+		else $notes = "{$row['notes']} {$row['pobox_notes']}";
+
+		$vmbox = $row['box'];
+		if ($row['box']) {
+			$instr = <<<HTML
+<a href="index.php?box=$vmbox&seccode={$row['seccode']}&llphone={$row['llphone']}"
    target=_blank>instructions</a>
 HTML;
-		if ($permcheck['boxes']) {
-			$add = "$url$box&form=add\">add</a>";
-			$sub = "$url$box&form=sub\">subtract</a>";
-			$del = "$url$box&form=del\">delete</a>";
+			$activity = <<<HTML
+show <a href="$script?form=Call+Activity&box=$vmbox">activity</a> / 
+HTML;
+			# removed to avoid potential privacy complaints 
+			# and to allow us to put vm and web on different servers more easily
+			$msg = "$url$vmbox&listen=1\">messages</a>";
+			$shsc = showcodelink($vmbox,$row['seccode']);
+			$chsc = "$shsc or $url$vmbox&form=chsc\">change</a> security code";
+			$edit = "$url$vmbox&form=edit\">edit</a> box";
+		} else {
+			$edit = $shsc = $chsc = $msg = $activity = $instr = "";
 		}
-		# removed to avoid potential privacy complaints 
-		# and to allow us to put vm and web on different servers more easily
-		$msg = "$url$box&listen=1\">messages</a>";
-		$shsc = showcodelink($box,$row['seccode']);
-		$chsc = "$shsc or $url$box&form=chsc\">change</a> security code";
-		$edit = "$url$box&form=edit\">edit</a>";
+		if ($row['pobox']) {
+			if ($edit) $slash = "/";
+			else $slash = " &nbsp; ";
+			$edit_pobox = "$slash $baseurl?pobox={$row['pobox']}&form=edit_pobox\">edit</a> po box";
+		} else {
+			$edit_pobox = "";
+		}
+		if ($row['box'] and $permcheck['boxes']) {
+			$add = "$url$vmbox&form=add\">add</a>";
+			$sub = "$url$vmbox&form=sub\">subtract</a>";
+			$del = "$url$vmbox&form=del\">delete</a>";
+		} else {
+			$add = $sub = $del = "";
+		}
 		$v = "<input type=hidden name=vendor value=\"".$row['vendor']."\">";
 
-		if (strlen($row['name']) > 30) $namebr = '<br>';
+		if (strlen($name) > 30) $namebr = '<br>';
 		else $namebr = '';
-		if (strlen($row['notes']) > 20) $notesbr = '<br>';
+		if (strlen($notes) > 20) $notesbr = '<br>';
 		else $notesbr = '';
-		if (strlen($row['login']) > 32 and $notestbr == '') $loginbr = '<br>';
+		if (strlen($login) > 32 and $notestbr == '') $loginbr = '<br>';
 		else $loginbr = '';
-		if (ll_has_access($data,$row)) 
+		if ($row['box'] and ll_has_access($data,$row)) {
 			$modifystr = "$add or $sub time $div $del box $div $chsc $div";
+		} else {
+			$modifystr = "";
+		}
 		$html .= <<<HTML
 <tr valign=top>
-<td><nobr><b>$box</b> &nbsp;&nbsp; $paidto $v</nobr></td>
+<td>$box $v</td>
 <td>
-<b>vendor:</b> {$row['vid']} &nbsp;
-<b>name:</b> {$row['name']} &nbsp; 
+<b>vendor:</b> {$vid} &nbsp;
+<b>name:</b> {$name} &nbsp; 
 $namebr
-<b>email:</b> {$row['email']} &nbsp; 
+<b>email:</b> {$email} &nbsp; 
 $notesbr
-<b>notes:</b> {$row['notes']} &nbsp;
+<b>notes:</b> {$notes} &nbsp;
 $notesbr$loginbr
 <b>last edit:</b> {$row['login']}
 </td>
 </tr>
 <tr bgcolor=$lightgray>
-<td><nobr>show <a href="admin.php?form=Call+Activity&box=$box">activity</a> / $edit box &nbsp;&nbsp;</nobr></td>
+<td><nobr>$activity $edit $edit_pobox &nbsp;&nbsp;</nobr></td>
 <td>
 <nobr>
 $modifystr $instr
@@ -1462,7 +1778,7 @@ HTML;
 }
 
 function purchase_time($data) {
-	global $_REQUEST;
+	global $_REQUEST,$script;
 	$vend = ll_vendor($data['vid']);
 	$trans = ll_valid_trans($_REQUEST['trans']);
 	ll_delete_trans($vend,$trans);
@@ -1475,13 +1791,13 @@ $top
 Thank you for your purchase. <p>
 Click on the link below and print the invoice. <br>
 <b>Net payment due in 30 days</b><p>
-Invoice: <a href=/lifeline/admin.php?action=invoice&invoice=$invoice target=_blank>$invoice</a>
+Invoice: <a href=/lifeline/$script?action=invoice&invoice=$invoice target=_blank>$invoice</a>
 $end
 HTML;
 }
 
 function list_invoices($data,$showall=false,$singlepage=true) {
-	global $ldata,$lightgray;
+	global $ldata,$lightgray,$script;
 	if ($data['vid'] != $ldata['vid'] and !ll_has_access($ldata,$data)) 
 		die("Error: you are trying to view someone else's invoices.");
 	$table = table_header(3,0,0,850);
@@ -1502,7 +1818,7 @@ function list_invoices($data,$showall=false,$singlepage=true) {
 	$html = <<<HTML
 $top
 <h3>$invtype Invoices for $vendor $owing</h3>
-<a href="admin.php?form=Show+$invalt+invoices">Show $invalt</a>
+<a href="$script?form=Show+$invalt+invoices">Show $invalt</a>
 <p>
 HTML;
 	if (count($invoices) == 0) {
@@ -1517,13 +1833,13 @@ HTML;
                 $html .= "<tr valign=top>\n";
 		$in = $invoice['invoice'];
 		# if you are logged in as the parent then you can edit the invoice
-		$editinv = "<td align=right><a href=\"admin.php?form=Edit invoice&invoice=$in\">edit</a>";
+		$editinv = "<td align=right><a href=\"$script?form=Edit invoice&invoice=$in\">edit</a>";
                 foreach (array('invoice','vendor','created','gst','total','paidon') as $field) {
 			$value = htmlentities($invoice[$field]);
                         if (is_numeric($field)) continue;
 			if ($field === 'invoice') 
 				$html .= <<<HTML
-<td align=center><a href="/lifeline/admin.php?action=invoice&invoice=$in" target=_blank>$in</a></td>
+<td align=center><a href="$script?action=invoice&invoice=$in" target=_blank>$in</a></td>
 HTML;
                         else if ($field === 'total' or $field === 'gst') {
 				$html .= "<td align=right>".(sprintf('$%.2f',$value))." &nbsp;</td>";
@@ -1549,7 +1865,7 @@ HTML;
 }
 
 function edit_invoice($invoice) {
-	global $ldata;
+	global $ldata,$script;
 	if (!preg_match('#^\d+$#', $invoice)) die("invoice should be a number!");
 
 	if (!preg_match('#invoices|^s$#',$ldata['perms'])) 
@@ -1571,9 +1887,9 @@ function edit_invoice($invoice) {
 	$html = <<<HTML
 $top
 <h3>Invoice 
-<a href="admin.php?action=invoice&invoice=$invoice" target=_blank>$invoice</a>
+<a href="$script?action=invoice&invoice=$invoice" target=_blank>$invoice</a>
 for 
-<a href="admin.php?vid={$idata['vid']}&form=Show all invoices">{$idata['vdata']['vendor']}</a></h3>
+<a href="$script?vid={$idata['vid']}&form=Show all invoices">{$idata['vdata']['vendor']}</a></h3>
 <input type=hidden name=invoice value="$invoice">
 <input type=hidden name=vid value="{$idata['vid']}">
 $table
@@ -1601,7 +1917,7 @@ HTML;
 
 function invoice($data,$idata=null) {
 	global $net_due;
-	global $ldata;
+	global $ldata,$script;
 	# only let people with invoice viewing permissions to look at invoices
 	if (!preg_match('#invoices|^s$#',$ldata['perms'])) 
 		die("You don't have the permissions to view invoices.");
