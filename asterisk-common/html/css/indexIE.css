@@ -1,0 +1,13 @@
+div.logo {
+	margin-top: -20px;
+	width: 690px;
+}
+div.panel {
+	width: 690px;
+}
+div.panel a {
+	text-decoration: underline;
+}
+div.intro {
+	width: 690px;
+}

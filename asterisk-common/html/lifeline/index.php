@@ -56,6 +56,7 @@ Ext <?php print $_REQUEST['box']  ? ($box=htmlentities($_REQUEST['box'])) : '___
 </span> &nbsp;
 (Security code:
 <?php print $_REQUEST['seccode']  ? ($sc=htmlentities(ll_showcode($_REQUEST['seccode']))) : '_______'; ?>)
+<br>
 <?php if ($_REQUEST['amount']) : ?>
 <p>
 Payment: 

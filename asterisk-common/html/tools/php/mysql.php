@@ -22,6 +22,8 @@ if (!isset($personal_fields)) {
 		'email' => 'Email',
 		'notes' => 'Notes',
 		'llphone' => 'Phone',
+		'paidto' => 'Paid to',
+		'cid' => 'Client ID',
 	);
 }
 
@@ -229,6 +231,32 @@ function ll_box($box,$refresh=false) {
 	if (ll_check_box($box,($die=false))) return ll_load_from_table('ourboxes','box',$box,false,'',$refresh);
 }
 
+function ll_pobox($box,$refresh=true) {
+	return ll_load_from_table('poboxes','box',$box,false,'',$refresh);
+}
+
+function ll_clients_pobox($cid,$refresh=false) {
+	return ll_load_from_table('poboxes','cid',$cid,false,'',$refresh);
+}
+
+function ll_client($name, $refresh=true) {
+	return ll_load_from_table('clients','name',$name,false,'',$refresh);
+}
+
+function ll_client_insert($vend, $cdata) {
+	global $ldata;
+	$cdata['login'] = $ldata['login'];
+	$cdata['app'] = $ldata['app'];
+	$cdata['vid'] = $vend['vid'];
+	if (ll_save_to_table('insert','clients',$cdata,null,$cid,true)) 
+		return $cid;
+	return false;
+}
+
+function ll_clients_poboxes($cid,$refresh=false) {
+	return ll_load_from_table('poboxes','cid',$cid,true,'',$refresh);
+}
+
 function ll_calls($box,$limit=null) {
 	if (preg_match('#^\d+$#',$limit)) $limitreq = "limit $limit";
 	if (ll_check_box($box,($die=false))) 
@@ -367,6 +395,22 @@ function ll_boxes($vend,$showkids=false,$status='not_deleted',$order = "order by
 	return ll_load_from_table('boxes','vid',$vid,true," $status $order");
 }
 
+function ll_poboxes($status='all',$date=null) {
+	# force a numeric sort by box
+	$order = " order by box+0";
+	$where = "";
+
+	if ($status == 'deleted_first')  { 
+		$order = " order by paidto, box+0";
+	} else if ($status == 'recent_first') {
+		if (preg_match('#^\d\d\d\d-\d\d-\d\d$#', $date)) 
+			$where = " where paidto <= '$date' ";
+		$order = " order by box+0";
+	}
+
+	return ll_load_from_table('poboxes',null,null,true," $where $order");
+}
+
 function ll_activeboxcount($vid) {
 	if (!preg_match('#^\d+$#',$vid)) die("bad vid in ll_activeboxcount!");
 	return ll_boxcount($vid,($showkids=false));
@@ -416,6 +460,41 @@ function ll_find_boxes($vend,$search) {
 	}
 	$where .= ") order by box";
 	return ll_load_from_table('ourboxes',null,null,true,$where);
+}
+
+function ll_find_clients($vend,$search) {
+	$lldb = ll_connect();
+	$where = " where (";
+	if (empty($search)) {
+		$where .= "1=1";
+	} else {
+		if (preg_match('#^\s*-\s*(.*)#',$search,$m)) {
+			$search = $m[1];
+			$not = 'not';
+			$andor = 'and';
+		} else {
+			$not = '';
+			$andor = 'or';
+		}
+		if (preg_match('#pobox\s*(\d+)#i', $search, $m)) {
+			$search = $m[1];
+			$value = $lldb->quote($search);
+			if ($not) {
+				$wheres[] = "pobox <> $value";
+			} else {
+				$wheres[] = "pobox = $value";
+			}
+		} else {
+			foreach (array('pobox','box','client_name','name','pobox_name',
+					'email','pobox_email','paidto','pobox_paidto') as $field) {
+				$value = $lldb->quote($search);
+				$wheres[] = "$field $not regexp ($value)";
+			}
+		}
+		$where .= implode(" $andor ",$wheres);
+	}
+	$where .= ") order by pobox+0,box+0";
+	return ll_load_from_table('ourclients',null,null,true,$where);
 }
 
 function ll_check_boxlimit($vend,$dummy=null) {
@@ -828,14 +907,29 @@ function ll_get_payments($box,$vid) {
 		);
 }
 
-function ll_update_personal($vend,$box,$personal) {
+function ll_pobox_update($vend, $pobox, $months, $personal) {
+	$personal['paidto'] = date('Y-m-d', time()+$months*86400*31);
+	return ll_pobox_update_personal($vend,$pobox,$personal);
+}
+
+function ll_pobox_update_personal($vend,$box,$personal) {
+	return ll_update_personal($vend,$box,$personal,'poboxes');
+}
+
+function ll_update_personal($vend,$box,$personal,$source='boxes') {
 	global $personal_fields;
-	$bdata = ll_load_from_table('boxes','box',$box,false);
+	$bdata = ll_load_from_table($source,'box',$box,false);
+
+	if ($source == 'boxes') unset($personal_fields['paidto']);
+	else if ($source == 'poboxes') unset($personal_fields['llphone']);
+
 	foreach ($personal_fields as $field => $title) {
 		$sdata[$field] = $personal[$field];
 	}
-	if (empty($sdata['llphone'])) $sdata['llphone'] = $vend['llphone'];
-	return ll_save_to_table('update','boxes',$sdata,'box',$box,true);
+	if ($source == 'boxes' and empty($sdata['llphone'])) {
+		$sdata['llphone'] = $vend['llphone'];
+	}
+	return ll_save_to_table('update',$source,$sdata,'box',$box,true);
 }
 
 function ll_update_seccode($vend,$box,$seccode) {
@@ -1029,7 +1123,7 @@ function ll_delete_trans($vend,$trans,$box=null) {
 	global $lldb;
 	$data = ll_load_from_table('transactions','trans',$trans,false);
 
-	$translink = "<a href=\"admin.php?form=transaction&trans=$trans\">$trans</a>";
+	$translink = "<a href=\"?form=transaction&trans=$trans\">$trans</a>";
 
 	if (!isset($data)) die("Transaction $translink not found!");
 	if ($data['status']) die("Transaction $translink is {$data['status']}.");

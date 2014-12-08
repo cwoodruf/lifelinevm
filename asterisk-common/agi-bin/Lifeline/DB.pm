@@ -62,7 +62,7 @@ our $llmsgdir = "/usr/local/asterisk/lifeline-msgs";
 our $coolaidmsgdir = "/usr/local/asterisk/coolaid-msgs";
 our @llmsgdirs = ($llmsgdir, $coolaidmsgdir);
 # end of life in days
-our $lleol = 90;
+our $lleol = 365;
 
 # just get a list of deleted boxes
 sub ll_deleted_boxes {

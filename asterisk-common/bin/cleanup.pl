@@ -46,6 +46,7 @@ sub markdelete {
 		if ($oldbox->{$box}) {
 			print "old? $oldbox->{$box} - checking $box $stub $File::Find::name\n" if $opt{v};
 			move $_, "$stub.deleted.gsm" or die "$_ -> can't mark as deleted: $!";
+			system "touch $stub.deleted.gsm";
 			unlink "$stub.wav" if -f "$stub.wav";
 		}
 	# remove old messages that have been marked for deletion	

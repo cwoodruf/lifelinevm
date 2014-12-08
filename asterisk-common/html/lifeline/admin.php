@@ -1,11 +1,20 @@
 <?php
 require_once("php/globals.php");
 require_once("$lib/pw/auth.php");
+require_once("twitterapi.php");
 @include_once("news.php");
 if (function_exists('gettweets')) $newsdiv = gettweets();
 
 $action = $_REQUEST['action'];
 if ($action === 'logout') delete_login();
+/* 
+# twitter stuff - experimental
+$twitter_actions = array(
+	'tweet' => true,
+	'followers' => true,
+	'deltweet' => true,
+	'timeline' => true,
+);
 
 # for the export action
 if ($_REQUEST['hash']) {
@@ -126,15 +135,28 @@ if (preg_match('#^\d+$#', $_REQUEST['vid'])) {
 	$findvid = $ldata['vid'];
 	$finddata = $ldata;
 }
-
+*/
+# this should be equivalent to the commented out section above
+require_once("php/ldata.php");
 require_once("php/forms.php");
 
+/*
+# twitter stuff - experimental
+if ($twitter_actions[$action]) {
+	ini_set('display_errors',true);
+	error_reporting(E_ALL & ~E_NOTICE);
+	header("content-type: text/plain");
+	$ta = new TwitterAPI;
+}
+*/
 if ($_REQUEST['listen']) {
 	header("location: listen.php?from=admin&box={$_REQUEST['box']}");
 } else if ($action === 'Manage account and users') {
 	header("location: make.php?from=admin");
 } else if ($action === 'Create boxes') {
 	print create_new_box($ldata);
+} else if ($action === 'Create box') {
+	print create_new_box($ldata,$_REQUEST['box']);
 } else if ($action === 'Really add time to box?' or $action === 'Really remove time from box?') {
 	print update_box_time($ldata);
 } else if ($action === 'Delete box') {
@@ -157,6 +179,17 @@ if ($_REQUEST['listen']) {
 	print purchase_time($ldata);
 } else if ($action === 'invoice') {
 	print invoice($ldata);
+/*
+# twitter stuff - experimental
+} else if ($action === 'followers') {
+	var_export($ta->ids());
+} else if ($action === 'tweet') {
+	var_export($ta->tweet($_REQUEST['tweet']));
+} else if ($action === 'deltweet') {
+	var_export($ta->destroy($_REQUEST['tweetid']));
+} else if ($action === 'timeline') {
+	var_export(json_decode($ta->timeline()));
+*/
 } else {
 	if ($form === 'Create a new voicemail box') {
 		print create_new_box_form($ldata);

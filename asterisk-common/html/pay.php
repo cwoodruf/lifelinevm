@@ -1,6 +1,6 @@
 <?php
 session_start();
-$amounts = array( '4' => '10', '6' => '15', '12' => '25' );
+$amounts = array( '4' => '10', '6' => '12', '12' => '22' );
 $hst = .12;
 
 $months = $_REQUEST['months'];
@@ -22,7 +22,7 @@ $total = sprintf('$ %.2f',$net + $hst);
 </style>
 </head>
 <body vlink=#660099 link=#686868 alink=#686868 bgcolor=lightyellow>
-<table cellpadding=10 style="margin-left: 120px;"><tr>
+<table cellpadding=10><tr>
 <td>
 <h1>Lifeline Voicemail: pay by mail</h1>
 <?php if ($_REQUEST['action']) { ?>
@@ -32,8 +32,8 @@ $total = sprintf('$ %.2f',$net + $hst);
 <br>
 <br>
 <p>
-<b>Lifeline Voice Mail Society</b><br>
-142 - 757 West Hastings Street, Box 275<br>
+<b>Lifeline Voice Mail</b><br>
+142 - 757 West Hastings Street,<br>
 Vancouver, BC<br>
 V6C 1A1<br>
 <br>
@@ -64,8 +64,8 @@ if ($_REQUEST['action']) {
 ?>&nbsp;
 </td></tr>
 <tr><td>Time:</td><td align=right><?php print $months; ?> months</td></tr>
-<!-- <tr><td>Amount:</td><td align=right><?php print $net; ?></td></tr> -->
-<!-- <tr><td>HST:</td><td align=right><?php print $hst; ?></td></tr> -->
+<tr><td>Amount:</td><td align=right><?php print $net; ?></td></tr>
+<tr><td>HST:</td><td align=right><?php print $hst; ?></td></tr>
 <tr><td>Total:</td><td align=right><b><?php print $total?></b></td></tr>
 </table>
 <p>
