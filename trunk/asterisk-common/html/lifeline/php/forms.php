@@ -18,7 +18,7 @@ function is_clients_php() {
 }
 
 function head() {
-	global $form,$ldata,$lightyellow;
+	global $form,$ldata,$sitecolor;
 	$title = empty($form) ? "main page" : $form;
 	if ($ldata['retail_prices'] and $form == 'Create a new voicemail box') {
 		$pairs = explode(';',$ldata['retail_prices']);
@@ -56,7 +56,7 @@ JS;
 <link rel=stylesheet type=text/css href=/lifeline/css/admin.css>
 $retail_script
 </head>
-<body bgcolor=$lightyellow>
+<body class="site" bgcolor="$sitecolor">
 HTML;
 }
 
@@ -192,7 +192,7 @@ $addtime_buttons
 PO Boxes:
 <br>
 $poboxes
-<input type=submit name=form value="Update PO Box">
+<input type=submit name=form value="Edit PO Box">
 <p>
 <input type=submit name=form value="Print PO Box Reminders">
 $end
@@ -666,7 +666,7 @@ HTML;
 		$notes = $bdata['name'].'&nbsp;'.$bdata['email'].' '.$bdata['notes'];
 		if (is_clients_php()) {
 			$searchth = <<<HTML
-<th><a href="$script?form=Search Clients&searchtext=$box">$box</a></th>
+<th><a href="$script?form=Search Clients&search=$box">$box</a></th>
 HTML;
 		} else {
 			$searchth = <<<HTML
@@ -715,10 +715,12 @@ function new_box_instructions($data,$box,$seccode,$amount,$personal) {
 	$bdata = ll_box($box);
 	if ($bdata['paidto'] != '0000-00-00' and preg_match('#^\d{4}-\d{2}-\d{2}$#',$bdata['paidto'])) 
 		$paidto = "paid to {$bdata['paidto']}";
+	$poboxtr = poboxtr($bdata);
 	return <<<HTML
 $top
 $table
 <tr><td><b>Extension:</b></td><td><a href="?form=Search+Boxes&search=$box">{$bdata['llphone']} Ext $box</a></td></tr>
+$poboxtr
 <tr><td><b>Status:</b></td><td>{$bdata['status']} $paidto</td></tr>
 <tr><td><b>Name:</b></td><td>{$personal['name']}</td></tr>
 <tr><td><b>Email:</b></td><td>{$personal['email']}</td></tr>
@@ -735,6 +737,20 @@ $end
 HTML;
 }
 
+# for displaying a pobox you alread have
+function poboxtr($bdata) {
+	if ($bdata['cid']) {
+		$poboxes = ll_clients_pobox($bdata['cid']);
+		if (is_array($poboxes) and count($poboxes) > 0) {
+			$poboxrow = "<tr><td><b>PO Box:</b></td><td>";
+			$poboxrow .= $poboxes['box']." &nbsp;";
+			$poboxrow .= "</td></tr>";
+		}
+	}
+	return $poboxrow;
+}
+		
+# for selecting a pobox 
 function poboxrow($bdata) {
 	if (!is_clients_php()) return "";
 	if (isset($bdata['box'])) {
@@ -907,6 +923,7 @@ $poboxrow
 <tr valign=top>
     <td>Email:</td>
     <td><input size=40 name="personal[email]" value="{$bdata['email']}"><br>
+        <input type="hidden" name="personal[cid]" value="{$bdata['cid']}">
 	<i><b>only</b> enter email if client wants email reminders</i></td></tr>
 <tr><td>Notes:</td><td><input size=60 name="personal[notes]" value="{$bdata['notes']}"></td></tr>
 </table>
@@ -1229,8 +1246,12 @@ function confirm_update_box_time($data,$months='') {
 		$poboxes = ll_clients_poboxes($bdata['cid']);
 		if (count($poboxes)) {
 			$pb = array();
+			$poboxfields = "";
 			foreach ($poboxes as $pobox) {
 				$pb[] = $pobox['box'];
+				$poboxfields .= <<<HTML
+<input type=hidden name="poboxes[]" value="{$pobox['box']}">
+HTML;
 			}
 			$poboxstr = implode(",", $pb);
 			$pbtitle = (count($pb) == 1 ? "po box": "po boxes");
@@ -1239,6 +1260,7 @@ function confirm_update_box_time($data,$months='') {
 <td><b>PO Box(es):</b></td>
 <td>
 <input type=checkbox name=updatepoboxes value="1" checked>
+$poboxfields
 Update $pbtitle $poboxstr also?
 </td>
 </tr>
@@ -1305,6 +1327,7 @@ $poboxfield
 $payment_form
 <br>
 <input type=submit name=action value="$nextsubmit" class=action>
+<input type=hidden name=cid value="{$bdata['cid']}">
 $end
 HTML;
 }
@@ -1329,6 +1352,8 @@ function update_box_time($data,$months='') {
 	$bdata = ll_box($box);
 	if (empty($bdata)) die("box $box does not exist!");
 
+	if (isset($_REQUEST['personal'])) ll_update_personal($vend,$box,$_REQUEST['personal']);
+
 	$amount = ll_update_payment($box,$ldata['vid'],$ldata['login'],$months,$_REQUEST['payment']);
 
 	if ($bdata['vid'] != $vend['vid']) {
@@ -1350,13 +1375,14 @@ function update_box_time($data,$months='') {
 		$bdata = ll_box($box,true);
 		$vend = ll_vendor($data['vid'],true);
 	}
-		
+	$poboxtr = poboxtr($bdata);
 	$top = form_top($data); 
 	$end = form_end($data);
 	return <<<HTML
 $top
 $table
 <tr><td><b>Box:</b></td><td><a href="$script?form=Search Boxes&search=$box">{$bdata['llphone']} Ext $box</a></td></tr>
+$poboxtr
 <tr><td><b><nobr>Paid to:</nobr></b></td><td>$paidto</td></tr>
 <tr><td><b>Status:</b></td><td>{$bdata['status']}</td></tr>
 <tr><td><b>Vendor:</b></td><td>{$bdata['vendor']}</td></tr>
@@ -1415,8 +1441,10 @@ function update_personal($data,$source='boxes') {
 	$boxrow = $statusrow = $instrrow = "";
 	if ($source == 'boxes') {
 		$bdata = ll_box($box);
+		$poboxtr = poboxtr($bdata);
 		$boxrow = <<<HTML
 <tr><td><b>Box:</b></td><td><a href="$script?form=Search Boxes&search=$box">{$bdata['llphone']} Ext $box</a></td></tr>
+$poboxtr
 HTML;
 		$statusrow = <<<HTML
 <tr><td><b>Status:</b></td><td>{$bdata['status']}</td></tr>
@@ -1431,7 +1459,7 @@ HTML;
 	} else if ($source == 'poboxes') {
 		$bdata = ll_pobox($box);
 		$boxrow = <<<HTML
-<tr><td><b>PO Box:</b></td><td><a href="$script?form=Search Clients&searchtext=pobox+$box">po box $box</a></td></tr>
+<tr><td><b>PO Box:</b></td><td><a href="$script?form=Search Clients&search=pobox+$box">po box $box</a></td></tr>
 HTML;
 	}
 	return <<<HTML
@@ -1573,9 +1601,9 @@ function view_boxes_form($data,$boxes=null) {
 	$baseurl = "<a href=\"".$data['app'];
 	$url = "$baseurl?box=";
 	$numboxes = count($boxes);
-	if ($numboxes <> 1) $s = 'es';
+	if ($numboxes <> 1) $s = 's';
 	$html = <<<HTML
-$numboxes box$s
+$numboxes record$s
 $table
 <tr><th><nobr>Box / Paid to</nobr></th><th>Details</th></tr>
 HTML;

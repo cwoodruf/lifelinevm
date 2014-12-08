@@ -235,20 +235,46 @@ function ll_pobox($box,$refresh=true) {
 	return ll_load_from_table('poboxes','box',$box,false,'',$refresh);
 }
 
+function ll_pobox_ok($box) {
+	if (!preg_match('#^\d+$#',$box)) return;
+	if ($box < 1) return;
+	if ($box > 90) return;
+	return $box;
+}
+
 function ll_clients_pobox($cid,$refresh=false) {
 	return ll_load_from_table('poboxes','cid',$cid,false,'',$refresh);
 }
 
-function ll_client($name, $refresh=true) {
+function ll_client_from_name($name, $refresh=true) {
 	return ll_load_from_table('clients','name',$name,false,'',$refresh);
 }
 
+function ll_client($cid, $refresh=true) {
+	return ll_load_from_table('clients','cid',$cid,false,'',$refresh);
+}
+
 function ll_client_insert($vend, $cdata) {
-	global $ldata;
+	return ll_client_modify($vend, $cdata, 'insert');
+}
+
+function ll_client_update($vend, $cdata) {
+	return ll_client_modify($vend, $cdata, 'update');
+}
+
+function ll_client_modify($vend, $cdata, $op) {
+	global $ldata, $personal_fields;
+	unset($personal_fields['llphone']);
+	unset($personal_fields['paidto']);
+
+	foreach ($cdata as $field => $value) {
+		if (!isset($personal_fields[$field])) unset($cdata[$field]);
+	}
 	$cdata['login'] = $ldata['login'];
 	$cdata['app'] = $ldata['app'];
 	$cdata['vid'] = $vend['vid'];
-	if (ll_save_to_table('insert','clients',$cdata,null,$cid,true)) 
+	$cid = $cdata['cid'];
+	if (ll_save_to_table($op,'clients',$cdata,'cid',$cid,true)) 
 		return $cid;
 	return false;
 }
@@ -476,13 +502,17 @@ function ll_find_clients($vend,$search) {
 			$not = '';
 			$andor = 'or';
 		}
-		if (preg_match('#pobox\s*(\d+)#i', $search, $m)) {
+		if (preg_match('#pobox\s*(\d*)#i', $search, $m)) {
 			$search = $m[1];
-			$value = $lldb->quote($search);
-			if ($not) {
-				$wheres[] = "pobox <> $value";
+			if (ll_pobox_ok($search) != null) {
+				$value = $lldb->quote($search);
+				if ($not) {
+					$wheres[] = "pobox <> $value";
+				} else {
+					$wheres[] = "pobox = $value";
+				}
 			} else {
-				$wheres[] = "pobox = $value";
+				$wheres[] = "pobox is not null";
 			}
 		} else {
 			foreach (array('pobox','box','client_name','name','pobox_name',
@@ -907,9 +937,11 @@ function ll_get_payments($box,$vid) {
 		);
 }
 
-function ll_pobox_update($vend, $pobox, $months, $personal) {
-	$personal['paidto'] = date('Y-m-d', time()+$months*86400*31);
-	return ll_pobox_update_personal($vend,$pobox,$personal);
+function ll_pobox_update_months($vend, $pobox, $m) {
+	if (preg_match('#^-?\d+$#', $m)) {
+		return ll_save_to_table('update','poboxes',null,'box',$pobox,true,
+			" paidto = if (paidto>now(),paidto + interval $m month,now() + interval $m month) ");
+	}
 }
 
 function ll_pobox_update_personal($vend,$box,$personal) {
@@ -921,7 +953,9 @@ function ll_update_personal($vend,$box,$personal,$source='boxes') {
 	$bdata = ll_load_from_table($source,'box',$box,false);
 
 	if ($source == 'boxes') unset($personal_fields['paidto']);
-	else if ($source == 'poboxes') unset($personal_fields['llphone']);
+	else if ($source == 'poboxes') {
+		unset($personal_fields['llphone']);
+	}
 
 	foreach ($personal_fields as $field => $title) {
 		$sdata[$field] = $personal[$field];
@@ -1268,7 +1302,7 @@ function ll_replace_in_table($table,$data,$literal=false) {
 	return ll_save_to_table('replace',$table,$data,$name,$key,$literal);
 }
 
-function ll_save_to_table($action,$table,$data,$name='',&$key='',$literal=false) {
+function ll_save_to_table($action,$table,$data,$name='',&$key='',$literal=false,$set='') {
 	$lldb = ll_connect();
 	if ($action === 'insert' or $action === 'replace' or $action === 'insert ignore') {
 		$query = "$action into $table (";
@@ -1283,13 +1317,15 @@ function ll_save_to_table($action,$table,$data,$name='',&$key='',$literal=false)
 		$end = preg_replace('#,$#',')',$end);
 		$query = $query.$end;
 	} else if ($action === 'update') {
-		if ($name === '' or $key === '') die("need a key,value pair for updates!");
-		$query = "update $table set ";
-		foreach ($data as $field => $value) {
-			if ($literal == false and preg_match('#^([\+\*/%-])(\d+)$#',$value,$m)) 
-				$val = "$field ".$m[1]." ".$m[2];
-			else $val = $lldb->quote($value);
-			$query .= "$field = $val,";
+		if (!$name or !$key) die("need a key,value pair for updates!");
+		$query = "update $table set $set ";
+		if (is_array($data)) {
+			foreach ($data as $field => $value) {
+				if ($literal == false and preg_match('#^([\+\*/%-])(\d+)$#',$value,$m)) 
+					$val = "$field ".$m[1]." ".$m[2];
+				else $val = $lldb->quote($value);
+				$query .= "$field = $val,";
+			}
 		}
 		$query = preg_replace('#,$#',' ',$query);
 		$query .= "where $name = ".$lldb->quote($key);

@@ -5,6 +5,7 @@ ini_set('display_errors',true);
 error_reporting(E_ALL & ~E_STRICT & ~E_NOTICE);
 
 require_once("php/globals.php");
+$sitecolor = 'white';
 require_once("$lib/pw/auth.php");
 require_once("twitterapi.php");
 @include_once("news.php");
@@ -17,17 +18,48 @@ require_once("php/ldata.php");
 require_once("php/forms.php");
 
 if ($action === 'Create boxes' or $action === 'Really add time to box?' or $action === 'Really remove time from box?') {
-	$cdata = ll_client($_REQUEST['personal']['name']);
-	if ($cdata === false or !isset($data['cid'])) {
-		$cid = ll_client_insert($vdata, $_REQUEST['personal']);
+	$cid = $_REQUEST['cid'];
+	if (!isset($_REQUEST['personal'])) {
+		$personal = ll_box($_REQUEST['box']);
+		unset($personal['paidto']);
 	} else {
-		$cid = $cdata['cid'];
+		$personal = $_REQUEST['personal'];
 	}
-	$_REQUEST['personal']['cid'] = $cid;
-	$pobox = 0 + $_REQUEST['pobox'];
-	if ($pobox > 0 and $pobox <= 90) {
-		ll_pobox_update($vdata, $pobox, $_REQUEST['months'], $_REQUEST['personal']);
+	if (preg_match('#^\d+$#', $cid)) {
+		$cdata = ll_client($cid);
+		if (!$cdata) $cid = null;
+		else {
+			$personal['cid'] = $cid;
+			ll_client_update($vdata, $personal);
+		}
+	} else {
+		if (isset($personal['name'])) {
+			$cdata = ll_client_from_name($personal['name']);
+			if ($cdata === false or !isset($cdata['cid'])) {
+				$cid = ll_client_insert($vdata, $personal);
+			} else {
+				$cid = $cdata['cid'];
+				$personal['cid'] = $cid;
+				ll_client_update($vdata, $personal);
+			}
+		}
 	}
+	if ($cid) {
+		$personal['cid'] = $cid;
+		if ($_REQUEST['updatepoboxes']) {
+			foreach ($_REQUEST['poboxes'] as $pobox) {
+				if (ll_pobox_ok($pobox) != null) {
+					ll_pobox_update_personal($vdata, $pobox, $personal);
+					ll_pobox_update_months($vdata, $pobox, $_REQUEST['months']);
+				}
+			}
+		} else if (is_array($personal) and 
+				($pobox = ll_pobox_ok($_REQUEST['pobox'])) != null) {
+			ll_pobox_update_personal($vdata, $pobox, $personal);
+			ll_pobox_update_months($vdata, $pobox, $_REQUEST['months']);
+		}
+	}
+	$_REQUEST['personal'] = $personal;
 	if ($action === 'Create boxes') {
 		print create_new_box($ldata,$_REQUEST['box']);
 	} else if ($action === 'Really add time to box?' or $action === 'Really remove time from box?') {
@@ -71,7 +103,7 @@ if ($action === 'Create boxes' or $action === 'Really add time to box?' or $acti
 		print update_box_form($ldata,'Change security code');
 	} else if ($form === 'edit') {
 		print update_box_form($ldata,'Update name, email etc.');
-	} else if ($form === 'edit_pobox' or $form === 'Update PO Box') {
+	} else if ($form === 'edit_pobox' or $form === 'Edit PO Box') {
 		print update_pobox_form($ldata,'Update PO Box name, email etc.');
 	} else if ($form === 'Search Boxes' or $form === 'Search Clients') {
 		print find_boxes_form($finddata,ll_find_clients($findvid,$_REQUEST['search']));
