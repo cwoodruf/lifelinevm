@@ -170,12 +170,24 @@ function poboxes($status='all', $box=null, $field='pobox') {
 	return $html;
 }
 
+function poboxform() {
+	$poboxes = poboxes('all');
+	return <<<HTML
+PO Boxes:
+<br>
+$poboxes
+<input type=submit name=form value="Edit PO Box">
+<p>
+<input type=submit name=form value="Print PO Box Reminders">
+HTML;
+}
+
 function main_clients_form($data) {
 	global $ldata, $permcheck, $overdueblock, $vdata;
 
 	$top = form_top($data,false); 
 	$end = form_end($data);
-	$poboxes = poboxes('all');
+	$poboxform = poboxform();
 	if (!$overdueblock and $ldata['months'] >= 0) {
 		$addtime_buttons = <<<HTML
 <p>
@@ -190,12 +202,7 @@ $top
 <p>
 $addtime_buttons
 <br>
-PO Boxes:
-<br>
-$poboxes
-<input type=submit name=form value="Edit PO Box">
-<p>
-<input type=submit name=form value="Print PO Box Reminders">
+$poboxform
 $end
 HTML;
 }
@@ -1566,7 +1573,7 @@ function search_form($data) {
 	if (!$search and $_REQUEST['box']) $search = htmlentities($_REQUEST['box']);
 	if ($permcheck['boxes']) {
 		$boxform = <<<HTML
-<form name=searchform action=$script method=get style="margin-top: 8px">
+<form name="searchform" action="$script?" method="get" style="margin-top: 8px">
 Find Any Box: <input name="box" value="$box" size=5> &nbsp;
 Security Code: <input name="seccode" type="password" size=5> &nbsp;
 <input type=hidden name="vid" value="{$data['vid']}">
@@ -1575,7 +1582,7 @@ Security Code: <input name="seccode" type="password" size=5> &nbsp;
 HTML;
 	}
 	return <<<HTML
-<form name=searchform action=$script method=get>
+<form name=searchform action="$script?" method="get">
 <input name="search" value="$search" size=33 style="margin-left: -5px;">
 <input type=hidden name="vid" value="{$data['vid']}">
 <input type=submit name=form value="Search Boxes">
