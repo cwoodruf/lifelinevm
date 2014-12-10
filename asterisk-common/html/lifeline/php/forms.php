@@ -105,6 +105,12 @@ Return to {$ldata['orig_vendor']}</a>
 HTML;
 		}
 		$logout .= "</nobr>\n";
+		if ($ldata['vid'] == POBOXVID and !is_clients_php()) {
+			$logout .= <<<HTML
+&nbsp;
+<a href="clients.php" target="_blank">Clients page (manage PO Boxes)</a>
+HTML;
+		}
 	}
 	$head = head();
 	if (is_admin_php()) $search_form = search_form($data);
