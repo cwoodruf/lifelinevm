@@ -519,7 +519,7 @@ function ll_find_clients($vend,$search) {
 		if (preg_match('#\S#',$search)) {
 			foreach (array('pobox','box','client_name','name','pobox_name','status',
 					'email','pobox_email','paidto','pobox_paidto') as $field) {
-				$value = $lldb->quote($search);
+				$value = $lldb->quote(trim($search));
 				$wheres[] = "$field $not regexp ($value)";
 			}
 		}
