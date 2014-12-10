@@ -1,8 +1,9 @@
 <?php
 require_once("$lib/asterisk.php");
 require_once("php/lifeline-schema.php");
-$script = $_SERVER['PHP_SELF'];
-$back = "<a href='$script'>Back to admin</a>";
+# this doesn't work if you go from admin.php to clients.php links will be for the wrong page
+# $script = $_SERVER['PHP_SELF'];
+$back = "<a href='$script?'>Back to admin</a>";
 $table = table_header();
 
 function table_header($cp=5,$cs=0,$b=0,$w=450,$style='') {

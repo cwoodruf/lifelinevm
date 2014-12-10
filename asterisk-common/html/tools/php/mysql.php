@@ -705,9 +705,9 @@ function ll_new_box($trans,$vend,$months,$llphone,$min_box,$max_box,$creditcheck
 
 	$qllphone = $lldb->quote($llphone);
 	$query = "replace into boxes (box,seccode,vid,llphone,".
-		        "paidto,login,modified,created,status,trans,canremove) ".
+		        "paidto,login,modified,created,status,trans,canremove,cid) ".
 		"values ('$box',md5('$seccode$salt'),'$vend[vid]',$qllphone,".
-		        "'$paidto','$ldata[login]',now(),now(),'$add','$trans','$months')";
+		        "'$paidto','$ldata[login]',now(),now(),'$add','$trans','$months',null)";
 
 	$result = $lldb->exec($query);
 	if ($result === false) die(ll_err());
