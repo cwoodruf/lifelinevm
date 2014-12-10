@@ -502,20 +502,22 @@ function ll_find_clients($vend,$search) {
 			$not = '';
 			$andor = 'or';
 		}
-		if (preg_match('#pobox\s*(\d*)#i', $search, $m)) {
-			$search = $m[1];
-			if (ll_pobox_ok($search) != null) {
-				$value = $lldb->quote($search);
-				if ($not) {
-					$wheres[] = "pobox <> $value";
-				} else {
-					$wheres[] = "pobox = $value";
-				}
+		if (preg_match('#pobox\s*(\d+)#i', $search, $m)) {
+			$value = $lldb->quote($m[1]);
+			if ($not) {
+				$wheres[] = "pobox <> $value";
 			} else {
-				$wheres[] = "pobox is not null";
+				$wheres[] = "pobox = $value";
 			}
+			$search = preg_replace('#pobox\s*(\d+)#i','',$search);
 		} else {
-			foreach (array('pobox','box','client_name','name','pobox_name',
+			if (preg_match('#pobox#', $search)) {
+				$search = str_replace('pobox','',$search);
+				$where .= "pobox is not null) and (";
+			}
+		}
+		if (preg_match('#\S#',$search)) {
+			foreach (array('pobox','box','client_name','name','pobox_name','status',
 					'email','pobox_email','paidto','pobox_paidto') as $field) {
 				$value = $lldb->quote($search);
 				$wheres[] = "$field $not regexp ($value)";
@@ -1142,7 +1144,6 @@ function ll_has_access($ldata,$odata) {
 
 	$vid = $odata['vid'];
 	if ((int) $vid <= 0) return false;
-
 	$parent = $odata['parent'];
 	if ((int) $parent <= 0) {
 		$vend = ll_vendor($vid);
