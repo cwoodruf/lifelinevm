@@ -1082,8 +1082,13 @@ function ll_save_invoice($idata,$ldata=null) {
 	$lldb = ll_connect();
 	$notes = $lldb->quote($idata['notes']);
 	if (isset($ldata['login'])) $login = ",login=".$lldb->quote($ldata['login']);
-	$query = "update invoices set paidon='{$idata['paidon']}',modified=now(),notes=$notes$login ".
-		"where invoice={$idata['invoice']}";
+	if (isset($idata['paidon'])) {
+		$query = "update invoices set paidon='{$idata['paidon']}',modified=now(),notes=$notes$login ".
+			"where invoice={$idata['invoice']}";
+	} else {
+		$query = "update invoices set modified=now(),notes=$notes$login ".
+			"where invoice={$idata['invoice']}";
+	}
 	$rows = $lldb->exec($query);
 	# db error
 	if ($rows === false) die(ll_err());
