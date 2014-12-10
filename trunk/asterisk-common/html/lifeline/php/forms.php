@@ -76,7 +76,7 @@ function client_search($data) {
 <input type="submit" name="action" value="Search Clients">
 <input type=hidden name="vid" value="{$data['vid']}">
 <br>
-<i>to search for a PO BOX type "pobox"</i>
+<i>to search for a PO BOX type</i> <b>pobox</b> <i>followed by the number</i>
 HTML;
 }
 
@@ -811,7 +811,10 @@ HTML;
 		if (preg_match('#^\d+$#',$box)) $bdata = ll_pobox($box);
 		$paidto = htmlentities(preg_replace('# .*#','',$bdata['paidto']));
 		$status = <<<HTML
-(Paid to <input size="10" id="datepicker" name="personal[paidto]" value="$paidto">)
+&nbsp;&nbsp;
+Paid to <input size="10" id="datepicker" name="personal[paidto]" value="$paidto"
+	 title="click on the field to show a calendar"> 
+ <a href="javascript: void(0);" onclick="$('#datepicker').val(''); return false;">clear</a>
 HTML;
 	}
 
@@ -1821,7 +1824,7 @@ $top
 Thank you for your purchase. <p>
 Click on the link below and print the invoice. <br>
 <b>Net payment due in 30 days</b><p>
-Invoice: <a href=/lifeline/$script?action=invoice&invoice=$invoice target=_blank>$invoice</a>
+Invoice: <a href="$script?action=invoice&invoice=$invoice" target=_blank>$invoice</a>
 $end
 HTML;
 }
@@ -1902,8 +1905,12 @@ function edit_invoice($invoice) {
 		die("you do not have permission to view invoices!");
 
 	$idata = ll_invoice($invoice);
-	if (!ll_has_access($ldata, $idata['vdata'])) 
+/*
+	# see the paidon row below
+	if ($ldata['vid'] == $idata['vdata']['parent']) {
 		die("you do not have permission to edit this invoice!");
+	}
+*/
 	
 	$table = table_header(3,0,0,600);
 	$top = form_top($ldata,true,false); 
@@ -1928,6 +1935,9 @@ $table
 <tr><td>created</td><td>{$idata['created']}</td></tr>
 <tr><td>tax</td><td>{$idata['gst']}</td></tr>
 <tr><td>total</td><td>{$idata['total']}</td></tr>
+HTML;
+	if ($ldata['vid'] == $idata['vdata']['parent']) {
+		$html .= <<<HTML
 <tr><td>paid on</td>
     <td><input id="paidon" name="paidon" value="{$idata['paidon']}" max=10 size=10> 
 	YYYY-MM-DD &nbsp;
@@ -1936,6 +1946,13 @@ $table
 	<a class=support href="javascript:void(0);" 
 	   onclick="topform.paidon.value=''; return false;">clear</a>
 </td></tr>
+HTML;
+	} else {
+		$html .= <<<HTML
+<tr><td>paid on</td><td>{$idata['paidon']} &nbsp;</td></tr>
+HTML;
+	}
+	$html .= <<<HTML
 <tr><td>notes</td><td><input name="notes" value="{$idata['notes']}" size=40></td></tr>
 <tr><td><input type=reset value="reset"></td>
     <td align=right><input type=submit name=form value="Save invoice"></td></tr>
