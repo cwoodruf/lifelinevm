@@ -6,7 +6,10 @@ if ($_REQUEST['hash']) {
 $ldata = login_response('redirect.php',$_SERVER['PHP_SELF'],'ll_pw_data');
 # only do this check for me as jobwave surrey is getting errors
 
-if ($ldata['app'] != $_SERVER['PHP_SELF']) die("you are already logged in to {$ldata['app']}!");
+# allow people to log in to other pages in the same subdirectory
+if (substr($ldata['app'],0,9) != substr($_SERVER['PHP_SELF'],0,9)) 
+	die("you are already logged in to {$ldata['app']}!");
+
 $vdata = ll_vendor($ldata['vid']);
 
 # temporarily become another vendor

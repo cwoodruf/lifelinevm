@@ -48,9 +48,9 @@ JS;
 <title>Voicemail Admin: $title</title>
 
 <!-- from http://jqueryui.com/datepicker/ -->
-<link rel="stylesheet" href="//code.jquery.com/ui/1.11.2/themes/smoothness/jquery-ui.css">
-<script src="//code.jquery.com/jquery-1.10.2.js"></script>
-<script src="//code.jquery.com/ui/1.11.2/jquery-ui.js"></script>
+<link rel="stylesheet" href="code.jquery.com/ui/1.11.2/themes/smoothness/jquery-ui.css">
+<script src="code.jquery.com/jquery-1.10.2.js"></script>
+<script src="code.jquery.com/ui/1.11.2/jquery-ui.js"></script>
 <script> $(function() { $( "#datepicker" ).datepicker({dateFormat:"yy-mm-dd"}); }); </script>
 
 <link rel=stylesheet type=text/css href=/lifeline/css/admin.css>
@@ -76,7 +76,7 @@ function client_search($data) {
 <input type="submit" name="action" value="Search Clients">
 <input type=hidden name="vid" value="{$data['vid']}">
 <br>
-<i>to search for a PO BOX type</i> <b>pobox</b> <i>followed by the number</i>
+<i>to search for a PO BOX type</i> <b>pobox</b>
 HTML;
 }
 
