@@ -2,7 +2,7 @@
 
 # note that some of these global values are used by the 
 # html/tools/php/mysql.php and html/tools/php/pw/auth.php shared libraries
-
+define('POBOXVID', 6979);
 define('MININVOICE',1000);
 define('MAXINVOICE',4999);
 # vendor id for setting rate etc for a vendor
