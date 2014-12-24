@@ -1,5 +1,6 @@
 <?php
 
+define('SITENAME','Lifeline');
 # note that some of these global values are used by the 
 # html/tools/php/mysql.php and html/tools/php/pw/auth.php shared libraries
 define('POBOXVID', 6979);
@@ -87,3 +88,4 @@ if (file_exists("/usr/local/asterisk/agi-bin/Lifeline/database")) {
 	eval(file_get_contents("/usr/local/asterisk/var/lib/asterisk/agi-bin/Lifeline/database"));
 }
 $ll_dbname = 'lifeline';
+define('EDITPAIDTO',false);
