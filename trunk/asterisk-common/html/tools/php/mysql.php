@@ -708,7 +708,6 @@ function ll_new_box($trans,$vend,$months,$llphone,$min_box,$max_box,$creditcheck
 		        "paidto,login,modified,created,status,trans,canremove,cid) ".
 		"values ('$box',md5('$seccode$salt'),'$vend[vid]',$qllphone,".
 		        "'$paidto','$ldata[login]',now(),now(),'$add','$trans','$months',null)";
-
 	$result = $lldb->exec($query);
 	if ($result === false) die(ll_err());
 
@@ -954,8 +953,9 @@ function ll_update_personal($vend,$box,$personal,$source='boxes') {
 	global $personal_fields;
 	$bdata = ll_load_from_table($source,'box',$box,false);
 
-	if ($source == 'boxes') unset($personal_fields['paidto']);
-	else if ($source == 'poboxes') {
+	if ($source == 'boxes' and !EDITPAIDTO) {
+		unset($personal_fields['paidto']);
+	} else if ($source == 'poboxes') {
 		unset($personal_fields['llphone']);
 	}
 
