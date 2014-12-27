@@ -7,7 +7,8 @@ my $paidto_cutoff = shift;
 my $callerid = shift;
 if ($ll->valid) {
 	my $mustmatch = $ll->get('mustmatch');
-	if (defined $mustmatch and $ll->{llphone} ne $mustmatch) {
+	my $matched = $ll->get('matched');
+	if (!$matched and defined $mustmatch and $ll->{llphone} ne $mustmatch) {
 		$ll->log_calls('ll-valid.pl','disabled',$callerid);
 
 	} elsif ($ll->check_paidto($paidto_cutoff)) {
