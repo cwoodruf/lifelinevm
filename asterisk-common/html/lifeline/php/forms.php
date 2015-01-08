@@ -87,7 +87,6 @@ function form_top($data,$show_goback=true,$show_status=true,$method='get',$formj
 	global $form;
 	$login = $data['login'];
 	$vendor = $data['vendor'];
-	$app = $data['app'];
 	$time = date('r',$data['time']);
 	$vend = ll_vendor($data['vid']);
 	if ($show_status) $status = vend_status_str($vend);
@@ -890,7 +889,7 @@ HTML;
 function mk_personal_input($bdata=array(),$vend=null,$source='boxes') {
 	global $ldata,$table,$phone,$ll_host;
 	if (!is_array($vend) and $bdata['vid']) $vend = ll_vendor($bdata['vid']);
-	if (empty($bdata['notes'])) $bdata['notes'] = $vend['vendor'].' '.$vend['paycode'];
+	# if (empty($bdata['notes'])) $bdata['notes'] = $vend['vendor'].' '.$vend['paycode'];
 	$myphone = $bdata['llphone'];
 	if (empty($myphone)) $myphone = $vend['llphone'];
 	if (empty($myphone)) $myphone = $phone;
@@ -1615,7 +1614,7 @@ function view_boxes_form($data,$boxes=null) {
 	}
 	if ($permcheck['boxes']) $div = "&nbsp;-&nbsp;";
 	else $div = ' &nbsp;&nbsp; ';
-	$baseurl = "<a href=\"".$data['app'];
+	$baseurl = "<a href=\"$script";
 	$url = "$baseurl?box=";
 	$numboxes = count($boxes);
 	if ($numboxes <> 1) $s = 's';
