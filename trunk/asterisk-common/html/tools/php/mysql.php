@@ -953,13 +953,11 @@ function ll_update_personal($vend,$box,$personal,$source='boxes') {
 	global $personal_fields;
 	$bdata = ll_load_from_table($source,'box',$box,false);
 
-	if ($source == 'boxes' and !EDITPAIDTO) {
-		unset($personal_fields['paidto']);
-	} else if ($source == 'poboxes') {
-		unset($personal_fields['llphone']);
-	}
+	if (function_exists('ll_update_personal_cb')) 
+		$pfields = ll_update_personal_cb($source, $personal_fields);
+	else $pfields = $personal_fields;
 
-	foreach ($personal_fields as $field => $title) {
+	foreach ($pfields as $field => $title) {
 		if (isset($personal[$field])) {
 			$sdata[$field] = $personal[$field];
 		}

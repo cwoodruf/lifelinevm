@@ -88,4 +88,12 @@ if (file_exists("/usr/local/asterisk/agi-bin/Lifeline/database")) {
 	eval(file_get_contents("/usr/local/asterisk/var/lib/asterisk/agi-bin/Lifeline/database"));
 }
 $ll_dbname = 'lifeline';
-define('EDITPAIDTO',false);
+
+function ll_update_personal_cb($source, $personal_fields) {
+	if ($source == 'boxes') {
+		unset($personal_fields['paidto']);
+	} else if ($source == 'poboxes') {
+		unset($personal_fields['llphone']);
+	}
+	return $personal_fields;
+}
