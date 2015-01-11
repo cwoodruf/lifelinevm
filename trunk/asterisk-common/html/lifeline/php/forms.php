@@ -6,7 +6,7 @@ require_once("php/lifeline-schema.php");
 $back = "<a href='$script?'>Back to admin</a>";
 $table = table_header();
 
-function table_header($cp=5,$cs=0,$b=0,$w=450,$style='') {
+function table_header($cp=5,$cs=0,$b=0,$w=850,$style='') {
 	return "<table cellpadding=$cp cellspacing=$cs border=$b width=$w $style>";
 }
 
@@ -214,13 +214,17 @@ HTML;
 
 function pobox_reminders_form($data) {
 
-	if (preg_match('#^\d\d\d\d-\d\d-\d\d$#', $_REQUEST['date'])) 
-		$date = $_REQUEST['date'];
-	else $date = date('Y-m-d');
+	if (preg_match('#^\d+$#', $_REQUEST['pobox'])) {
+		$poboxes[] = ll_pobox($_REQUEST['pobox']);
+	} else {
+		if (preg_match('#^\d\d\d\d-\d\d-\d\d$#', $_REQUEST['date'])) 
+			$date = $_REQUEST['date'];
+		else $date = date('Y-m-d');
+		$poboxes = ll_poboxes('recent_first',$date);
+	}
 	if (preg_match('#^\d+$#', $_REQUEST['break'])) $break = $_REQUEST['break'];
 	else $break = 5;
 
-	$poboxes = ll_poboxes('recent_first',$date);
 	$html = <<<HTML
 <html>
 <head>
@@ -827,7 +831,8 @@ HTML;
 &nbsp;&nbsp;
 Paid to <input size="10" id="datepicker" name="personal[paidto]" value="$paidto"
 	 title="click on the field to show a calendar"> 
- <a href="javascript: void(0);" onclick="$('#datepicker').val(''); return false;">clear</a>
+ <a href="javascript: void(0);" onclick="$('#datepicker').val(''); return false;">clear</a> &nbsp;
+ <a href="?action=Print+PO+Box+Reminders&pobox=$box">print reminder</a>
 HTML;
 	}
 
@@ -1475,7 +1480,14 @@ HTML;
 	} else if ($source == 'poboxes') {
 		$bdata = ll_pobox($box);
 		$boxrow = <<<HTML
-<tr><td><b>PO Box:</b></td><td><a href="$script?form=Search Clients&search=pobox+$box">po box $box</a></td></tr>
+<tr>
+<td><b>PO Box:</b></td>
+<td>
+<a href="$script?form=Search Clients&search=pobox+$box">po box $box</a> 
+&nbsp;
+<a href="?action=Print+PO+Box+Reminders&pobox=$box">print reminder</a>
+</td>
+</tr>
 HTML;
 	}
 	return <<<HTML
@@ -1670,8 +1682,10 @@ HTML;
 			if ($edit) $slash = "/";
 			else $slash = " &nbsp; ";
 			$pob = $row['pobox'];
-			$edit_pobox = "$slash $baseurl?pobox=$pob&search=pobox+$pob".
-					"&form=edit_pobox\">edit</a> po box";
+			$edit_pobox = <<<HTML
+$slash po box $baseurl?pobox=$pob&search=pobox+$pob&form=edit_pobox">edit</a>
+&nbsp; $baseurl?pobox=$pob&action=Print+PO+Box+Reminders" title="print reminder for po box $pob">reminder</a>
+HTML;
 		} else {
 			$edit_pobox = "";
 		}
