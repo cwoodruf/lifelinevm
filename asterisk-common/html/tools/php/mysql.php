@@ -429,9 +429,9 @@ function ll_poboxes($status='all',$date=null) {
 	if ($status == 'deleted_first')  { 
 		$order = " order by paidto, box+0";
 	} else if ($status == 'recent_first') {
-		if (preg_match('#^\d\d\d\d-\d\d-\d\d$#', $date)) 
-			$where = " where paidto <= '$date' ";
-		$order = " order by box+0";
+		if (!preg_match('#^\d\d\d\d-\d\d-\d\d$#', $date)) $date = date('Y-m-d');
+		$where = " where paidto <= '$date' ";
+		$order = " order by paidto desc, box+0";
 	}
 
 	return ll_load_from_table('poboxes',null,null,true," $where $order");
@@ -511,8 +511,8 @@ function ll_find_clients($vend,$search) {
 			}
 			$search = preg_replace('#pobox\s*(\d+)#i','',$search);
 		} else {
-			if (preg_match('#pobox#', $search)) {
-				$search = str_replace('pobox','',$search);
+			if (preg_match('#poboxe?s?#', $search)) {
+				$search = preg_replace('#pobox\w*#','',$search);
 				$where .= "pobox is not null) and (";
 			}
 		}
@@ -523,6 +523,7 @@ function ll_find_clients($vend,$search) {
 				$wheres[] = "$field $not regexp ($value)";
 			}
 		}
+		if (!is_array($wheres)) $wheres = array('1=1');
 		$where .= implode(" $andor ",$wheres);
 	}
 	$where .= ") order by pobox+0,box+0";
