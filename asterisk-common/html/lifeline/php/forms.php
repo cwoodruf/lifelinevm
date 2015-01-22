@@ -879,7 +879,7 @@ $top
 <input type=hidden name=trans value="$trans">
 <input type=hidden name=nextsubmit value="$nextsubmit">
 <input type=hidden name=remove value="$remove">
-<div style="width: 740px; background: cornsilk; border: 1px black solid; padding: 3px;">
+<div style="width: 860px; background: cornsilk; border: 1px black solid; padding: 3px;">
 Box: <input $is_hidden name=box size=7 value="$box"><b>$box</b> $status &nbsp;&nbsp;
 $seccode_input
 $month_input
