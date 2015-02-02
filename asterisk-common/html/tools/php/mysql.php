@@ -1127,6 +1127,13 @@ function ll_parentpat($vid) {
 	return "(^|:)$vid(:|$)";
 }
 
+function ll_ischild($vdata,$vid) {
+	$pat = ll_parentpat($vdata['vid']);
+	$testv = ll_vendor($vid);
+	$parents = $testv['parent'].':'.$testv['vid'];
+	return preg_match("#$pat#", $parents);
+}
+
 function ll_isparent($vid,$bdata) {
 	if (!is_array($bdata)) 
 		$bdata = ll_box($bdata);
