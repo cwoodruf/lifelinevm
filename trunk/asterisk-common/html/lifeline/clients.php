@@ -14,7 +14,16 @@ if (function_exists('gettweets')) $newsdiv = gettweets();
 $action = $_REQUEST['action'];
 if ($action === 'logout') delete_login();
 
-require_once("php/ldata.php");
+# check credentials and, if we are a parent, downgrade
+require("php/ldata.php");
+if (!ll_ischild($vdata,POBOXVID)) {
+	delete_login();
+	require("php/ldata.php");
+} else if ($ldata['vid'] != POBOXVID) {
+	$vdata = ll_vendor(POBOXVID);
+	$ldata['vid'] = POBOXVID;
+}
+
 require_once("php/forms.php");
 
 if ($action === 'Create boxes' or $action === 'Really add time to box?' or $action === 'Really remove time from box?') {
