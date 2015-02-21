@@ -502,7 +502,7 @@ function ll_find_clients($vend,$search) {
 			$not = '';
 			$andor = 'or';
 		}
-		if (preg_match('#pobox\s*(\d+)#i', $search, $m)) {
+		if (preg_match('#pobox\s*(\d+)$#i', $search, $m)) {
 			$value = $lldb->quote($m[1]);
 			if ($not) {
 				$wheres[] = "pobox <> $value";
@@ -527,6 +527,7 @@ function ll_find_clients($vend,$search) {
 		$where .= implode(" $andor ",$wheres);
 	}
 	$where .= ") order by pobox+0,box+0";
+print "$where<br>\n";
 	return ll_load_from_table('ourclients',null,null,true,$where);
 }
 
