@@ -527,7 +527,6 @@ function ll_find_clients($vend,$search) {
 		$where .= implode(" $andor ",$wheres);
 	}
 	$where .= ") order by pobox+0,box+0";
-print "$where<br>\n";
 	return ll_load_from_table('ourclients',null,null,true,$where);
 }
 
