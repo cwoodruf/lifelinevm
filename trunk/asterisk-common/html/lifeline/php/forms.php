@@ -388,7 +388,7 @@ function vend_status_str($vend) {
 	} else if ($vend['months'] == 0) {
 		$months = "no";
 		if ($permcheck['invoices'] and $vend['acctype'] == 'purchase') {
-			$purchaselink = "<a href=\"$script?form=Purchase time\">Purchase time.</a>";
+			$purchaselink = "<a href=\"admin.php?form=Purchase time\">Purchase time.</a>";
 		}
 		
 	} else {
