@@ -114,7 +114,7 @@ HTML;
 	$head = head();
 	if (is_admin_php()) $search_form = search_form($data);
 	else if (is_clients_php()) $search_form = form_wrap(client_search($data));
-	if (!is_clients_php()) $docs = "<a href=\"docs\">Documentation</a>";
+	$docs = "<a href=\"docs\">Documentation</a>";
 	return <<<HTML
 $head
 <center>
