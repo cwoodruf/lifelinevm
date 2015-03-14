@@ -1,0 +1,1 @@
+This project is a repository for legacy dialogic and asterisk versions of lifeline. Lifeline is intended to be a software backbone for low cost voice mail systems used by homeless and at risk individuals.
