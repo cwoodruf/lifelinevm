@@ -184,6 +184,10 @@ $poboxes
 <input type=submit name=form value="Edit PO Box">
 <p>
 <input type=submit name=form value="Print PO Box Reminders">
+<p>
+<input type=submit name=form value="Print PO Box Spreadsheet">
+<p>
+<input type=submit name=form value="Print Voicemail Spreadsheet">
 HTML;
 }
 
@@ -210,6 +214,34 @@ $addtime_buttons
 $poboxform
 $end
 HTML;
+}
+
+function pobox_csv_form($data) {
+	return _csv_form($data, 'poboxes');
+}
+
+function vmbox_csv_form($data) {
+	return _csv_form($data, 'boxes');
+}
+
+function _csv_form($data, $table) {
+	if ($table == 'poboxes') {
+		$boxes = ll_poboxes('all','0000-00-00');
+		$file = "poboxes.csv";
+	} else if ($table == 'boxes') {
+		$boxes = ll_boxes($data,($showkids=false),'not_deleted',"order by box");
+		$file = "voicemail.csv";
+	}
+	$csv = "box,client id,paidto,name,email,status,notes\n";
+	foreach ($boxes as $bdata) {
+		$csv .= "{$bdata['box']},{$bdata['cid']},".
+			"{$bdata['paidto']},{$bdata['name']},{$bdata['email']},".
+			"{$bdata['status']},{$bdata['notes']}\n";
+	}
+	header("Content-Disposition: attachment; filename=$file");
+	header("Content-Length: " . strlen($csv));
+	header("Content-Type: text/csv;");
+	print $csv;
 }
 
 function pobox_reminders_form($data) {
@@ -549,6 +581,7 @@ function create_new_box($data,$box=null) {
 	$trans = ll_valid_trans($_REQUEST['trans']);
 	ll_delete_trans($vend,$trans,'new');
 
+	$boxes = 1;
 	if (isset($box)) {
 		if (!preg_match('#^\d+$#', $box)) die("invalid box entered!");
 
@@ -605,6 +638,7 @@ function create_new_box($data,$box=null) {
 		$bdata['amount'] = $amount;
 		$boxlist[] = $bdata;
 	}
+	$_REQUEST['boxlist'] = $boxlist;
 	return show_boxes($data,$boxlist);
 }
 

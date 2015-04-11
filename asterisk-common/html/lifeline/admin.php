@@ -155,9 +155,13 @@ if ($_REQUEST['listen']) {
 	header("location: make.php?from=admin");
 } else if ($action === 'Create boxes') {
 	print create_new_box($ldata);
+	# this must happen after as create_new_box makes the boxlist
+	if ($ldata['vid'] == POBOXVID) ll_sync_clients($_REQUEST['boxlist']);
 } else if ($action === 'Create box') {
+	if ($ldata['vid'] == POBOXVID) ll_sync_client();
 	print create_new_box($ldata,$_REQUEST['box']);
 } else if ($action === 'Really add time to box?' or $action === 'Really remove time from box?') {
+	if ($ldata['vid'] == POBOXVID) ll_sync_client();
 	print update_box_time($ldata);
 } else if ($action === 'Delete box') {
 	print confirm_delete_form($ldata);
