@@ -13,3 +13,5 @@ echo start rsync `/bin/date`
 # /usr/local/asterisk/bin/cleanup.pl -v
 # echo updating the svn repository
 # /usr/bin/svn update /home/asterisk/svn/lifelinevm
+echo updating the git repository
+cd /home/asterisk/git/lifelinevm && /usr/bin/git pull
