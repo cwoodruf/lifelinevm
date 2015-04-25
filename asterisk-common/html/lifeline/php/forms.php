@@ -561,14 +561,16 @@ function payment_form($box,$defpayment=0.0) {
 	$notes = htmlentities($payment['notes']);
 
 	if ($box) $forbox = "for $box";
+	if (is_clients_php()) $help = "VM box/PO box/Both";
+	else $help = "";
 
 	return <<<HTML
 <h4>Payment info $forbox (leave as is if not needed)</h4>
 <table cellpadding=5 cellspacing=0 border=0>
-<tr><td>Paid On</td><td><input size=20 name="payment[paidon]" value="$now"></td></tr>
+<tr><td>Paid On</td><td>$now<input type=hidden size=20 name="payment[paidon]" value="$now"></td></tr>
 <tr><td>Amount Paid</td>
 <td>
-<input size=10 id=payment_amount name="payment[amount]" value="$amount"></td></tr>
+<input size=10 id=payment_amount name="payment[amount]" value="$amount"> $help </td></tr>
 <tr><td>Notes</td><td><input size=40 name="payment[notes]" value="$notes"></td></tr>
 </table>
 
