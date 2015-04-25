@@ -556,7 +556,7 @@ function payment_form($box,$defpayment=0.0) {
 	if (!preg_match('#^\d{4}-\d{2}-\d{2}#',$now)) $now = date('Y-m-d H:i:s');
 
 	$amount = $payment['amount'];
-	if (!is_numeric($amount)) $amount = sprintf('%.2f', $defpayment);
+	if (!is_numeric($amount)) $amount = $defpayment;
 
 	$notes = htmlentities($payment['notes']);
 
@@ -1390,7 +1390,7 @@ HTML;
 function defpayment($vend,$months) {
 	if (empty($vend['retail_prices'])) return 0.0;
 	if (preg_match("#(?:^|;)$months=([^;]+)#",$vend['retail_prices'],$m)) {
-		return sprintf('%.2f', $m[1]);
+		return $m[1];
 	}
 	return 0.0;
 }
