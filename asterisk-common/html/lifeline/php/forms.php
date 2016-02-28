@@ -963,8 +963,11 @@ function mk_personal_input($bdata=array(),$vend=null,$source='boxes') {
 		} else {
 			$phlen = strlen($myphone)+1;
 			# because of the 877 number don't let people change the phone
-			# $phonesel = "<input name=\"personal[llphone]\" value=\"$myphone\" size=\"$phlen\">";
-			$phonesel = $myphone;
+			# $phonesel = $myphone;
+			$phonesel = <<<HTML
+<input name="personal[llphone]" type="hidden" value="$myphone">
+$myphone 
+HTML;
 		}
 		$phonerow = <<<HTML
 <tr><td><nobr>VM Phone:</nobr></td><td>$phonesel (incoming voicemail number)</td></tr>
