@@ -197,7 +197,7 @@ function main_clients_form($data) {
 	$top = form_top($data,false); 
 	$end = form_end($data);
 	$poboxform = poboxform();
-	if (!$overdueblock and $ldata['months'] >= 0) {
+	if ($ldata['rate'] <= 0 or (!$overdueblock and $ldata['months'] >= 0)) {
 		$addtime_buttons = <<<HTML
 <p>
 Voicemail:
@@ -327,7 +327,7 @@ function main_form($data) {
 				$remaining = "You can purchase $credit month$s more voicemail.";
 			}
 		}
-		if ($vend['acctype'] == 'purchase') {
+		if ($vend['rate'] > 0 and $vend['acctype'] == 'purchase') {
 			if ($credit >= $min_purchase and count($overdue) == 0) {
 				$purchase = <<<HTML
 <input type=submit name=form value="Purchase time">
@@ -348,7 +348,7 @@ $remaining
 HTML;
 			}
 		}
-		if (($outstanding = list_invoices($vdata,false,false)) === false) {
+		if ($vend['rate'] > 0 and ($outstanding = list_invoices($vdata,false,false)) === false) {
 			$purchase .= <<<HTML
 <input type=submit name=form value="Show all invoices"> 
 <p>
@@ -381,7 +381,7 @@ To: <input name=to value="$now" size=10>
 <p>
 HTML;
 	}
-	if (!$overdueblock and $ldata['months'] > 0) {
+	if ($ldata['rate'] <= 0 or (!$overdueblock and $ldata['months'] > 0)) {
 		$addtime_buttons = <<<HTML
 <input type=submit name=form value="Create a new voicemail box"> <p>
 <input type=submit name=form value="Add time to an existing box"> <p>
@@ -408,6 +408,12 @@ HTML;
 
 function vend_status_str($vend) {
 	global $min_purchase, $permcheck, $overdue, $overdueblock, $script;
+
+	if ($vend['rate'] <= 0) {
+		$boxcount = ll_boxcount($vend);
+		return "{$vend['vendor']} ($boxcount boxes out of {$vend['box_limit']})";
+	}
+
 	if ($overdueblock) {
 		return "<b>You must pay overdue invoices before you can create new voice mail boxes.</b>";
 	}
@@ -449,11 +455,23 @@ if (boxes.value > 1)
 else return confirm('Create voice mail box? Action cannot be undone.');
 "
 JS;
+        $max = MAXBOXES;
+	if ($vend['rate'] <= 0) 
+	{
+		$boxcount = ll_boxcount($vend);
+		$boxesleft = $vend['box_limit'] - $boxcount;
+		if ($boxesleft <= 0) {
+			return "<h3>You have exceeded your box limit of {$vend['box_limit']}</h3>";
+		}
+		if ($max > $boxesleft) $max = $boxesleft;
+	}
+
 	# if this is a redirect from the old gc.pl file we'll have some paycode data
 	$pc = ll_paycodeinfo($_REQUEST['paycode']);
-	$max = MAXBOXES;
-	if (MAXMONTHS > $vend['months']) $maxmonths = $vend['months'];
+
+	if ($vend['rate'] > 0 and MAXMONTHS > $vend['months']) $maxmonths = $vend['months'];
 	else $maxmonths = MAXMONTHS;
+
 	if (is_array($pc)) {
 		$months = $pc['months'];
 		$vend['paycode'] = $_REQUEST['paycode'];
@@ -601,7 +619,10 @@ function create_new_box($data,$box=null) {
 	if ($months > MAXMONTHS) die("please select a smaller number of months than ".MAXMONTHS);
 
 	$totalmonths = $months * $boxes;
-	if ($vend['months'] < $totalmonths) die("you only have {$vend['months']} months available!");
+	if ($vend['rate'] > 0 and $vend['months'] < $totalmonths) 
+	{
+		die("you only have {$vend['months']} months available!");
+	}
 	$netmonths = $vend['months'];
 	$vid = $ldata['vid'];
 
@@ -618,9 +639,11 @@ function create_new_box($data,$box=null) {
 		$amount = ll_update_payment($box,$vid,$ldata['login'],$months,$_REQUEST['payment']);
 		ll_update_personal($vend,$box,$_REQUEST['personal']);
 
-		$netmonths -= $months;
-		ll_save_to_table('update','vendors',array('months' => $netmonths),'vid',$vid);
-
+		if ($vend['rate'] > 0)
+		{
+			$netmonths -= $months;
+			ll_save_to_table('update','vendors',array('months' => $netmonths),'vid',$vid);
+		}
 		return new_box_instructions($data,$box,$seccode,$amount,$_REQUEST['personal']);
 	}
 	$boxlist = array();
@@ -901,7 +924,9 @@ HTML;
 			$months = 1;
 			$submittype = 'form';
 			$nextsubmit = 'Really add time to box?';
-			if ($vend['months'] > 0) {
+			if ($vend['rate'] <= 0) {
+				$maxmonths = MAXMONTHS;
+			} else if ($vend['months'] > 0) {
 				if ($vend['months'] < MAXMONTHS) $maxmonths = $vend['months'];
 				else $maxmonths = MAXMONTHS;
 			}

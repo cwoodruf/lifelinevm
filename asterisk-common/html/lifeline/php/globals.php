@@ -22,6 +22,8 @@ define("INVOICEBLOCKED", INVOICEOVERDUE + 30);
 define("LOGINOUTPUTLIMIT",100);
 # for detecting WCG problems
 define("WCGINT",6969);
+# for Lookout set a special rate so they can have as many boxes as they want
+define('UNLIMITEDMONTHS', 0);
 
 # default phone number if the vendor doesn't have a phone associated with them
 define("DEFPHONE","604 248-4930");

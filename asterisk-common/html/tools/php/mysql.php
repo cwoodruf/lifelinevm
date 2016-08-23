@@ -629,7 +629,7 @@ function ll_check_months($vend,$months) {
 			$vend = ll_vendor($vend['vid']);
 		}
 	}
-	if ($vend['months'] < $months) 
+	if ($vend['rate'] > 0 and $vend['months'] < $months) 
 		die("Vendor ".$vend['vendor']." only has ".$vend['months']." month(s) available!");
 	return $months;
 }
@@ -749,6 +749,7 @@ function ll_log($vend,$cdata) {
 function ll_new_box($trans,$vend,$months,$llphone,$min_box,$max_box,$creditcheck='ll_check_months') {
 	global $ldata, $salt;
 
+	# new build of php doesn't have this function ?
 	$vmnewboxsem = sem_get(6823269);
 	if ($vmnewboxsem) sem_acquire($vmnewboxsem);
 	else print "ERROR: can't get semaphore $vmnewboxsem for ll_new_box<br>\n";
@@ -764,7 +765,15 @@ function ll_new_box($trans,$vend,$months,$llphone,$min_box,$max_box,$creditcheck
 	} else {
 		die("no / invalid credit check function!");
 	}
-	$vdata['months'] = $vend['months'] - $months;
+	if ($vend['rate'] > 0) {
+		$vdata['months'] = $vend['months'] - $months;
+	} else {
+		$boxcount = ll_boxcount($vend);
+		$boxesleft = $vend['box_limit'] - $boxcount;
+		if ($boxesleft <= 0) 
+			die("{$vend['vendor']} does not have enough available boxes to create a new box");
+		$vdata['months'] = $vend['months'];
+	}	
 	$lldb = ll_connect();
 
 	# we can activate specific boxes only if they are not in use
@@ -890,9 +899,11 @@ function ll_add_time($vend,$box,$months) {
 	if (ll_save_to_table('update','boxes',$udata,'box',$box)) {
 		ll_log($vend, array('oldpaidto'=>$bdata['paidto'],'newpaidto'=>$udata['paidto'],
 				'box'=>$box,'months'=>$months,'action'=>'add_time','login'=>$ldata['login']));
-		$vdata['months'] = $vend['months'] - $months;
-		if (ll_save_to_table('update','vendors',$vdata,'vid',$vend['vid'])) 
-			return $udata['paidto'];
+		if ($vend['rate'] > 0) {
+			$vdata['months'] = $vend['months'] - $months;
+			if (ll_save_to_table('update','vendors',$vdata,'vid',$vend['vid'])) 
+				return $udata['paidto'];
+		}
 	}
 }
 
@@ -1041,6 +1052,11 @@ function ll_update_personal($vend,$box,$personal,$source='boxes') {
 			$sdata[$field] = $personal[$field];
 		}
 	}
+	# try and avoid overwriting the phone number for 877 clients
+	if ($source == 'boxes' and empty($sdata['llphone'])) {
+		$sdata['llphone'] = $bdata['llphone'];
+	}
+	# if we really can't find phone use vendor's default phone
 	if ($source == 'boxes' and empty($sdata['llphone'])) {
 		$sdata['llphone'] = $vend['llphone'];
 	}
@@ -1468,7 +1484,26 @@ function ll_load_from_table($table,$name,$key='',$return_all=true,$query_end='',
 	return $data;
 }
 
+function ll_blacklist($ip=null) {
+	if ($ip == null) $ip = $_SERVER['REMOTE_ADDR'];
+	$lldb = ll_connect();
+	# the ipblacklist table is maintained by hand at the moment
+	$query = "select * from lifeline.ipblacklist where ip=".$lldb->quote($ip);
+	$st = $lldb->query($query);
+	if ($st === false) {
+		die(ll_err($query));
+	} else {
+		$row = $st->fetch();
+		$st->closeCursor();
+		return $row;
+	}
+	return false;
+}
+
 function ll_pw_data($login) {
+	# got our first proper hacker last month
+	if (ll_blacklist() !== false) return false;
+
         $lldb = ll_connect();
 	$query = "select users.vid,password,vendor,perms,users.notes from users,vendors ".
                 "where users.vid=vendors.vid and vendors.status not in ('deleted') and vendors.vid <> 0 ".
