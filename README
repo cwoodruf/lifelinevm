@@ -9,6 +9,10 @@ both of them depend on mysql being installed. Example install command (run as ro
 
 aptitude install apache2 mysql-client mysql-server libdbd-mysql-perl php5 php5-cli php5-mysql libncurses-dev ncurses-dev
 
+or for centos 7
+
+yum install ncurses ncurses-devel php php-cli php-pdo mariadb perl-DBD-mysql
+
 (the ncurses packages seem to be required for asterisk to build)
 
 See the asterisk-common/README and telephony/README for details on installing the asterisk
