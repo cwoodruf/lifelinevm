@@ -149,7 +149,7 @@ HTML;
 
 	if (preg_match('#logins#',$data['perms'])) 
 		$users = '<input type=submit name=action value="Manage account and users"><p>';
-		if ($data['vid'] == $data['parent']) {
+		if ($data['vid'] == ROOTVID) {
 			$users .= '<input type=submit name=action value="Recent logins"><p>';
 		}
 		$users .= '<p>';

@@ -409,7 +409,7 @@ HTML;
 function vend_status_str($vend) {
 	global $min_purchase, $permcheck, $overdue, $overdueblock, $script;
 
-	if ($vend['rate'] <= 0) {
+	if ($vend['rate'] <= 0 and $vend['acctype'] == 'purchase') {
 		$boxcount = ll_boxcount($vend);
 		return "{$vend['vendor']} ($boxcount boxes out of {$vend['box_limit']})";
 	}

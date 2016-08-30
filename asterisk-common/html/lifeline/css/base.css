@@ -19,6 +19,24 @@ table {
 	background: white;
 }
 
+.noformat {
+	border: none;
+	background: none;
+}
+
 a { 
 	color: #228B22 
+}
+
+.inactivelink {
+	color: gray;
+}
+
+div.news {
+	width: 500px;
+	border: 1px black solid;
+}
+
+li.news {
+	padding-bottom: 10px;
 }

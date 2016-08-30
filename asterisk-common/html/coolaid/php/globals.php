@@ -1,7 +1,8 @@
 <?php
 
 # coolaid specific
-$sitename = 'Coolaid';
+define('SITENAME','Coolaid');
+$sitename = SITENAME;
 $sitecolor = '#F8F8F8';
 define('DEFBOXLIMIT',200);
 define('MININVOICE',8000);
@@ -103,4 +104,4 @@ $personal_fields = array(
         'notes' => 'Notes',
         'llphone' => 'Phone',
 );
-
+define("EDITPAIDTO",true);

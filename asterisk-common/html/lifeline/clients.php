@@ -2,7 +2,7 @@
 # like admin.php but with reduced functionality
 # changes behaviour of forms such that pobox info is included
 ini_set('display_errors',true);
-error_reporting(E_ALL & ~E_STRICT & ~E_NOTICE);
+error_reporting(E_ALL & ~E_STRICT & ~E_NOTICE & ~E_DEPRECATED);
 
 require_once("php/globals.php");
 $sitecolor = 'white';
