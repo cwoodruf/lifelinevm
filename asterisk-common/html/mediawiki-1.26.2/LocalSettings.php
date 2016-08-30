@@ -53,10 +53,10 @@ $wgEmailAuthentication = true;
 
 ## Database settings
 $wgDBtype = "mysql";
-$wgDBserver = $_SERVER['WMDBSERVER'];
-$wgDBname = $_SERVER['WMDB'];
-$wgDBuser = $_SERVER['WMDBUSER'];
-$wgDBpassword = $_SERVER['WMDBPW'];
+$wgDBserver = $_SERVER['COOLWMDBSERVER'];
+$wgDBname = $_SERVER['COOLWMDB'];
+$wgDBuser = $_SERVER['COOLWMDBUSER'];
+$wgDBpassword = $_SERVER['COOLWMDBPW'];
 
 # MySQL specific settings
 $wgDBprefix = "";
@@ -99,11 +99,11 @@ $wgShellLocale = "en_US.utf8";
 # Site language code, should be one of the list in ./languages/Names.php
 $wgLanguageCode = "en";
 
-$wgSecretKey = $_SERVER['WGSECRET'];
+$wgSecretKey = $_SERVER['COOLWGSECRET'];
 
 # Site upgrade key. Must be set to a string (default provided) to turn on the
 # web installer while LocalSettings.php is in place
-$wgUpgradeKey = $_SERVER['WGUPGRADE'];
+$wgUpgradeKey = $_SERVER['COOLWGUPGRADE'];
 
 ## For attaching licensing metadata to pages, and displaying an
 ## appropriate copyright notice / icon. GNU Free Documentation
