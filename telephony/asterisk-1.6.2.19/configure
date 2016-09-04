@@ -10954,6 +10954,8 @@ if test "${with_termcap+set}" = set; then
 
 fi
 
+# added by cal
+PBX_TERMCAP=-1
 
 
 
@@ -42144,6 +42146,9 @@ _ACEOF
    fi
 fi
 
+
+# added by cal
+PBX_TERMCAP=-1
 
 
 

@@ -7,15 +7,40 @@ the web tools depend on the apache2, php5, php5-mysql ubuntu packages
 the telephony interface depends on the libdbd-mysql-perl ubuntu package as well as perl
 both of them depend on mysql being installed. Example install command (run as root): 
 
-aptitude install apache2 mysql-client mysql-server libdbd-mysql-perl php5 php5-cli php5-mysql libncurses-dev ncurses-dev
+	aptitude install apache2 mysql-client mysql-server libdbd-mysql-perl php5 php5-cli php5-mysql libncurses-dev ncurses-dev
+
+or for centos 5
+
+	yum install ncurses-devel ncurses glibc zlib php php-cli php-pdo mariadb perl-DBD-mysql
 
 or for centos 7
 
-yum install ncurses ncurses-devel php php-cli php-pdo mariadb perl-DBD-mysql
+	yum install ncurses-libs.i686 glibc.i686 zlib.i686 php php-cli php-pdo mariadb perl-DBD-mysql
 
-(the ncurses packages seem to be required for asterisk to build)
+and some rpm packages for the asterisk 1.4 build on centos 7 (from centos 5 originally)
+
+	rpm -i --nodeps libtermcap-2.0.8-46.1.i386.rpm 
+	rpm -i --nodeps libtermcap-devel-2.0.8-46.1.i386.rpm 
+
+(the glibc/termcap/ncurses packages are required for asterisk to build)
+
+Even with this check that /usr/lib/libtermcap.so is a valid link. For asterisk 1.6 on centos 7 I had 
+to run configure with an explicit environment variable to get it to work:
+
+	TERMCAP_LIB=/usr/lib/libtermcap.so ./configure --prefix=/usr/local/asterisk-1.6
+
+Also for asterisk 1.6 it will want libxml2:
+
+	sudo yum install libxml2.i686 libxml2-devel.i686
+
+To force 32 bit a build makeopts in the asterisk build directory needed to be changed. See the 
+makeopts.example files for what was changed. This avoids errors when asterisk starts:
+
+	asterisk/lib/asterisk/modules/func_devstate.so: wrong ELF class: ELFCLASS64
+
+
 
 See the asterisk-common/README and telephony/README for details on installing the asterisk
 server and web tools/agi interface respectively. See the CRON file for various crontabs used
 by different servers. The system will mostly work without any cron jobs except that boxes
-that are out of service will not get cleaned up. 
+that are out of service will not get cleaned up.p
