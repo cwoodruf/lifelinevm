@@ -1,7 +1,6 @@
 #!/usr/bin/perl
 # purpose of this script is to add an indicator that you have new messages
 use Lifeline;
-use LWP::Simple;
 use File::stat;
 use strict;
 my $ll = Lifeline->init();
