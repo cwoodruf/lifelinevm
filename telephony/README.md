@@ -1,20 +1,8 @@
-dialogic: 
+# dialogic 
 
-This is the legacy dialogic software for Lifeline. It was designed to run on old 286, 386 and 486 systems.
-This will only work with the old D/41d, Dialog/4, Proline/2v etc cards that used the old dialogic api.
-The dialogic driver software that we used ran on DOS and the Windows 98 family of operating (somewhat) 
-systems. The application is quite stable on these old systems and can be left running for months on
-end. 
+This is the legacy dialogic software for Lifeline. 
 
-However ... the source code is pretty messy and was going to be refactored into modules but at that 
-point the hardware was already obsolete. It was developed with MSVC++ version 1.5.
-
-While the hardware may be obsolete it can still be bought on ebay. Finding computers with ISA slots
-is getting more difficult unless you want to spend a great deal of money to get one built.
-
-An emulation layer for this old dialogic API would probably be a useful project at some point.
-
-asterisk-1.4, asterisk-1.6:
+# asterisk-1.4, asterisk-1.6:
 
 This is a reference build of asterisk that is known to work. Its identical to asterisk but contain
 the apps/app_recordkeys.c (RecordKeys) asterisk application that can branch based on used input
@@ -29,6 +17,8 @@ people who are not comfortable working with IVR systems.
 
 I am running asterisk as the user asterisk in its own tree. I gave the asterisk user sudo 
 privelages (added the sudo group to the user with "usermod --append -G sudo asterisk" run as root).
+
+## Building Asterisk
 
 The commands used to make the versions of asterisk were:
 
@@ -64,7 +54,7 @@ su -c /usr/local/asterisk-1.4/sbin/asterisk asterisk
 This syntax ensures that the asterisk server is run as asterisk. If you are using the symlink
 you may want to change /usr/local/asterisk-1.4 to /usr/local/asterisk.
 
-Other notes:
+## Other notes:
 
 * The "--enable-dev-mode" option is not essential.
 
