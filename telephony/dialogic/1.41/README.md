@@ -1,7 +1,7 @@
 # Legacy C Application
 
 This is the original lifeline dialogic api C application. 
-The basic backbone of the program is in the ansrvar.c file. 
+The basic backbone of the program is in the ANSRVAR.H file. 
 This contains the basic map of states. State transitions are
 handled via specialized C functions. Each state uses two 
 functions: one to initiate the state - i.e. interact with 
@@ -35,3 +35,8 @@ program in about 2 weeks. The business model was redesigned to use
 a web interface that completely automated sales and billing for
 organizations. 
 
+## Notes
+
+- This was built using MS C++
+- Files starting LL are utility programs, data file repair etc.
+- There is a suite of tools for recording and managing prompts
