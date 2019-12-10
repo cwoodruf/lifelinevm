@@ -1,7 +1,7 @@
-= Legacy C Application =
+# Legacy C Application
 
 This is the original lifeline dialogic api C application. 
-The basic backbone of the program is in the ansrvars.c file. 
+The basic backbone of the program is in the ansrvar.c file. 
 This contains the basic map of states. State transitions are
 handled via specialized C functions. Each state uses two 
 functions: one to initiate the state - i.e. interact with 
