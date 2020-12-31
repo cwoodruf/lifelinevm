@@ -6,7 +6,7 @@ This is the legacy dialogic software for Lifeline.
 
 This is a reference build of asterisk that is known to work. Its identical to asterisk but contain
 the apps/app_recordkeys.c (RecordKeys) asterisk application that can branch based on used input
-while recording. RecordKeys is not part of the current asterisk distribution but I have send along
+while recording. RecordKeys is not part of the current asterisk distribution but I have sent along
 a patch: https://issues.asterisk.org/view.php?id=17487
 
 This version of RecordKeys also differs from Record in that it does not automatically delete 
